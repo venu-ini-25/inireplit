@@ -1,43 +1,11 @@
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
-  LineChart, Line, ReferenceLine
+  ReferenceLine
 } from "recharts";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { TrendingUp, DollarSign, Target, Users } from "lucide-react";
-
-const arrBridge = [
-  { name: "Open ARR", value: 8200, type: "base" },
-  { name: "New Logos", value: 1840, type: "pos" },
-  { name: "Expansion", value: 920, type: "pos" },
-  { name: "Contraction", value: -380, type: "neg" },
-  { name: "Churn", value: -480, type: "neg" },
-  { name: "Close ARR", value: 10100, type: "base" },
-];
-
-const pipeline = [
-  { stage: "Prospecting", count: 124, value: 4800 },
-  { stage: "Qualified", count: 68, value: 3200 },
-  { stage: "Demo/Eval", count: 41, value: 2400 },
-  { stage: "Proposal", count: 22, value: 1800 },
-  { stage: "Negotiation", count: 11, value: 1200 },
-  { stage: "Closed Won", count: 8, value: 960 },
-];
-
-const bookings = [
-  { month: "Jan", quota: 600, actual: 520 },
-  { month: "Feb", quota: 650, actual: 640 },
-  { month: "Mar", quota: 700, actual: 760 },
-  { month: "Apr", quota: 750, actual: 710 },
-  { month: "May", quota: 800, actual: 840 },
-  { month: "Jun", quota: 850, actual: 900 },
-  { month: "Jul", quota: 900, actual: 870 },
-  { month: "Aug", quota: 950, actual: 980 },
-  { month: "Sep", quota: 1000, actual: 1080 },
-  { month: "Oct", quota: 1050, actual: 1020 },
-  { month: "Nov", quota: 1100, actual: 1180 },
-  { month: "Dec", quota: 1150, actual: 1240 },
-];
+import { useGetSalesMetrics } from "@workspace/api-client-react";
 
 const deals = [
   { company: "Meridian Analytics", stage: "Negotiation", arr: "$280K", owner: "J. Park", close: "Dec 31", score: 82 },
@@ -46,13 +14,6 @@ const deals = [
   { company: "Granite Hill Family Office", stage: "Qualified", arr: "$560K", owner: "J. Park", close: "Feb 10", score: 58 },
   { company: "Strata Ventures", stage: "Proposal", arr: "$240K", owner: "M. Liu", close: "Jan 20", score: 77 },
   { company: "ClearPath Capital", stage: "Negotiation", arr: "$380K", owner: "S. Chen", close: "Dec 28", score: 88 },
-];
-
-const acvBySegment = [
-  { segment: "Enterprise (500+ seats)", acv: 420 },
-  { segment: "Mid-Market (100–499)", acv: 185 },
-  { segment: "SMB (10–99)", acv: 42 },
-  { segment: "Self-Serve (<10)", acv: 8 },
 ];
 
 const stageColor: Record<string, string> = {
@@ -65,6 +26,13 @@ const stageColor: Record<string, string> = {
 };
 
 export default function Sales() {
+  const { data, isLoading } = useGetSalesMetrics();
+
+  const arrBridge = data?.arrBridge ?? [];
+  const pipeline = data?.pipeline ?? [];
+  const bookings = data?.bookings ?? [];
+  const acvBySegment = data?.acvBySegment ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -73,10 +41,10 @@ export default function Sales() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="ARR (Close)" value="$10.1M" change={23.2} changeLabel="vs Open ARR" icon={<TrendingUp className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
-        <KpiCard title="Total Pipeline" value="$14.4M" change={31.5} changeLabel="QoQ" icon={<DollarSign className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
-        <KpiCard title="Quota Attainment" value="108%" change={8.0} changeLabel="vs quota" icon={<Target className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
-        <KpiCard title="Active Reps" value="7" subtitle="Avg $1.44M ARR/rep" icon={<Users className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
+        <KpiCard title="ARR (Close)" value={data ? `$${(data.totalBookingsK / 1000).toFixed(1)}M` : "—"} change={23.2} changeLabel="vs Open ARR" icon={<TrendingUp className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
+        <KpiCard title="Avg Deal Size" value={data ? `$${data.avgDealSizeK}K` : "—"} change={14.5} changeLabel="QoQ" icon={<DollarSign className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
+        <KpiCard title="Quota Attainment" value={data ? `${data.quotaAttainmentPct}%` : "—"} change={8.0} changeLabel="vs quota" icon={<Target className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
+        <KpiCard title="Win Rate" value={data ? `${data.winRatePct}%` : "—"} subtitle="Qualified opportunities" icon={<Users className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -116,13 +84,13 @@ export default function Sales() {
         </ChartCard>
       </div>
 
-      <ChartCard title="ACV by Customer Segment" subtitle="Average Contract Value ($K) by company size">
+      <ChartCard title="ACV by Customer Segment" subtitle="Average Contract Value by segment">
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={acvBySegment} layout="vertical" barSize={18}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-            <XAxis type="number" tickFormatter={(v) => `$${v}K`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="segment" width={160} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-            <Tooltip formatter={(v: number) => [`$${v}K`, "ACV"]} />
+            <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="segment" width={120} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(v: number) => [`$${(v / 1000).toFixed(0)}K`, "ACV"]} />
             <Bar dataKey="acv" radius={[0, 4, 4, 0]}>
               {acvBySegment.map((d, i) => (
                 <Cell key={i} fill={["#2563EB", "#7C3AED", "#0891B2", "#94A3B8"][i]} />
@@ -148,7 +116,7 @@ export default function Sales() {
                 <div className="text-right">
                   <div className="text-sm font-bold text-slate-800">${s.value.toLocaleString()}K</div>
                   <div className="w-24 h-1.5 bg-slate-100 rounded mt-1">
-                    <div className="h-1.5 bg-primary rounded" style={{ width: `${(s.value / 4800) * 100}%` }} />
+                    <div className="h-1.5 bg-primary rounded" style={{ width: `${(s.value / (pipeline[0]?.value ?? 1)) * 100}%` }} />
                   </div>
                 </div>
               </div>

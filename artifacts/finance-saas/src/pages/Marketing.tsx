@@ -1,47 +1,20 @@
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
-  LineChart, Line, PieChart, Pie
+  PieChart, Pie
 } from "recharts";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { Target, TrendingUp, MousePointer, BarChart2 } from "lucide-react";
-
-const cacByChannel = [
-  { channel: "Organic / SEO", cac: 420, leads: 340, color: "#22C55E" },
-  { channel: "Content / Blog", cac: 580, leads: 210, color: "#2563EB" },
-  { channel: "Paid Search", cac: 1240, leads: 480, color: "#EF4444" },
-  { channel: "Social Ads", cac: 980, leads: 290, color: "#D97706" },
-  { channel: "Webinars", cac: 720, leads: 160, color: "#7C3AED" },
-  { channel: "Partner Referral", cac: 380, leads: 120, color: "#0891B2" },
-];
-
-const leadFunnel = [
-  { stage: "Website Visits", value: 48200 },
-  { stage: "MQL", value: 1600 },
-  { stage: "SQL", value: 480 },
-  { stage: "Opportunity", value: 192 },
-  { stage: "Closed Won", value: 64 },
-];
-
-const campaigns = [
-  { name: "Q4 ABM Campaign", channel: "Email", spend: 12000, leads: 184, pipeline: 820000, roi: "6.8x" },
-  { name: "Finance Summit Sponsorship", channel: "Event", spend: 25000, leads: 96, pipeline: 640000, roi: "2.6x" },
-  { name: "CFO Playbook Content", channel: "Content", spend: 8000, leads: 210, pipeline: 440000, roi: "5.5x" },
-  { name: "Google Ads — FinanceSaaS", channel: "Paid Search", spend: 18000, leads: 380, pipeline: 560000, roi: "3.1x" },
-  { name: "LinkedIn Retargeting", channel: "Social", spend: 9000, leads: 142, pipeline: 320000, roi: "3.6x" },
-  { name: "Partner Co-Marketing", channel: "Partner", spend: 6000, leads: 88, pipeline: 290000, roi: "4.8x" },
-];
-
-const attribution = [
-  { name: "Organic / SEO", value: 28, color: "#22C55E" },
-  { name: "Paid Search", value: 24, color: "#EF4444" },
-  { name: "Content", value: 19, color: "#2563EB" },
-  { name: "Social", value: 14, color: "#D97706" },
-  { name: "Events", value: 9, color: "#7C3AED" },
-  { name: "Partner", value: 6, color: "#0891B2" },
-];
+import { useGetMarketingMetrics } from "@workspace/api-client-react";
 
 export default function Marketing() {
+  const { data, isLoading } = useGetMarketingMetrics();
+
+  const cacByChannel = data?.cacByChannel ?? [];
+  const leadFunnel = data?.leadFunnel ?? [];
+  const campaigns = data?.campaigns ?? [];
+  const attribution = data?.attribution ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -50,10 +23,10 @@ export default function Marketing() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total MQLs" value="1,600" change={28.0} changeLabel="QoQ" icon={<MousePointer className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
-        <KpiCard title="Blended CAC" value="$740" change={-12.4} changeLabel="QoQ" isPositiveGood={false} icon={<Target className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
-        <KpiCard title="Marketing Pipeline" value="$3.1M" change={41.2} changeLabel="QoQ" icon={<BarChart2 className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
-        <KpiCard title="Avg Campaign ROI" value="4.4x" change={18.9} changeLabel="QoQ" icon={<TrendingUp className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
+        <KpiCard title="Total MQLs" value={data ? data.totalMQLs.toLocaleString() : "—"} change={28.0} changeLabel="QoQ" icon={<MousePointer className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
+        <KpiCard title="Blended CAC" value={data ? `$${data.blendedCAC}` : "—"} change={-12.4} changeLabel="QoQ" isPositiveGood={false} icon={<Target className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
+        <KpiCard title="Marketing Pipeline" value={data ? `$${data.marketingPipelineM}M` : "—"} change={41.2} changeLabel="QoQ" icon={<BarChart2 className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
+        <KpiCard title="Avg Campaign ROI" value={data?.avgCampaignROI ?? "—"} change={18.9} changeLabel="QoQ" icon={<TrendingUp className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -100,7 +73,7 @@ export default function Marketing() {
         </div>
         <div className="px-6 py-4 flex items-center gap-3">
           {leadFunnel.map((stage, i) => {
-            const pct = i === 0 ? 100 : Math.round((stage.value / leadFunnel[0].value) * 100);
+            const pct = i === 0 ? 100 : Math.round((stage.value / (leadFunnel[0]?.value ?? 1)) * 100);
             return (
               <div key={i} className="flex-1">
                 <div className="text-xs text-muted-foreground mb-1">{stage.stage}</div>
@@ -111,7 +84,7 @@ export default function Marketing() {
                 <div className="text-xs text-muted-foreground mt-1 text-center">{pct}%</div>
                 {i < leadFunnel.length - 1 && (
                   <div className="text-xs text-muted-foreground text-center">
-                    → {Math.round((leadFunnel[i + 1].value / stage.value) * 100)}% conv.
+                    → {Math.round(((leadFunnel[i + 1]?.value ?? 0) / (stage.value || 1)) * 100)}% conv.
                   </div>
                 )}
               </div>
@@ -138,18 +111,25 @@ export default function Marketing() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {campaigns.map((c, i) => (
-                <tr key={i} className="hover:bg-slate-50/50">
-                  <td className="px-6 py-3 font-medium text-slate-800">{c.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-primary">{c.channel}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-xs font-mono">${c.spend.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-xs font-mono">{c.leads}</td>
-                  <td className="px-4 py-3 text-right text-xs font-mono">${(c.pipeline / 1000).toFixed(0)}K</td>
-                  <td className="px-4 py-3 text-right font-semibold text-success text-sm">{c.roi}</td>
-                </tr>
-              ))}
+              {isLoading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i}>
+                      {[1,2,3,4,5,6].map(j => <td key={j} className="px-4 py-3"><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>)}
+                    </tr>
+                  ))
+                : campaigns.map((c, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-3 font-medium text-slate-800">{c.name}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-primary">{c.channel}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs font-mono">${c.spend.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-xs font-mono">{c.leads}</td>
+                      <td className="px-4 py-3 text-right text-xs font-mono">${(c.pipeline / 1000).toFixed(0)}K</td>
+                      <td className="px-4 py-3 text-right font-semibold text-success text-sm">{c.roi}</td>
+                    </tr>
+                  ))
+              }
             </tbody>
           </table>
         </div>

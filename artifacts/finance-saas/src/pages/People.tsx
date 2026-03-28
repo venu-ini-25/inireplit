@@ -1,43 +1,11 @@
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
-  LineChart, Line, PieChart, Pie, Legend
+  PieChart, Pie, Legend
 } from "recharts";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { Users, TrendingDown, DollarSign, Briefcase } from "lucide-react";
-
-const headcountByDept = [
-  { dept: "Engineering", hc: 34, color: "#2563EB" },
-  { dept: "Sales", hc: 18, color: "#22C55E" },
-  { dept: "Marketing", hc: 10, color: "#7C3AED" },
-  { dept: "G&A", hc: 12, color: "#D97706" },
-  { dept: "Product", hc: 11, color: "#0891B2" },
-  { dept: "Support", hc: 4, color: "#64748B" },
-];
-
-const hiringPlan = [
-  { month: "Jan", actual: 3, plan: 4 },
-  { month: "Feb", actual: 4, plan: 4 },
-  { month: "Mar", actual: 5, plan: 5 },
-  { month: "Apr", actual: 3, plan: 4 },
-  { month: "May", actual: 6, plan: 5 },
-  { month: "Jun", actual: 5, plan: 6 },
-  { month: "Jul", actual: 4, plan: 5 },
-  { month: "Aug", actual: 7, plan: 6 },
-  { month: "Sep", actual: 4, plan: 5 },
-  { month: "Oct", actual: 5, plan: 5 },
-  { month: "Nov", actual: 6, plan: 6 },
-  { month: "Dec", actual: 7, plan: 6 },
-];
-
-const attrition = [
-  { dept: "Engineering", rate: 8.2 },
-  { dept: "Sales", rate: 14.6 },
-  { dept: "Marketing", rate: 10.1 },
-  { dept: "G&A", rate: 6.4 },
-  { dept: "Product", rate: 7.8 },
-  { dept: "Support", rate: 16.2 },
-];
+import { useGetPeopleMetrics } from "@workspace/api-client-react";
 
 const openRoles = [
   { role: "Senior Software Engineer", dept: "Engineering", level: "IC5", comp: "$180K–$220K", status: "Interviewing", days: 28 },
@@ -49,15 +17,6 @@ const openRoles = [
   { role: "VP of Engineering", dept: "Engineering", level: "VP", comp: "$240K–$290K", status: "Searching", days: 64 },
 ];
 
-const compBreakdown = [
-  { dept: "Engineering", base: 165, bonus: 18, equity: 42 },
-  { dept: "Sales", base: 95, bonus: 48, equity: 22 },
-  { dept: "Marketing", base: 118, bonus: 20, equity: 15 },
-  { dept: "G&A", base: 132, bonus: 16, equity: 12 },
-  { dept: "Product", base: 145, bonus: 18, equity: 30 },
-  { dept: "Support", base: 82, bonus: 10, equity: 8 },
-];
-
 const statusColor: Record<string, string> = {
   "Searching": "bg-slate-100 text-slate-600",
   "Screening": "bg-blue-50 text-primary",
@@ -67,6 +26,18 @@ const statusColor: Record<string, string> = {
 };
 
 export default function People() {
+  const { data, isLoading } = useGetPeopleMetrics();
+
+  const headcountByDept = data?.headcountByDept ?? [];
+  const hiringPlan = data?.hiringPlan ?? [];
+  const attrition = data?.attrition ?? [];
+  const compBreakdown = (data?.compensation ?? []).map((c) => ({
+    dept: c.dept,
+    base: Math.round(c.salary / 1000),
+    bonus: Math.round(c.bonus / 1000),
+    equity: Math.round(c.equity / 1000),
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -75,14 +46,14 @@ export default function People() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Headcount" value="89" change={21.9} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
-        <KpiCard title="YTD Attrition" value="9.8%" change={-2.1} changeLabel="vs last year" isPositiveGood={false} icon={<TrendingDown className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
-        <KpiCard title="Avg Total Comp" value="$148K" change={6.4} changeLabel="YoY" icon={<DollarSign className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
-        <KpiCard title="Open Roles" value="7" subtitle="Target: fill by Q1 2025" icon={<Briefcase className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
+        <KpiCard title="Total Headcount" value={data ? String(data.totalHeadcount) : "—"} change={21.9} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
+        <KpiCard title="YTD Attrition" value={data ? `${data.attritionRatePct}%` : "—"} change={-2.1} changeLabel="vs last year" isPositiveGood={false} icon={<TrendingDown className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
+        <KpiCard title="Avg Tenure" value={data ? `${data.avgTenureMonths} months` : "—"} change={6.4} changeLabel="YoY" icon={<DollarSign className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
+        <KpiCard title="Open Roles" value={data ? String(data.openRoles) : "—"} subtitle="Target: fill by Q1 2025" icon={<Briefcase className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <ChartCard title="Headcount by Department" subtitle="Current distribution — 89 employees">
+        <ChartCard title="Headcount by Department" subtitle={data ? `Current distribution — ${data.totalHeadcount} employees` : "Current distribution"}>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={headcountByDept} cx="50%" cy="50%" outerRadius={80} dataKey="hc" nameKey="dept">
@@ -156,7 +127,7 @@ export default function People() {
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-slate-800">Open Roles</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">7 positions — updated Dec 28, 2024</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{openRoles.length} positions — updated Dec 28, 2024</p>
             </div>
             <button className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-md hover:bg-primary/90">
               + Add Role

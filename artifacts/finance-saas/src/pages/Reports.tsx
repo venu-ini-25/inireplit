@@ -5,7 +5,7 @@ import { FilterBar } from "@/components/ui/FilterBar";
 import { ChartCard } from "@/components/ui/ChartCard";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 
 const benchmarkData = [
@@ -27,7 +27,14 @@ const radarData = [
 ];
 
 const CATEGORIES = ["All Reports", "Financial", "Operational", "Portfolio", "M&A"];
-const STATUSES = ["All Statuses", "completed", "processing", "draft"];
+const STATUSES = ["All Statuses", "draft", "ready", "published", "archived"];
+
+const STATUS_STYLES: Record<string, string> = {
+  published: "bg-green-100 text-green-700",
+  ready: "bg-blue-100 text-blue-700",
+  draft: "bg-amber-100 text-amber-700",
+  archived: "bg-slate-100 text-slate-500",
+};
 
 export default function Reports() {
   const { data: reports, isLoading } = useGetReports();
@@ -54,7 +61,6 @@ export default function Reports() {
         </button>
       </div>
 
-      {/* Benchmark section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ChartCard title="Performance vs Peers" subtitle="iNi portfolio vs SaaS peer median (indexed)">
           <ResponsiveContainer width="100%" height={220}>
@@ -98,9 +104,8 @@ export default function Reports() {
         </ChartCard>
       </div>
 
-      {/* Report list */}
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between gap-4 bg-slate-50/50">
+        <div className="p-4 border-b border-border flex items-center justify-between gap-4 bg-slate-50/50 flex-wrap">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -121,7 +126,7 @@ export default function Reports() {
               <th className="px-6 py-4">Report Name</th>
               <th className="px-6 py-4">Type</th>
               <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Date Generated</th>
+              <th className="px-6 py-4">Date Created</th>
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -145,19 +150,19 @@ export default function Reports() {
                     </div>
                     <div>
                       <p className="font-medium text-slate-900">{report.title}</p>
-                      <p className="text-xs text-muted-foreground">{report.companyId}</p>
+                      <p className="text-xs text-muted-foreground">{report.companyName}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">{report.type}</span>
+                  <span className="px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">{report.type.replace(/_/g, " ")}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                    report.status === "completed" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-                  }`}>{report.status}</span>
+                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full capitalize ${STATUS_STYLES[report.status] ?? "bg-slate-100 text-slate-600"}`}>
+                    {report.status}
+                  </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-600">{new Date(report.generatedAt).toLocaleDateString()}</td>
+                <td className="px-6 py-4 text-sm text-slate-600">{new Date(report.createdAt).toLocaleDateString()}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-2 text-muted-foreground">
                     <button className="p-1.5 hover:text-primary hover:bg-blue-50 rounded transition-colors" title="Download"><Download className="w-4 h-4" /></button>

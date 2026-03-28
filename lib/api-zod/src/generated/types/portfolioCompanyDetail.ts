@@ -8,6 +8,7 @@
 import type { CapTableEntry } from "./capTableEntry";
 import type { CompanyFinancials } from "./companyFinancials";
 import type { KpiMetric } from "./kpiMetric";
+import type { TrendPoint } from "./trendPoint";
 
 export interface PortfolioCompanyDetail {
   id: string;
@@ -23,7 +24,18 @@ export interface PortfolioCompanyDetail {
   dataVerified: boolean;
   ndaSigned: boolean;
   lastUpdated: string;
+  founded: number;
+  ownership: string;
+  arr: string;
+  arrGrowthPct: number;
+  irr: string;
+  moic: string;
+  lastValDate: string;
+  investors: string[];
   capTable: CapTableEntry[];
   financials: CompanyFinancials;
   kpis: KpiMetric[];
+  arrTrend: TrendPoint[];
+  headcountTrend: TrendPoint[];
+  burnTrend: TrendPoint[];
 }

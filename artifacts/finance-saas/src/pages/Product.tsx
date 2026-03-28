@@ -1,38 +1,11 @@
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  FunnelChart, Funnel, LabelList, Cell
+  Cell
 } from "recharts";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { Users, Star, TrendingDown, Activity } from "lucide-react";
-
-const dau = [
-  { month: "Jan", dau: 4200, mau: 18400 }, { month: "Feb", dau: 4800, mau: 19200 },
-  { month: "Mar", dau: 5100, mau: 20100 }, { month: "Apr", dau: 5600, mau: 21400 },
-  { month: "May", dau: 6100, mau: 22800 }, { month: "Jun", dau: 6800, mau: 24200 },
-  { month: "Jul", dau: 7200, mau: 25600 }, { month: "Aug", dau: 7600, mau: 26900 },
-  { month: "Sep", dau: 8100, mau: 28400 }, { month: "Oct", dau: 8700, mau: 30100 },
-  { month: "Nov", dau: 9200, mau: 31800 }, { month: "Dec", dau: 9800, mau: 33400 },
-];
-
-const featureAdoption = [
-  { feature: "Cash Flow Dashboard", adoption: 84 },
-  { feature: "Portfolio Analytics", adoption: 76 },
-  { feature: "M&A Deal Tracker", adoption: 61 },
-  { feature: "Expense Reports", adoption: 58 },
-  { feature: "Benchmark Compare", adoption: 47 },
-  { feature: "AI Insights", adoption: 39 },
-  { feature: "Data Export", adoption: 33 },
-];
-
-const churnWaterfall = [
-  { name: "Start", value: 312, type: "base" },
-  { name: "New", value: 48, type: "pos" },
-  { name: "Expansion", value: 22, type: "pos" },
-  { name: "Contraction", value: -14, type: "neg" },
-  { name: "Churned", value: -19, type: "neg" },
-  { name: "End", value: 349, type: "base" },
-];
+import { useGetProductMetrics } from "@workspace/api-client-react";
 
 const cohorts = [
   { cohort: "Jan '24", m0: "100%", m1: "88%", m2: "79%", m3: "74%", m6: "68%", m12: "61%" },
@@ -51,6 +24,12 @@ const colorByPct = (v: string) => {
 };
 
 export default function Product() {
+  const { data, isLoading } = useGetProductMetrics();
+
+  const engagementTrend = data?.engagementTrend ?? [];
+  const featureAdoption = data?.featureAdoption ?? [];
+  const churnWaterfall = data?.churnWaterfall ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -59,16 +38,16 @@ export default function Product() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="DAU" value="9,800" change={133} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
-        <KpiCard title="MAU" value="33,400" change={81.5} changeLabel="YoY" icon={<Activity className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
+        <KpiCard title="DAU" value={data ? data.dauCount.toLocaleString() : "—"} change={133} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
+        <KpiCard title="MAU" value={data ? data.mauCount.toLocaleString() : "—"} change={81.5} changeLabel="YoY" icon={<Activity className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
         <KpiCard title="NPS Score" value="62" change={14.8} changeLabel="vs last quarter" icon={<Star className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
-        <KpiCard title="Logo Churn" value="5.4%" change={-1.8} changeLabel="YoY" isPositiveGood={false} icon={<TrendingDown className="w-4 h-4" />} iconBg="bg-red-50 text-destructive" />
+        <KpiCard title="Logo Churn" value={data ? `${data.churnRatePct}%` : "—"} change={-1.8} changeLabel="YoY" isPositiveGood={false} icon={<TrendingDown className="w-4 h-4" />} iconBg="bg-red-50 text-destructive" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ChartCard title="DAU / MAU Trend" subtitle="Daily and monthly active users — 2024">
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={dau}>
+            <LineChart data={engagementTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />

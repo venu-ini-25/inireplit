@@ -9,6 +9,97 @@ import {
 
 const router: IRouter = Router();
 
+const QUARTERS = ["Q1 '23", "Q2 '23", "Q3 '23", "Q4 '23", "Q1 '24", "Q2 '24", "Q3 '24", "Q4 '24"];
+
+function makeTrend(start: number, end: number) {
+  return QUARTERS.map((q, i) => ({
+    q,
+    v: parseFloat((start + ((end - start) * i) / (QUARTERS.length - 1)).toFixed(2)),
+  }));
+}
+
+const COMPANY_EXTRAS: Record<string, {
+  founded: number; ownership: string; arr: string; arrGrowthPct: number;
+  irr: string; moic: string; lastValDate: string;
+  investors: string[];
+  arrTrend: { q: string; v: number }[];
+  headcountTrend: { q: string; v: number }[];
+  burnTrend: { q: string; v: number }[];
+}> = {
+  co_001: {
+    founded: 2019, ownership: "18.5%", arr: "$8.4M", arrGrowthPct: 94,
+    irr: "31.2%", moic: "2.4x", lastValDate: "Oct 2024",
+    investors: ["Sequoia Capital", "Andreessen Horowitz", "iNi Capital"],
+    arrTrend: makeTrend(1.2, 8.4),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 30 + i * 9 })),
+    burnTrend: [
+      { q: "Q1 '23", v: 1.4 }, { q: "Q2 '23", v: 1.6 }, { q: "Q3 '23", v: 1.8 },
+      { q: "Q4 '23", v: 2.0 }, { q: "Q1 '24", v: 1.9 }, { q: "Q2 '24", v: 1.7 },
+      { q: "Q3 '24", v: 1.4 }, { q: "Q4 '24", v: 1.1 },
+    ],
+  },
+  co_002: {
+    founded: 2021, ownership: "22.0%", arr: "$3.2M", arrGrowthPct: 72,
+    irr: "24.8%", moic: "1.9x", lastValDate: "Sep 2024",
+    investors: ["Bessemer Ventures", "iNi Capital", "500 Startups"],
+    arrTrend: makeTrend(0.5, 3.2),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 14 + i * 4 })),
+    burnTrend: QUARTERS.map((q, i) => ({ q, v: parseFloat((0.5 + i * 0.1).toFixed(2)) })),
+  },
+  co_003: {
+    founded: 2020, ownership: "15.2%", arr: "$5.1M", arrGrowthPct: 31,
+    irr: "18.4%", moic: "1.6x", lastValDate: "Jul 2024",
+    investors: ["General Catalyst", "iNi Capital"],
+    arrTrend: makeTrend(1.8, 5.1),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 30 + i * 6 })),
+    burnTrend: QUARTERS.map((q, i) => ({ q, v: parseFloat((0.8 + i * 0.08).toFixed(2)) })),
+  },
+  co_004: {
+    founded: 2020, ownership: "22.3%", arr: "$12.8M", arrGrowthPct: 142,
+    irr: "28.4%", moic: "3.1x", lastValDate: "Aug 2024",
+    investors: ["Tiger Global", "Bessemer Ventures", "iNi Capital"],
+    arrTrend: makeTrend(1.8, 12.8),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 22 + i * 15 })),
+    burnTrend: [
+      { q: "Q1 '23", v: 0.8 }, { q: "Q2 '23", v: 1.0 }, { q: "Q3 '23", v: 1.2 },
+      { q: "Q4 '23", v: 1.4 }, { q: "Q1 '24", v: 1.6 }, { q: "Q2 '24", v: 1.5 },
+      { q: "Q3 '24", v: 1.2 }, { q: "Q4 '24", v: 0.9 },
+    ],
+  },
+  co_005: {
+    founded: 2016, ownership: "9.8%", arr: "$22.5M", arrGrowthPct: 19,
+    irr: "22.1%", moic: "2.8x", lastValDate: "Nov 2024",
+    investors: ["KKR", "Vista Equity", "iNi Capital"],
+    arrTrend: makeTrend(13.0, 22.5),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 160 + i * 7 })),
+    burnTrend: QUARTERS.map((q, i) => ({ q, v: parseFloat((2.5 - i * 0.05).toFixed(2)) })),
+  },
+  co_006: {
+    founded: 2022, ownership: "18.0%", arr: "$2.9M", arrGrowthPct: 43,
+    irr: "21.6%", moic: "1.5x", lastValDate: "Jun 2024",
+    investors: ["YCombinator", "iNi Capital"],
+    arrTrend: makeTrend(0.8, 2.9),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 12 + i * 3 })),
+    burnTrend: QUARTERS.map((q, i) => ({ q, v: parseFloat((0.4 + i * 0.05).toFixed(2)) })),
+  },
+  co_007: {
+    founded: 2023, ownership: "25.0%", arr: "$0.8M", arrGrowthPct: 95,
+    irr: "N/A%", moic: "1.2x", lastValDate: "Oct 2024",
+    investors: ["SV Angel", "iNi Capital"],
+    arrTrend: makeTrend(0.1, 0.8),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 6 + i * 2 })),
+    burnTrend: QUARTERS.map((q, i) => ({ q, v: parseFloat((0.15 + i * 0.03).toFixed(2)) })),
+  },
+  co_008: {
+    founded: 2017, ownership: "7.4%", arr: "$38.0M", arrGrowthPct: 27,
+    irr: "34.8%", moic: "4.2x", lastValDate: "Dec 2024",
+    investors: ["Insight Partners", "CRV", "iNi Capital"],
+    arrTrend: makeTrend(22.0, 38.0),
+    headcountTrend: QUARTERS.map((q, i) => ({ q, v: 220 + i * 13 })),
+    burnTrend: QUARTERS.map((q, i) => ({ q, v: parseFloat((4.0 - i * 0.15).toFixed(2)) })),
+  },
+};
+
 const COMPANIES = [
   {
     id: "co_001",
@@ -24,7 +115,7 @@ const COMPANIES = [
     dataVerified: true,
     ndaSigned: true,
     lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
   {
     id: "co_002",
@@ -40,7 +131,7 @@ const COMPANIES = [
     dataVerified: true,
     ndaSigned: true,
     lastUpdated: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
   {
     id: "co_003",
@@ -56,7 +147,7 @@ const COMPANIES = [
     dataVerified: false,
     ndaSigned: true,
     lastUpdated: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
   {
     id: "co_004",
@@ -72,7 +163,7 @@ const COMPANIES = [
     dataVerified: true,
     ndaSigned: true,
     lastUpdated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
   {
     id: "co_005",
@@ -88,7 +179,7 @@ const COMPANIES = [
     dataVerified: true,
     ndaSigned: true,
     lastUpdated: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
   {
     id: "co_006",
@@ -104,7 +195,7 @@ const COMPANIES = [
     dataVerified: false,
     ndaSigned: false,
     lastUpdated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
   {
     id: "co_007",
@@ -120,7 +211,7 @@ const COMPANIES = [
     dataVerified: false,
     ndaSigned: true,
     lastUpdated: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
   {
     id: "co_008",
@@ -136,7 +227,7 @@ const COMPANIES = [
     dataVerified: true,
     ndaSigned: true,
     lastUpdated: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: null,
+    logo: "",
   },
 ];
 
@@ -162,13 +253,26 @@ router.get("/portfolio/companies", (_req, res) => {
 
 router.get("/portfolio/companies/:id", (req, res) => {
   const company = COMPANIES.find((c) => c.id === req.params.id) || COMPANIES[0];
+  const extras = COMPANY_EXTRAS[company.id] || COMPANY_EXTRAS["co_001"];
+
   const data = GetPortfolioCompanyResponse.parse({
     ...company,
+    founded: extras.founded,
+    ownership: extras.ownership,
+    arr: extras.arr,
+    arrGrowthPct: extras.arrGrowthPct,
+    irr: extras.irr,
+    moic: extras.moic,
+    lastValDate: extras.lastValDate,
+    investors: extras.investors,
+    arrTrend: extras.arrTrend,
+    headcountTrend: extras.headcountTrend,
+    burnTrend: extras.burnTrend,
     capTable: [
       { investor: "Founders", shares: 4200000, percentage: 42.0, shareClass: "Common", investmentAmount: 0 },
       { investor: "iNi Capital", shares: 1800000, percentage: 18.0, shareClass: "Series B Preferred", investmentAmount: 12000000 },
-      { investor: "Sequoia Capital", shares: 1500000, percentage: 15.0, shareClass: "Series B Preferred", investmentAmount: 9800000 },
-      { investor: "Andreessen Horowitz", shares: 1000000, percentage: 10.0, shareClass: "Series A Preferred", investmentAmount: 5000000 },
+      { investor: extras.investors[0] || "Sequoia Capital", shares: 1500000, percentage: 15.0, shareClass: "Series B Preferred", investmentAmount: 9800000 },
+      { investor: extras.investors[1] || "Andreessen Horowitz", shares: 1000000, percentage: 10.0, shareClass: "Series A Preferred", investmentAmount: 5000000 },
       { investor: "ESOP Pool", shares: 800000, percentage: 8.0, shareClass: "Common", investmentAmount: 0 },
       { investor: "Angel Investors", shares: 700000, percentage: 7.0, shareClass: "Series A Preferred", investmentAmount: 2500000 },
     ],

@@ -1,38 +1,18 @@
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { Users, Flame, Clock, TrendingDown } from "lucide-react";
-
-const headcountTrend = [
-  { month: "Jan", hc: 48 }, { month: "Feb", hc: 52 }, { month: "Mar", hc: 55 },
-  { month: "Apr", hc: 58 }, { month: "May", hc: 62 }, { month: "Jun", hc: 67 },
-  { month: "Jul", hc: 71 }, { month: "Aug", hc: 74 }, { month: "Sep", hc: 78 },
-  { month: "Oct", hc: 82 }, { month: "Nov", hc: 85 }, { month: "Dec", hc: 89 },
-];
-
-const burnRunway = [
-  { month: "Jan", burn: 2.1, runway: 22 }, { month: "Feb", burn: 2.3, runway: 20 },
-  { month: "Mar", burn: 2.4, runway: 19 }, { month: "Apr", burn: 2.6, runway: 18 },
-  { month: "May", burn: 2.7, runway: 18 }, { month: "Jun", burn: 2.9, runway: 17 },
-  { month: "Jul", burn: 3.0, runway: 17 }, { month: "Aug", burn: 3.1, runway: 16 },
-  { month: "Sep", burn: 3.2, runway: 16 }, { month: "Oct", burn: 3.3, runway: 15 },
-  { month: "Nov", burn: 3.4, runway: 15 }, { month: "Dec", burn: 3.5, runway: 14 },
-];
-
-const unitEcon = [
-  { metric: "Revenue per Employee", value: "$287K", prev: "$264K", delta: 8.7, good: true },
-  { metric: "Gross Margin", value: "81.4%", prev: "78.2%", delta: 3.2, good: true },
-  { metric: "CAC Payback Period", value: "14 months", prev: "18 months", delta: -22.2, good: true },
-  { metric: "ARR per Sales Rep", value: "$1.4M", prev: "$1.1M", delta: 27.3, good: true },
-  { metric: "Support Tickets / Employee", value: "4.2", prev: "5.1", delta: -17.6, good: true },
-  { metric: "G&A as % of Revenue", value: "11.2%", prev: "13.8%", delta: -18.8, good: true },
-  { metric: "Net Revenue Retention", value: "118%", prev: "112%", delta: 5.4, good: true },
-  { metric: "Magic Number", value: "1.4x", prev: "1.1x", delta: 27.3, good: true },
-];
+import { useGetOperationsMetrics } from "@workspace/api-client-react";
 
 export default function Operations() {
+  const { data, isLoading } = useGetOperationsMetrics();
+
+  const headcountTrend = data?.headcountTrend ?? [];
+  const burnRunway = data?.burnRunway ?? [];
+  const unitEcon = data?.unitEconomics ?? [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -41,10 +21,10 @@ export default function Operations() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Headcount" value="89" change={21.9} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
-        <KpiCard title="Monthly Burn" value="$3.5M" change={66.7} changeLabel="YoY" isPositiveGood={false} icon={<Flame className="w-4 h-4" />} iconBg="bg-red-50 text-destructive" />
-        <KpiCard title="Cash Runway" value="14 months" subtitle="At current burn" icon={<Clock className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
-        <KpiCard title="Gross Margin" value="81.4%" change={3.2} changeLabel="YoY" icon={<TrendingDown className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
+        <KpiCard title="Total Headcount" value={data ? String(data.totalHeadcount) : "—"} change={21.9} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
+        <KpiCard title="Monthly Burn" value={data ? `$${data.monthlyBurnM}M` : "—"} change={66.7} changeLabel="YoY" isPositiveGood={false} icon={<Flame className="w-4 h-4" />} iconBg="bg-red-50 text-destructive" />
+        <KpiCard title="Cash Runway" value={data ? `${data.cashRunwayMonths} months` : "—"} subtitle="At current burn" icon={<Clock className="w-4 h-4" />} iconBg="bg-amber-50 text-amber-600" />
+        <KpiCard title="Gross Margin" value={data ? `${data.grossMarginPct}%` : "—"} change={3.2} changeLabel="YoY" icon={<TrendingDown className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -91,18 +71,28 @@ export default function Operations() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {unitEcon.map((row, i) => (
-                <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-3 font-medium text-slate-800">{row.metric}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-800">{row.value}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{row.prev}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`font-medium text-xs ${row.delta > 0 && row.good ? "text-success" : row.delta < 0 && row.good ? "text-success" : "text-destructive"}`}>
-                      {row.delta > 0 ? "+" : ""}{row.delta}%
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {isLoading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-6 py-3"><div className="h-4 w-48 bg-slate-100 rounded animate-pulse" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-16 bg-slate-100 rounded animate-pulse ml-auto" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-16 bg-slate-100 rounded animate-pulse ml-auto" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-12 bg-slate-100 rounded animate-pulse ml-auto" /></td>
+                    </tr>
+                  ))
+                : unitEcon.map((row, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-3 font-medium text-slate-800">{row.metric}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-800">{row.value}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">{row.prev}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`font-medium text-xs ${row.good ? "text-success" : "text-destructive"}`}>
+                          {row.delta > 0 ? "+" : ""}{row.delta}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+              }
             </tbody>
           </table>
         </div>

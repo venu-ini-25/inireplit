@@ -60,6 +60,11 @@ export interface PortfolioCompany {
   logo?: string;
 }
 
+export interface TrendPoint {
+  q: string;
+  v: number;
+}
+
 export interface CapTableEntry {
   investor: string;
   shares: number;
@@ -108,9 +113,20 @@ export interface PortfolioCompanyDetail {
   dataVerified: boolean;
   ndaSigned: boolean;
   lastUpdated: string;
+  founded: number;
+  ownership: string;
+  arr: string;
+  arrGrowthPct: number;
+  irr: string;
+  moic: string;
+  lastValDate: string;
+  investors: string[];
   capTable: CapTableEntry[];
   financials: CompanyFinancials;
   kpis: KpiMetric[];
+  arrTrend: TrendPoint[];
+  headcountTrend: TrendPoint[];
+  burnTrend: TrendPoint[];
 }
 
 export interface KpiData {
@@ -176,6 +192,38 @@ export interface Report {
   updatedAt: string;
   sharedWith: number;
   companyName: string;
+}
+
+export interface SpendingCategory {
+  name: string;
+  amount: number;
+  percentage: number;
+  color: string;
+  change: number;
+}
+
+export interface SpendingLineItem {
+  vendor: string;
+  category: string;
+  dept: string;
+  amount: number;
+  status: string;
+  date: string;
+}
+
+export interface SpendingDeptBudget {
+  dept: string;
+  budget: number;
+  actual: number;
+}
+
+export interface SpendingAnalytics {
+  categories: SpendingCategory[];
+  deptBudgets: SpendingDeptBudget[];
+  lineItems: SpendingLineItem[];
+  totalSpending: number;
+  averageDaily: number;
+  topCategory: string;
 }
 
 export type DealDealType = (typeof DealDealType)[keyof typeof DealDealType];
@@ -344,6 +392,202 @@ export interface ServicesOverview {
   engagementsByType: ServiceTypeCount[];
 }
 
+export interface HeadcountPoint {
+  month: string;
+  hc: number;
+}
+
+export interface BurnRunwayPoint {
+  month: string;
+  burn: number;
+  runway: number;
+}
+
+export interface UnitEconomicRow {
+  metric: string;
+  value: string;
+  prev: string;
+  delta: number;
+  good: boolean;
+}
+
+export interface OperationsMetrics {
+  totalHeadcount: number;
+  monthlyBurnM: number;
+  cashRunwayMonths: number;
+  grossMarginPct: number;
+  headcountTrend: HeadcountPoint[];
+  burnRunway: BurnRunwayPoint[];
+  unitEconomics: UnitEconomicRow[];
+}
+
+export interface EngagementTrendPoint {
+  month: string;
+  dau: number;
+  mau: number;
+}
+
+export interface FeatureAdoptionRow {
+  feature: string;
+  adoption: number;
+}
+
+export interface WaterfallBar {
+  name: string;
+  value: number;
+  type: string;
+}
+
+export interface ProductMetrics {
+  dauCount: number;
+  mauCount: number;
+  dauMauRatio: number;
+  churnRatePct: number;
+  engagementTrend: EngagementTrendPoint[];
+  featureAdoption: FeatureAdoptionRow[];
+  churnWaterfall: WaterfallBar[];
+}
+
+export interface ChannelCac {
+  channel: string;
+  cac: number;
+  leads: number;
+  color: string;
+}
+
+export interface LeadFunnelStage {
+  stage: string;
+  value: number;
+}
+
+export interface CampaignRow {
+  name: string;
+  channel: string;
+  spend: number;
+  leads: number;
+  pipeline: number;
+  roi: string;
+}
+
+export interface AttributionSlice {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export interface MarketingMetrics {
+  totalMQLs: number;
+  blendedCAC: number;
+  marketingPipelineM: number;
+  avgCampaignROI: string;
+  cacByChannel: ChannelCac[];
+  leadFunnel: LeadFunnelStage[];
+  campaigns: CampaignRow[];
+  attribution: AttributionSlice[];
+}
+
+export interface ArrBridgeBar {
+  name: string;
+  value: number;
+  type: string;
+}
+
+export interface PipelineStage {
+  stage: string;
+  count: number;
+  value: number;
+}
+
+export interface BookingPoint {
+  month: string;
+  quota: number;
+  actual: number;
+}
+
+export interface AcvSegment {
+  segment: string;
+  acv: number;
+  deals: number;
+}
+
+export interface SalesMetrics {
+  totalBookingsK: number;
+  avgDealSizeK: number;
+  winRatePct: number;
+  quotaAttainmentPct: number;
+  arrBridge: ArrBridgeBar[];
+  pipeline: PipelineStage[];
+  bookings: BookingPoint[];
+  acvBySegment: AcvSegment[];
+}
+
+export interface DeptHeadcount {
+  dept: string;
+  hc: number;
+  color: string;
+}
+
+export interface HiringPoint {
+  month: string;
+  actual: number;
+  plan: number;
+}
+
+export interface AttritionRow {
+  dept: string;
+  rate: number;
+}
+
+export interface CompensationRow {
+  dept: string;
+  salary: number;
+  bonus: number;
+  equity: number;
+}
+
+export interface PeopleMetrics {
+  totalHeadcount: number;
+  openRoles: number;
+  attritionRatePct: number;
+  avgTenureMonths: number;
+  headcountByDept: DeptHeadcount[];
+  hiringPlan: HiringPoint[];
+  attrition: AttritionRow[];
+  compensation: CompensationRow[];
+}
+
+export interface CashFlowPoint {
+  month: string;
+  inflows: number;
+  outflows: number;
+  net: number;
+}
+
+export interface CashWaterfallBar {
+  name: string;
+  value: number;
+  type: string;
+}
+
+export interface CashBreakdownRow {
+  category: string;
+  type: string;
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+}
+
+export interface CashFlowMetrics {
+  totalInflowsM: number;
+  totalOutflowsM: number;
+  netCashFlowM: number;
+  cashOnHandM: number;
+  monthly: CashFlowPoint[];
+  waterfall: CashWaterfallBar[];
+  breakdown: CashBreakdownRow[];
+}
+
 export type GetPortfolioKpisParams = {
   companyId?: string;
   period?: GetPortfolioKpisPeriod;
@@ -381,6 +625,20 @@ export type GetBenchmarksParams = {
   metric?: string;
 };
 
+export type GetSpendingAnalyticsParams = {
+  period?: GetSpendingAnalyticsPeriod;
+};
+
+export type GetSpendingAnalyticsPeriod =
+  (typeof GetSpendingAnalyticsPeriod)[keyof typeof GetSpendingAnalyticsPeriod];
+
+export const GetSpendingAnalyticsPeriod = {
+  "7d": "7d",
+  "30d": "30d",
+  "90d": "90d",
+  "1y": "1y",
+} as const;
+
 export type GetDealsParams = {
   stage?: GetDealsStage;
   type?: GetDealsType;
@@ -405,4 +663,17 @@ export const GetDealsType = {
   merger: "merger",
   investment: "investment",
   divestiture: "divestiture",
+} as const;
+
+export type GetCashFlowMetricsParams = {
+  period?: GetCashFlowMetricsPeriod;
+};
+
+export type GetCashFlowMetricsPeriod =
+  (typeof GetCashFlowMetricsPeriod)[keyof typeof GetCashFlowMetricsPeriod];
+
+export const GetCashFlowMetricsPeriod = {
+  Monthly: "Monthly",
+  Quarterly: "Quarterly",
+  Annual: "Annual",
 } as const;

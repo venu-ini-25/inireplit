@@ -53,7 +53,7 @@ export const GetPortfolioCompaniesResponseItem = zod.object({
   dataVerified: zod.boolean(),
   ndaSigned: zod.boolean(),
   lastUpdated: zod.string(),
-  logo: zod.string().nullable().optional(),
+  logo: zod.string().optional(),
 });
 export const GetPortfolioCompaniesResponse = zod.array(
   GetPortfolioCompaniesResponseItem,
@@ -80,6 +80,14 @@ export const GetPortfolioCompanyResponse = zod.object({
   dataVerified: zod.boolean(),
   ndaSigned: zod.boolean(),
   lastUpdated: zod.string(),
+  founded: zod.number(),
+  ownership: zod.string(),
+  arr: zod.string(),
+  arrGrowthPct: zod.number(),
+  irr: zod.string(),
+  moic: zod.string(),
+  lastValDate: zod.string(),
+  investors: zod.array(zod.string()),
   capTable: zod.array(
     zod.object({
       investor: zod.string(),
@@ -104,6 +112,24 @@ export const GetPortfolioCompanyResponse = zod.object({
       unit: zod.string(),
       change: zod.number(),
       trend: zod.enum(["up", "down", "flat"]),
+    }),
+  ),
+  arrTrend: zod.array(
+    zod.object({
+      q: zod.string(),
+      v: zod.number(),
+    }),
+  ),
+  headcountTrend: zod.array(
+    zod.object({
+      q: zod.string(),
+      v: zod.number(),
+    }),
+  ),
+  burnTrend: zod.array(
+    zod.object({
+      q: zod.string(),
+      v: zod.number(),
     }),
   ),
 });
@@ -195,6 +221,45 @@ export const GetReportsResponseItem = zod.object({
   companyName: zod.string(),
 });
 export const GetReportsResponse = zod.array(GetReportsResponseItem);
+
+/**
+ * @summary Get spending breakdown by category
+ */
+export const GetSpendingAnalyticsQueryParams = zod.object({
+  period: zod.enum(["7d", "30d", "90d", "1y"]).optional(),
+});
+
+export const GetSpendingAnalyticsResponse = zod.object({
+  categories: zod.array(
+    zod.object({
+      name: zod.string(),
+      amount: zod.number(),
+      percentage: zod.number(),
+      color: zod.string(),
+      change: zod.number(),
+    }),
+  ),
+  deptBudgets: zod.array(
+    zod.object({
+      dept: zod.string(),
+      budget: zod.number(),
+      actual: zod.number(),
+    }),
+  ),
+  lineItems: zod.array(
+    zod.object({
+      vendor: zod.string(),
+      category: zod.string(),
+      dept: zod.string(),
+      amount: zod.number(),
+      status: zod.string(),
+      date: zod.string(),
+    }),
+  ),
+  totalSpending: zod.number(),
+  averageDaily: zod.number(),
+  topCategory: zod.string(),
+});
 
 /**
  * @summary List M&A deals
@@ -340,6 +405,224 @@ export const GetServicesOverviewResponse = zod.object({
       type: zod.string(),
       count: zod.number(),
       revenue: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get operations module metrics
+ */
+export const GetOperationsMetricsResponse = zod.object({
+  totalHeadcount: zod.number(),
+  monthlyBurnM: zod.number(),
+  cashRunwayMonths: zod.number(),
+  grossMarginPct: zod.number(),
+  headcountTrend: zod.array(
+    zod.object({
+      month: zod.string(),
+      hc: zod.number(),
+    }),
+  ),
+  burnRunway: zod.array(
+    zod.object({
+      month: zod.string(),
+      burn: zod.number(),
+      runway: zod.number(),
+    }),
+  ),
+  unitEconomics: zod.array(
+    zod.object({
+      metric: zod.string(),
+      value: zod.string(),
+      prev: zod.string(),
+      delta: zod.number(),
+      good: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get product module metrics
+ */
+export const GetProductMetricsResponse = zod.object({
+  dauCount: zod.number(),
+  mauCount: zod.number(),
+  dauMauRatio: zod.number(),
+  churnRatePct: zod.number(),
+  engagementTrend: zod.array(
+    zod.object({
+      month: zod.string(),
+      dau: zod.number(),
+      mau: zod.number(),
+    }),
+  ),
+  featureAdoption: zod.array(
+    zod.object({
+      feature: zod.string(),
+      adoption: zod.number(),
+    }),
+  ),
+  churnWaterfall: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      type: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get marketing module metrics
+ */
+export const GetMarketingMetricsResponse = zod.object({
+  totalMQLs: zod.number(),
+  blendedCAC: zod.number(),
+  marketingPipelineM: zod.number(),
+  avgCampaignROI: zod.string(),
+  cacByChannel: zod.array(
+    zod.object({
+      channel: zod.string(),
+      cac: zod.number(),
+      leads: zod.number(),
+      color: zod.string(),
+    }),
+  ),
+  leadFunnel: zod.array(
+    zod.object({
+      stage: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  campaigns: zod.array(
+    zod.object({
+      name: zod.string(),
+      channel: zod.string(),
+      spend: zod.number(),
+      leads: zod.number(),
+      pipeline: zod.number(),
+      roi: zod.string(),
+    }),
+  ),
+  attribution: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      color: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get sales module metrics
+ */
+export const GetSalesMetricsResponse = zod.object({
+  totalBookingsK: zod.number(),
+  avgDealSizeK: zod.number(),
+  winRatePct: zod.number(),
+  quotaAttainmentPct: zod.number(),
+  arrBridge: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      type: zod.string(),
+    }),
+  ),
+  pipeline: zod.array(
+    zod.object({
+      stage: zod.string(),
+      count: zod.number(),
+      value: zod.number(),
+    }),
+  ),
+  bookings: zod.array(
+    zod.object({
+      month: zod.string(),
+      quota: zod.number(),
+      actual: zod.number(),
+    }),
+  ),
+  acvBySegment: zod.array(
+    zod.object({
+      segment: zod.string(),
+      acv: zod.number(),
+      deals: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get people module metrics
+ */
+export const GetPeopleMetricsResponse = zod.object({
+  totalHeadcount: zod.number(),
+  openRoles: zod.number(),
+  attritionRatePct: zod.number(),
+  avgTenureMonths: zod.number(),
+  headcountByDept: zod.array(
+    zod.object({
+      dept: zod.string(),
+      hc: zod.number(),
+      color: zod.string(),
+    }),
+  ),
+  hiringPlan: zod.array(
+    zod.object({
+      month: zod.string(),
+      actual: zod.number(),
+      plan: zod.number(),
+    }),
+  ),
+  attrition: zod.array(
+    zod.object({
+      dept: zod.string(),
+      rate: zod.number(),
+    }),
+  ),
+  compensation: zod.array(
+    zod.object({
+      dept: zod.string(),
+      salary: zod.number(),
+      bonus: zod.number(),
+      equity: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get cash flow module metrics
+ */
+export const GetCashFlowMetricsQueryParams = zod.object({
+  period: zod.enum(["Monthly", "Quarterly", "Annual"]).optional(),
+});
+
+export const GetCashFlowMetricsResponse = zod.object({
+  totalInflowsM: zod.number(),
+  totalOutflowsM: zod.number(),
+  netCashFlowM: zod.number(),
+  cashOnHandM: zod.number(),
+  monthly: zod.array(
+    zod.object({
+      month: zod.string(),
+      inflows: zod.number(),
+      outflows: zod.number(),
+      net: zod.number(),
+    }),
+  ),
+  waterfall: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      type: zod.string(),
+    }),
+  ),
+  breakdown: zod.array(
+    zod.object({
+      category: zod.string(),
+      type: zod.string(),
+      q1: zod.number(),
+      q2: zod.number(),
+      q3: zod.number(),
+      q4: zod.number(),
     }),
   ),
 });

@@ -4,6 +4,7 @@ import portfolioRouter from "./portfolio";
 import analyticsRouter from "./analyticsIni";
 import dealsRouter from "./deals";
 import servicesRouter from "./services";
+import metricsRouter from "./metrics";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(portfolioRouter);
 router.use(analyticsRouter);
 router.use(dealsRouter);
 router.use(servicesRouter);
+router.use(metricsRouter);
 
 export default router;

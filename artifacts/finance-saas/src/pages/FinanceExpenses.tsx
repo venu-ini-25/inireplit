@@ -6,42 +6,22 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { useState } from "react";
-
-const categories = [
-  { name: "Payroll & Benefits", value: 18400, color: "#2563EB" },
-  { name: "Software & SaaS", value: 5200, color: "#7C3AED" },
-  { name: "Marketing & Ads", value: 4100, color: "#0891B2" },
-  { name: "Office & Facilities", value: 2800, color: "#D97706" },
-  { name: "Travel & Entertainment", value: 1600, color: "#DC2626" },
-  { name: "Professional Services", value: 2100, color: "#059669" },
-  { name: "Other", value: 1800, color: "#64748B" },
-];
-
-const deptData = [
-  { dept: "Engineering", budget: 12000, actual: 11200 },
-  { dept: "Sales", budget: 8000, actual: 8900 },
-  { dept: "Marketing", budget: 6000, actual: 5800 },
-  { dept: "G&A", budget: 4500, actual: 4100 },
-  { dept: "Product", budget: 5500, actual: 5200 },
-  { dept: "Support", budget: 2000, actual: 1800 },
-];
-
-const lineItems = [
-  { vendor: "Workday", category: "Software & SaaS", dept: "HR", amount: 1200, status: "Recurring", date: "Dec 1, 2024" },
-  { vendor: "AWS", category: "Software & SaaS", dept: "Engineering", amount: 3800, status: "Recurring", date: "Dec 1, 2024" },
-  { vendor: "Salesforce", category: "Software & SaaS", dept: "Sales", amount: 2100, status: "Recurring", date: "Dec 1, 2024" },
-  { vendor: "Lattice", category: "Software & SaaS", dept: "HR", amount: 900, status: "Recurring", date: "Dec 1, 2024" },
-  { vendor: "Google Ads", category: "Marketing & Ads", dept: "Marketing", amount: 4100, status: "Variable", date: "Nov 30, 2024" },
-  { vendor: "JW Marriott", category: "Travel & Entertainment", dept: "Sales", amount: 1600, status: "One-time", date: "Nov 28, 2024" },
-  { vendor: "WeWork", category: "Office & Facilities", dept: "G&A", amount: 2800, status: "Recurring", date: "Dec 1, 2024" },
-  { vendor: "Deloitte", category: "Professional Services", dept: "Finance", amount: 2100, status: "One-time", date: "Nov 25, 2024" },
-];
+import { useGetSpendingAnalytics } from "@workspace/api-client-react";
 
 const DEPTS = ["All Depts", "Engineering", "Sales", "Marketing", "G&A", "Product"];
-const total = categories.reduce((s, c) => s + c.value, 0);
 
 const RADIAN = Math.PI / 180;
-const renderLabel = ({ cx, cy, midAngle, outerRadius, name, percent }: any) => {
+
+type PieLabelProps = {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  outerRadius: number;
+  name: string;
+  percent: number;
+};
+
+const renderLabel = ({ cx, cy, midAngle, outerRadius, percent }: PieLabelProps) => {
   if (percent < 0.07) return null;
   const r = outerRadius + 20;
   const x = cx + r * Math.cos(-midAngle * RADIAN);
@@ -52,12 +32,23 @@ const renderLabel = ({ cx, cy, midAngle, outerRadius, name, percent }: any) => {
 export default function FinanceExpenses() {
   const [dept, setDept] = useState("All Depts");
   const [search, setSearch] = useState("");
+  const { data, isLoading } = useGetSpendingAnalytics();
+
+  const categories = data?.categories ?? [];
+  const deptData = data?.deptBudgets ?? [];
+  const lineItems = data?.lineItems ?? [];
+  const totalSpending = data?.totalSpending ?? 0;
+  const topCategory = data?.topCategory ?? "Payroll & Benefits";
+
+  const pieData = categories.map((c) => ({ name: c.name, value: c.amount, color: c.color }));
 
   const filtered = lineItems.filter(
     (r) =>
       (dept === "All Depts" || r.dept === dept) &&
       (search === "" || r.vendor.toLowerCase().includes(search.toLowerCase()) || r.category.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const overBudgetDepts = deptData.filter((d) => d.actual > d.budget);
 
   return (
     <div className="space-y-6">
@@ -72,24 +63,24 @@ export default function FinanceExpenses() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Expenses" value="$36.0M" change={9.2} changeLabel="YoY" isPositiveGood={false} />
-        <KpiCard title="Largest Category" value="Payroll" subtitle="51% of total expenses" />
-        <KpiCard title="Over-budget Depts" value="1 dept" subtitle="Sales: +11% over budget" isPositiveGood={false} />
-        <KpiCard title="YTD vs Budget" value="97.4%" change={-2.6} changeLabel="vs target" />
+        <KpiCard title="Total Expenses" value={totalSpending ? `$${(totalSpending / 1000).toFixed(0)}K` : "—"} change={9.2} changeLabel="YoY" isPositiveGood={false} />
+        <KpiCard title="Largest Category" value={topCategory} subtitle={`${categories[0]?.percentage?.toFixed(0) ?? 51}% of total expenses`} />
+        <KpiCard title="Over-budget Depts" value={`${overBudgetDepts.length} dept${overBudgetDepts.length !== 1 ? "s" : ""}`} subtitle={overBudgetDepts.length > 0 ? `${overBudgetDepts[0].dept}: over budget` : "All within budget"} isPositiveGood={false} />
+        <KpiCard title="Avg Daily Spend" value={data ? `$${(data.averageDaily / 1000).toFixed(1)}K` : "—"} change={-2.6} changeLabel="vs budget" />
       </div>
 
       <div className="grid grid-cols-5 gap-6">
         <ChartCard title="Expense by Category" subtitle="Full year breakdown" className="col-span-2">
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
-              <Pie data={categories} cx="50%" cy="50%" outerRadius={90} dataKey="value" labelLine={false} label={renderLabel}>
-                {categories.map((c, i) => <Cell key={i} fill={c.color} />)}
+              <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" labelLine={false} label={renderLabel}>
+                {pieData.map((c, i) => <Cell key={i} fill={c.color} />)}
               </Pie>
               <Tooltip formatter={(v: number) => [`$${(v / 1000).toFixed(0)}K`, ""]} />
             </PieChart>
           </ResponsiveContainer>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
-            {categories.map((c) => (
+            {pieData.map((c) => (
               <div key={c.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color }} />
                 <span className="truncate">{c.name}</span>
@@ -147,24 +138,31 @@ export default function FinanceExpenses() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.map((row, i) => (
-                <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-3 font-medium text-slate-800">{row.vendor}</td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{row.category}</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-primary">{row.dept}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-slate-800">${row.amount.toLocaleString()}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      row.status === "Recurring" ? "bg-green-50 text-success" :
-                      row.status === "Variable" ? "bg-amber-50 text-amber-700" :
-                      "bg-slate-100 text-muted-foreground"
-                    }`}>{row.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{row.date}</td>
-                </tr>
-              ))}
+              {isLoading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      {[1,2,3,4,5,6].map(j => <td key={j} className="px-4 py-3"><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>)}
+                    </tr>
+                  ))
+                : filtered.map((row, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-3 font-medium text-slate-800">{row.vendor}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{row.category}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-primary">{row.dept}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-xs text-slate-800">${row.amount.toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          row.status === "Recurring" ? "bg-green-50 text-success" :
+                          row.status === "Variable" ? "bg-amber-50 text-amber-700" :
+                          "bg-slate-100 text-muted-foreground"
+                        }`}>{row.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{row.date}</td>
+                    </tr>
+                  ))
+              }
             </tbody>
           </table>
         </div>

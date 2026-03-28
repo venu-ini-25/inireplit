@@ -17,6 +17,8 @@ tags:
     description: M&A deals and pipeline
   - name: services
     description: Professional services engagements
+  - name: metrics
+    description: Operational module metrics
 paths:
   /healthz:
     get:
@@ -161,6 +163,25 @@ paths:
                 items:
                   $ref: "#/components/schemas/Report"
 
+  /analytics/spending:
+    get:
+      operationId: getSpendingAnalytics
+      tags: [analytics]
+      summary: Get spending breakdown by category
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+      responses:
+        "200":
+          description: Spending analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingAnalytics"
+
   /deals:
     get:
       operationId: getDeals
@@ -247,6 +268,90 @@ paths:
               schema:
                 $ref: "#/components/schemas/ServicesOverview"
 
+  /metrics/operations:
+    get:
+      operationId: getOperationsMetrics
+      tags: [metrics]
+      summary: Get operations module metrics
+      responses:
+        "200":
+          description: Operations metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationsMetrics"
+
+  /metrics/product:
+    get:
+      operationId: getProductMetrics
+      tags: [metrics]
+      summary: Get product module metrics
+      responses:
+        "200":
+          description: Product metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductMetrics"
+
+  /metrics/marketing:
+    get:
+      operationId: getMarketingMetrics
+      tags: [metrics]
+      summary: Get marketing module metrics
+      responses:
+        "200":
+          description: Marketing metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketingMetrics"
+
+  /metrics/sales:
+    get:
+      operationId: getSalesMetrics
+      tags: [metrics]
+      summary: Get sales module metrics
+      responses:
+        "200":
+          description: Sales metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesMetrics"
+
+  /metrics/people:
+    get:
+      operationId: getPeopleMetrics
+      tags: [metrics]
+      summary: Get people module metrics
+      responses:
+        "200":
+          description: People metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PeopleMetrics"
+
+  /metrics/cashflow:
+    get:
+      operationId: getCashFlowMetrics
+      tags: [metrics]
+      summary: Get cash flow module metrics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [Monthly, Quarterly, Annual]
+      responses:
+        "200":
+          description: Cash flow metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashFlowMetrics"
+
 components:
   schemas:
     HealthStatus:
@@ -314,6 +419,15 @@ components:
           type: string
       required: [id, name, industry, stage, revenue, valuation, growthRate, employees, location, status, dataVerified, ndaSigned, lastUpdated]
 
+    TrendPoint:
+      type: object
+      properties:
+        q:
+          type: string
+        v:
+          type: number
+      required: [q, v]
+
     PortfolioCompanyDetail:
       type: object
       properties:
@@ -343,6 +457,24 @@ components:
           type: boolean
         lastUpdated:
           type: string
+        founded:
+          type: integer
+        ownership:
+          type: string
+        arr:
+          type: string
+        arrGrowthPct:
+          type: number
+        irr:
+          type: string
+        moic:
+          type: string
+        lastValDate:
+          type: string
+        investors:
+          type: array
+          items:
+            type: string
         capTable:
           type: array
           items:
@@ -353,7 +485,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/KpiMetric"
-      required: [id, name, industry, stage, revenue, valuation, growthRate, employees, location, status, dataVerified, ndaSigned, lastUpdated, capTable, financials, kpis]
+        arrTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        headcountTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        burnTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+      required: [id, name, industry, stage, revenue, valuation, growthRate, employees, location, status, dataVerified, ndaSigned, lastUpdated, founded, ownership, arr, arrGrowthPct, irr, moic, lastValDate, investors, capTable, financials, kpis, arrTrend, headcountTrend, burnTrend]
 
     CapTableEntry:
       type: object
@@ -494,6 +638,72 @@ components:
         companyName:
           type: string
       required: [id, title, type, status, createdAt, updatedAt, sharedWith, companyName]
+
+    SpendingCategory:
+      type: object
+      properties:
+        name:
+          type: string
+        amount:
+          type: number
+        percentage:
+          type: number
+        color:
+          type: string
+        change:
+          type: number
+      required: [name, amount, percentage, color, change]
+
+    SpendingLineItem:
+      type: object
+      properties:
+        vendor:
+          type: string
+        category:
+          type: string
+        dept:
+          type: string
+        amount:
+          type: number
+        status:
+          type: string
+        date:
+          type: string
+      required: [vendor, category, dept, amount, status, date]
+
+    SpendingDeptBudget:
+      type: object
+      properties:
+        dept:
+          type: string
+        budget:
+          type: number
+        actual:
+          type: number
+      required: [dept, budget, actual]
+
+    SpendingAnalytics:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpendingCategory"
+        deptBudgets:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpendingDeptBudget"
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpendingLineItem"
+        totalSpending:
+          type: number
+        averageDaily:
+          type: number
+        topCategory:
+          type: string
+      required: [categories, deptBudgets, lineItems, totalSpending, averageDaily, topCategory]
 
     Deal:
       type: object
@@ -692,3 +902,410 @@ components:
         revenue:
           type: number
       required: [type, count, revenue]
+
+    HeadcountPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        hc:
+          type: integer
+      required: [month, hc]
+
+    BurnRunwayPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        burn:
+          type: number
+        runway:
+          type: integer
+      required: [month, burn, runway]
+
+    UnitEconomicRow:
+      type: object
+      properties:
+        metric:
+          type: string
+        value:
+          type: string
+        prev:
+          type: string
+        delta:
+          type: number
+        good:
+          type: boolean
+      required: [metric, value, prev, delta, good]
+
+    OperationsMetrics:
+      type: object
+      properties:
+        totalHeadcount:
+          type: integer
+        monthlyBurnM:
+          type: number
+        cashRunwayMonths:
+          type: integer
+        grossMarginPct:
+          type: number
+        headcountTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/HeadcountPoint"
+        burnRunway:
+          type: array
+          items:
+            $ref: "#/components/schemas/BurnRunwayPoint"
+        unitEconomics:
+          type: array
+          items:
+            $ref: "#/components/schemas/UnitEconomicRow"
+      required: [totalHeadcount, monthlyBurnM, cashRunwayMonths, grossMarginPct, headcountTrend, burnRunway, unitEconomics]
+
+    EngagementTrendPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        dau:
+          type: integer
+        mau:
+          type: integer
+      required: [month, dau, mau]
+
+    FeatureAdoptionRow:
+      type: object
+      properties:
+        feature:
+          type: string
+        adoption:
+          type: number
+      required: [feature, adoption]
+
+    WaterfallBar:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        type:
+          type: string
+      required: [name, value, type]
+
+    ProductMetrics:
+      type: object
+      properties:
+        dauCount:
+          type: integer
+        mauCount:
+          type: integer
+        dauMauRatio:
+          type: number
+        churnRatePct:
+          type: number
+        engagementTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/EngagementTrendPoint"
+        featureAdoption:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeatureAdoptionRow"
+        churnWaterfall:
+          type: array
+          items:
+            $ref: "#/components/schemas/WaterfallBar"
+      required: [dauCount, mauCount, dauMauRatio, churnRatePct, engagementTrend, featureAdoption, churnWaterfall]
+
+    ChannelCac:
+      type: object
+      properties:
+        channel:
+          type: string
+        cac:
+          type: number
+        leads:
+          type: integer
+        color:
+          type: string
+      required: [channel, cac, leads, color]
+
+    LeadFunnelStage:
+      type: object
+      properties:
+        stage:
+          type: string
+        value:
+          type: integer
+      required: [stage, value]
+
+    CampaignRow:
+      type: object
+      properties:
+        name:
+          type: string
+        channel:
+          type: string
+        spend:
+          type: number
+        leads:
+          type: integer
+        pipeline:
+          type: number
+        roi:
+          type: string
+      required: [name, channel, spend, leads, pipeline, roi]
+
+    AttributionSlice:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        color:
+          type: string
+      required: [name, value, color]
+
+    MarketingMetrics:
+      type: object
+      properties:
+        totalMQLs:
+          type: integer
+        blendedCAC:
+          type: number
+        marketingPipelineM:
+          type: number
+        avgCampaignROI:
+          type: string
+        cacByChannel:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelCac"
+        leadFunnel:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeadFunnelStage"
+        campaigns:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignRow"
+        attribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributionSlice"
+      required: [totalMQLs, blendedCAC, marketingPipelineM, avgCampaignROI, cacByChannel, leadFunnel, campaigns, attribution]
+
+    ArrBridgeBar:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        type:
+          type: string
+      required: [name, value, type]
+
+    PipelineStage:
+      type: object
+      properties:
+        stage:
+          type: string
+        count:
+          type: integer
+        value:
+          type: number
+      required: [stage, count, value]
+
+    BookingPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        quota:
+          type: number
+        actual:
+          type: number
+      required: [month, quota, actual]
+
+    AcvSegment:
+      type: object
+      properties:
+        segment:
+          type: string
+        acv:
+          type: number
+        deals:
+          type: integer
+      required: [segment, acv, deals]
+
+    SalesMetrics:
+      type: object
+      properties:
+        totalBookingsK:
+          type: number
+        avgDealSizeK:
+          type: number
+        winRatePct:
+          type: number
+        quotaAttainmentPct:
+          type: number
+        arrBridge:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArrBridgeBar"
+        pipeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStage"
+        bookings:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookingPoint"
+        acvBySegment:
+          type: array
+          items:
+            $ref: "#/components/schemas/AcvSegment"
+      required: [totalBookingsK, avgDealSizeK, winRatePct, quotaAttainmentPct, arrBridge, pipeline, bookings, acvBySegment]
+
+    DeptHeadcount:
+      type: object
+      properties:
+        dept:
+          type: string
+        hc:
+          type: integer
+        color:
+          type: string
+      required: [dept, hc, color]
+
+    HiringPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        actual:
+          type: integer
+        plan:
+          type: integer
+      required: [month, actual, plan]
+
+    AttritionRow:
+      type: object
+      properties:
+        dept:
+          type: string
+        rate:
+          type: number
+      required: [dept, rate]
+
+    CompensationRow:
+      type: object
+      properties:
+        dept:
+          type: string
+        salary:
+          type: number
+        bonus:
+          type: number
+        equity:
+          type: number
+      required: [dept, salary, bonus, equity]
+
+    PeopleMetrics:
+      type: object
+      properties:
+        totalHeadcount:
+          type: integer
+        openRoles:
+          type: integer
+        attritionRatePct:
+          type: number
+        avgTenureMonths:
+          type: number
+        headcountByDept:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeptHeadcount"
+        hiringPlan:
+          type: array
+          items:
+            $ref: "#/components/schemas/HiringPoint"
+        attrition:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttritionRow"
+        compensation:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompensationRow"
+      required: [totalHeadcount, openRoles, attritionRatePct, avgTenureMonths, headcountByDept, hiringPlan, attrition, compensation]
+
+    CashFlowPoint:
+      type: object
+      properties:
+        month:
+          type: string
+        inflows:
+          type: number
+        outflows:
+          type: number
+        net:
+          type: number
+      required: [month, inflows, outflows, net]
+
+    CashWaterfallBar:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        type:
+          type: string
+      required: [name, value, type]
+
+    CashBreakdownRow:
+      type: object
+      properties:
+        category:
+          type: string
+        type:
+          type: string
+        q1:
+          type: number
+        q2:
+          type: number
+        q3:
+          type: number
+        q4:
+          type: number
+      required: [category, type, q1, q2, q3, q4]
+
+    CashFlowMetrics:
+      type: object
+      properties:
+        totalInflowsM:
+          type: number
+        totalOutflowsM:
+          type: number
+        netCashFlowM:
+          type: number
+        cashOnHandM:
+          type: number
+        monthly:
+          type: array
+          items:
+            $ref: "#/components/schemas/CashFlowPoint"
+        waterfall:
+          type: array
+          items:
+            $ref: "#/components/schemas/CashWaterfallBar"
+        breakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/CashBreakdownRow"
+      required: [totalInflowsM, totalOutflowsM, netCashFlowM, cashOnHandM, monthly, waterfall, breakdown]
