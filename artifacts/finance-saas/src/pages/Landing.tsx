@@ -113,6 +113,7 @@ export default function Landing() {
   }, []);
 
   const goRequestAccess = () => navigate("/request-access");
+  const goSignIn = () => navigate("/login");
   const goApp = () => navigate("/app");
 
   return (
@@ -131,7 +132,7 @@ export default function Landing() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={goApp}
+            onClick={goSignIn}
             className="hidden md:block px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
             Sign In

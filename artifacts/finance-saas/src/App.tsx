@@ -6,6 +6,8 @@ import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout/Layout";
 
 import Landing from "@/pages/Landing";
+import SignIn from "@/pages/SignIn";
+import SignUp from "@/pages/SignUp";
 import RequestAccess from "@/pages/RequestAccess";
 import Dashboard from "@/pages/Dashboard";
 import FinancePL from "@/pages/FinancePL";
@@ -40,8 +42,9 @@ function Router() {
       <Route path="/landing">
         <Redirect to="/" />
       </Route>
+      <Route path="/login" component={SignIn} />
+      <Route path="/signup" component={SignUp} />
       <Route path="/request-access" component={RequestAccess} />
-      <Route path="/login" component={RequestAccess} />
 
       {/* App pages — inside Layout */}
       <Route>

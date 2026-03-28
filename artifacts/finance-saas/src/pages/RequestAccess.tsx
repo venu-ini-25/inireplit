@@ -29,15 +29,28 @@ const roleOptions: { value: Role; label: string; desc: string }[] = [
   },
 ];
 
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem("ini_user");
+    if (!raw) return null;
+    return JSON.parse(raw) as { name?: string; email?: string; company?: string };
+  } catch { return null; }
+}
+
 export default function RequestAccess() {
   const [, navigate] = useLocation();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const storedUser = getStoredUser();
+  const [nameParts] = useState(() => {
+    const parts = (storedUser?.name ?? "").trim().split(" ");
+    return { first: parts[0] ?? "", last: parts.slice(1).join(" ") };
+  });
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    company: "",
+    firstName: nameParts.first,
+    lastName: nameParts.last,
+    email: storedUser?.email ?? "",
+    company: storedUser?.company ?? "",
     role: "" as Role | "",
     aum: "",
     message: "",
@@ -124,6 +137,12 @@ export default function RequestAccess() {
         <div className="w-full max-w-2xl">
           {/* Header */}
           <div className="text-center mb-8">
+            {storedUser?.email && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-medium mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                Signed in as <strong>{storedUser.email}</strong>
+              </div>
+            )}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-medium mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
               Demo Access — Early Stage
