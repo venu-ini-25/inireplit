@@ -70,12 +70,6 @@ const modules = [
   { name: "AI Insights", color: "bg-violet-500", desc: "Anomaly Detection · Forecasting · Alerts" },
 ];
 
-const metrics = [
-  { value: "2–4 weeks", label: "Reporting delay eliminated" },
-  { value: "80–85%", label: "Target gross margin" },
-  { value: "$50B+", label: "Total addressable market" },
-  { value: "30–40%", label: "Finance bandwidth recovered" },
-];
 
 const testimonials = [
   {
@@ -120,25 +114,26 @@ export default function Landing() {
     <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
 
       {/* ── Sticky Nav ── */}
-      <nav className={`h-16 flex items-center justify-between px-6 md:px-10 sticky top-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100" : "bg-transparent"
+      <nav className={`h-20 flex items-center justify-between px-8 md:px-14 sticky top-0 z-50 transition-all duration-300 ${
+        scrolled ? "bg-white/97 backdrop-blur-md shadow-md border-b border-slate-100" : "bg-white/80 backdrop-blur-sm"
       }`}>
-        <img src={logoImg} alt="iNi" className="h-10 w-auto" style={{ mixBlendMode: "multiply" }} />
-        <div className="hidden md:flex items-center gap-6">
-          <a href="#solutions" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">Solutions</a>
-          <a href="#platform" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">Platform</a>
-          <a href="#about" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">About</a>
+        <img src={logoImg} alt="iNi" className="h-12 w-auto" style={{ mixBlendMode: "multiply" }} />
+        <div className="hidden md:flex items-center gap-8">
+          <a href="#solutions" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">Solutions</a>
+          <a href="#platform" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">Platform</a>
+          <a href="#about" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">About</a>
+          <a href="#contact" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">Contact Us</a>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={goSignIn}
-            className="hidden md:block px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
+            className="hidden md:block px-5 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
             Sign In
           </button>
           <button
             onClick={goRequestAccess}
-            className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all shadow-sm"
+            className="px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
           >
             Request Access
           </button>
@@ -247,15 +242,33 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Metrics bar ── */}
-      <section className="bg-primary py-10 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
-          {metrics.map((m, i) => (
-            <Reveal key={m.label} delay={i * 80}>
-              <div className="text-3xl font-black mb-1">{m.value}</div>
-              <div className="text-sm text-blue-200">{m.label}</div>
-            </Reveal>
-          ))}
+      {/* ── Why iNi? ── */}
+      <section className="py-20 px-6 md:px-10 bg-[#f8fafc]">
+        <div className="max-w-5xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-14">
+              <h2 className="text-4xl font-black text-slate-900 mb-3">Why iNi?</h2>
+              <p className="text-slate-500 text-lg max-w-2xl mx-auto">
+                Why customers should choose iNi over manual workflows or legacy tools.
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {[
+              { value: "30%", label: "Faster Decisions", desc: "Save weeks of time with automated reporting", color: "text-[#2563EB]" },
+              { value: "2x", label: "More Efficient", desc: "Reduce deal costs by cutting intermediaries", color: "text-emerald-500" },
+              { value: "Real-Time", label: "Live Insights", desc: "Make faster, better decisions with real-time insights", color: "text-purple-600" },
+              { value: "100%", label: "Verified Data", desc: "Secure, verified data you can trust", color: "text-teal-500" },
+            ].map((stat, i) => (
+              <Reveal key={stat.label} delay={i * 80}>
+                <div className="flex flex-col items-center">
+                  <div className={`text-4xl md:text-5xl font-black mb-2 ${stat.color}`}>{stat.value}</div>
+                  <div className="font-bold text-slate-800 text-sm mb-2">{stat.label}</div>
+                  <div className="text-xs text-slate-500 leading-relaxed max-w-[160px]">{stat.desc}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -601,6 +614,60 @@ export default function Landing() {
       </section>
 
 
+      {/* ── Contact Us ── */}
+      <section id="contact" className="py-20 px-6 md:px-10 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-semibold mb-4">
+                <Globe className="w-3.5 h-3.5" /> Get in Touch
+              </div>
+              <h2 className="text-4xl font-black text-slate-900 mb-3">Contact Us</h2>
+              <p className="text-slate-500 text-lg max-w-xl mx-auto">
+                Have questions or want to learn more about iNi? We'd love to hear from you.
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: "✉️",
+                title: "Email Us",
+                value: "info@inventninvest.com",
+                href: "mailto:info@inventninvest.com",
+                desc: "We typically respond within 24 hours",
+              },
+              {
+                icon: "🌐",
+                title: "Visit Our Website",
+                value: "inventninvest.com",
+                href: "https://inventninvest.com",
+                desc: "Learn more about Invent N Invest",
+              },
+              {
+                icon: "🚀",
+                title: "Request Access",
+                value: "Get Early Access",
+                href: "/request-access",
+                desc: "Limited spots available — apply today",
+              },
+            ].map((item) => (
+              <Reveal key={item.title} delay={80}>
+                <a
+                  href={item.href}
+                  className="block bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:border-primary/30 hover:bg-blue-50/30 hover:shadow-md transition-all group text-center"
+                >
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <div className="font-bold text-slate-800 text-sm mb-1">{item.title}</div>
+                  <div className="text-primary font-semibold text-sm mb-2 group-hover:underline">{item.value}</div>
+                  <div className="text-xs text-slate-500">{item.desc}</div>
+                </a>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA ── */}
       <section className="py-20 px-6 bg-gradient-to-r from-primary to-blue-700 text-white text-center">
         <Reveal>
@@ -635,7 +702,9 @@ export default function Landing() {
             <span className="text-xs text-muted-foreground">© 2025 Invent N Invest. All rights reserved.</span>
           </div>
           <div className="text-xs text-muted-foreground text-center">
-            venu.vegi@inventninvest.com · www.inventninvest.com
+            <a href="mailto:info@inventninvest.com" className="hover:text-primary transition-colors">info@inventninvest.com</a>
+            {" · "}
+            <a href="https://inventninvest.com" className="hover:text-primary transition-colors">www.inventninvest.com</a>
           </div>
         </div>
       </footer>
