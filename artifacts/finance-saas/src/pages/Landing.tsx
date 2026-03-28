@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  ArrowRight, CheckCircle2, BarChart2, Shield, Zap, TrendingUp,
-  Building2, Users, DollarSign, LineChart, Briefcase, Bot,
+  ArrowRight, CheckCircle2, Shield, Zap,
+  Building2, Users, DollarSign, LineChart, Briefcase,
   ChevronRight, Globe, Star, FileText, Handshake, Activity,
-  PieChart, Target, Clock, Lock
+  PieChart, Target, Clock, Lock, Database, PlugZap, BarChart3
 } from "lucide-react";
 
 const logoImg = "/images/ini-logo-transparent.png";
@@ -18,7 +18,7 @@ function useScrollReveal() {
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -29,32 +29,48 @@ function useScrollReveal() {
 function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const { ref, visible } = useScrollReveal();
   return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(28px)",
-        transition: `opacity 0.65s ease ${delay}ms, transform 0.65s ease ${delay}ms`,
-      }}
-    >
+    <div ref={ref} className={className} style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(24px)",
+      transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
+    }}>
       {children}
     </div>
   );
 }
 
+function WaveDown({ fromColor, toColor }: { fromColor: string; toColor: string }) {
+  return (
+    <div style={{ background: toColor, marginTop: -1 }}>
+      <svg viewBox="0 0 1440 72" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }} preserveAspectRatio="none" height={72}>
+        <path d="M0,36 C240,72 480,0 720,36 C960,72 1200,0 1440,36 L1440,0 L0,0 Z" fill={fromColor} />
+      </svg>
+    </div>
+  );
+}
+
+function WaveUp({ fromColor, toColor }: { fromColor: string; toColor: string }) {
+  return (
+    <div style={{ background: fromColor, marginBottom: -1 }}>
+      <svg viewBox="0 0 1440 72" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }} preserveAspectRatio="none" height={72}>
+        <path d="M0,36 C240,0 480,72 720,36 C960,0 1200,72 1440,36 L1440,72 L0,72 Z" fill={toColor} />
+      </svg>
+    </div>
+  );
+}
+
 const investorFeatures = [
-  { icon: Building2, title: "Portfolio Dashboard", desc: "Unified view of all portfolio companies — ARR, burn, IRR, MOIC, headcount, and valuation in one place." },
-  { icon: PieChart, title: "Fund KPIs", desc: "Real-time AUM, Gross IRR, DPI, TVPI, and unrealized value across your entire fund." },
-  { icon: Handshake, title: "M&A Deal Pipeline", desc: "Full deal workflow from sourcing through closing — DD tracking, document vault, term sheets, and synergy models." },
-  { icon: FileText, title: "Investor Reporting", desc: "Auto-generated LP reports, board decks, and portfolio summaries. One-click quarterly exports." },
+  { icon: Building2, title: "Portfolio Dashboard", desc: "Live ARR, burn, IRR, MOIC, and valuation across all portfolio companies." },
+  { icon: PieChart, title: "Fund KPIs", desc: "Real-time AUM, Gross IRR, DPI, TVPI, and unrealized value." },
+  { icon: Handshake, title: "M&A Deal Pipeline", desc: "Full deal workflow — DD tracking, document vault, term sheets." },
+  { icon: FileText, title: "Investor Reporting", desc: "Auto-generated LP reports and board decks. One-click exports." },
 ];
 
 const companyFeatures = [
-  { icon: DollarSign, title: "Finance Command Center", desc: "Cash flow, P&L, expenses, and runway — all live from your data sources. No spreadsheet consolidation." },
-  { icon: Activity, title: "Operational Metrics", desc: "Headcount, burn rate, unit economics, and KPIs tracked automatically and compared to plan." },
-  { icon: LineChart, title: "Driver-Based Forecasting", desc: "Model different scenarios, run what-ifs, and present a defensible financial forecast to your board." },
-  { icon: Target, title: "GTM Performance", desc: "Sales pipeline, marketing attribution, product adoption — aligned with your financial model." },
+  { icon: DollarSign, title: "Finance Command Center", desc: "Cash flow, P&L, expenses, and runway — live from your data sources." },
+  { icon: Activity, title: "Operational Metrics", desc: "Headcount, burn rate, unit economics tracked vs plan automatically." },
+  { icon: LineChart, title: "Driver-Based Forecasting", desc: "Model scenarios, run what-ifs, present a defensible forecast." },
+  { icon: Target, title: "GTM Performance", desc: "Sales pipeline, marketing attribution aligned with your financial model." },
 ];
 
 const modules = [
@@ -70,29 +86,15 @@ const modules = [
   { name: "AI Insights", color: "bg-violet-500", desc: "Anomaly Detection · Forecasting · Alerts" },
 ];
 
-
 const testimonials = [
-  {
-    quote: "iNi replaced three tools and two consultants. Our board pack that took two weeks now takes two hours.",
-    name: "CFO",
-    company: "Series B SaaS Company",
-    role: "portfolio_company",
-    stars: 5,
-  },
-  {
-    quote: "The M&A module alone saved us $80K in advisory fees on our last deal. The DD checklist is comprehensive.",
-    name: "Managing Director",
-    company: "Mid-Market PE Fund",
-    role: "investor",
-    stars: 5,
-  },
-  {
-    quote: "Finally a finance platform built by finance people. The driver-based models actually make sense.",
-    name: "VP Finance",
-    company: "Growth-Stage Startup",
-    role: "portfolio_company",
-    stars: 5,
-  },
+  { quote: "iNi replaced three tools and two consultants. Our board pack that took two weeks now takes two hours.", name: "CFO", company: "Series B SaaS Company", role: "portfolio_company", stars: 5 },
+  { quote: "The M&A module alone saved us $80K in advisory fees on our last deal. The DD checklist is comprehensive.", name: "Managing Director", company: "Mid-Market PE Fund", role: "investor", stars: 5 },
+  { quote: "Finally a finance platform built by finance people. The driver-based models actually make sense.", name: "VP Finance", company: "Growth-Stage Startup", role: "portfolio_company", stars: 5 },
+];
+
+const integrations = [
+  "QuickBooks", "Salesforce", "Stripe", "NetSuite", "Workday",
+  "Carta", "Slack", "HubSpot", "Rippling", "Plaid",
 ];
 
 export default function Landing() {
@@ -119,86 +121,51 @@ export default function Landing() {
       }`}>
         <img src={logoImg} alt="iNi" className="h-12 w-auto" style={{ mixBlendMode: "multiply" }} />
         <div className="hidden md:flex items-center gap-8">
-          <a href="#solutions" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">Solutions</a>
-          <a href="#platform" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">Platform</a>
-          <a href="#about" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">About</a>
-          <a href="#contact" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold tracking-wide">Contact Us</a>
+          <a href="#solutions" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">Solutions</a>
+          <a href="#how-it-works" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">How It Works</a>
+          <a href="#platform" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">Platform</a>
+          <a href="#about" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">About</a>
+          <a href="#contact" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">Contact Us</a>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={goSignIn}
-            className="hidden md:block px-5 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
-          >
+          <button onClick={goSignIn} className="hidden md:block px-5 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
             Sign In
           </button>
-          <button
-            onClick={goRequestAccess}
-            className="px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
-          >
+          <button onClick={goRequestAccess} className="px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg">
             Request Access
           </button>
         </div>
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative pt-16 pb-24 px-6 md:px-10 overflow-hidden">
-        {/* Gradient blobs */}
+      <section className="relative pt-16 pb-32 px-6 md:px-10 overflow-hidden bg-white">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-br from-blue-100/60 to-purple-100/40 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-100/40 to-blue-100/40 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[550px] bg-gradient-to-br from-blue-100/50 to-purple-100/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-100/30 to-blue-100/30 rounded-full blur-3xl" />
         </div>
-
         <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left: copy */}
           <div>
-            <div
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-semibold mb-6"
-              style={{ animation: "fadeInDown 0.6s ease forwards" }}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              Now in early access · Limited spots available
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-semibold mb-6" style={{ animation: "fadeInDown 0.6s ease forwards" }}>
+              <Zap className="w-3.5 h-3.5" /> Now in early access · Limited spots available
             </div>
-
-            <h1
-              className="text-5xl md:text-6xl font-black text-slate-900 leading-[1.06] mb-6"
-              style={{ animation: "fadeInDown 0.7s ease 0.1s both" }}
-            >
+            <h1 className="text-5xl md:text-6xl font-black text-slate-900 leading-[1.06] mb-6" style={{ animation: "fadeInDown 0.7s ease 0.1s both" }}>
               The Finance Platform
-              <br />
-              <span className="text-primary">Built for Growth-</span>
-              <br />
-              <span className="text-primary">Stage Leaders</span>
+              <br /><span className="text-primary">Built for Growth-</span>
+              <br /><span className="text-primary">Stage Leaders</span>
             </h1>
-
-            <p
-              className="text-lg text-slate-600 leading-relaxed mb-8 max-w-lg"
-              style={{ animation: "fadeInDown 0.7s ease 0.2s both" }}
-            >
+            <p className="text-lg text-slate-600 leading-relaxed mb-8 max-w-lg" style={{ animation: "fadeInDown 0.7s ease 0.2s both" }}>
               iNi unifies portfolio management, FP&A, M&A support, and strategic reporting into one AI-powered platform.
               Replace weeks of manual work with real-time intelligence — built by a CFO, for CFOs.
             </p>
-
-            <div
-              className="flex flex-wrap items-center gap-3"
-              style={{ animation: "fadeInDown 0.7s ease 0.3s both" }}
-            >
-              <button
-                onClick={goRequestAccess}
-                className="flex items-center gap-2 px-6 py-3.5 bg-primary text-white rounded-xl font-semibold text-base hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              >
+            <div className="flex flex-wrap items-center gap-3" style={{ animation: "fadeInDown 0.7s ease 0.3s both" }}>
+              <button onClick={goRequestAccess} className="flex items-center gap-2 px-6 py-3.5 bg-primary text-white rounded-xl font-semibold text-base hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
                 Request Demo Access <ArrowRight className="w-4 h-4" />
               </button>
-              <button
-                onClick={goApp}
-                className="flex items-center gap-2 px-6 py-3.5 border border-slate-200 rounded-xl font-medium text-base text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all"
-              >
+              <button onClick={goApp} className="flex items-center gap-2 px-6 py-3.5 border border-slate-200 rounded-xl font-medium text-base text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
                 Explore Dashboard
               </button>
             </div>
-
             <p className="text-xs text-slate-400 mt-4">No credit card required · Founder personally reviews every request</p>
-
-            {/* Trust bar */}
             <div className="flex items-center gap-5 mt-8 pt-6 border-t border-slate-100">
               {[
                 { icon: Shield, text: "Enterprise-grade security" },
@@ -206,22 +173,16 @@ export default function Landing() {
                 { icon: Clock, text: "14-day onboarding" },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <Icon className="w-3.5 h-3.5 text-slate-400" />
-                  {text}
+                  <Icon className="w-3.5 h-3.5 text-slate-400" />{text}
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Right: illustration + floating KPI cards */}
           <div className="relative hidden lg:flex items-center justify-center" style={{ animation: "fadeInRight 0.9s ease 0.2s both" }}>
             <div className="relative w-full max-w-md">
-              {/* Main illustration */}
               <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-3xl p-8 shadow-xl border border-slate-100 flex items-center justify-center" style={{ minHeight: 340 }}>
                 <img src={illustrationImg} alt="Platform illustration" className="w-4/5 object-contain" />
               </div>
-
-              {/* Floating KPI cards */}
               <div className="absolute -top-4 -left-6 bg-white rounded-2xl shadow-lg border border-slate-100 px-4 py-3 text-left" style={{ animation: "floatA 3.5s ease-in-out infinite" }}>
                 <div className="text-xs text-muted-foreground">Portfolio IRR</div>
                 <div className="text-xl font-black text-success">28.6%</div>
@@ -242,29 +203,102 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Why iNi? ── */}
-      <section className="py-20 px-6 md:px-10 bg-[#f8fafc]">
-        <div className="max-w-5xl mx-auto">
+      {/* ── Wave: hero → integrations ── */}
+      <WaveDown fromColor="#ffffff" toColor="#0f172a" />
+
+      {/* ── Integrations strip (dark) ── */}
+      <section className="bg-slate-900 py-10 px-6">
+        <div className="max-w-5xl mx-auto text-center">
+          <p className="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-6">Connects with your existing tools</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            {integrations.map((name) => (
+              <div key={name} className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium hover:border-blue-500/50 hover:text-white transition-all">
+                {name}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Wave: dark → why ini ── */}
+      <WaveUp fromColor="#0f172a" toColor="#eff6ff" />
+
+      {/* ── Why iNi? (improved) ── */}
+      <section className="bg-blue-50 pb-20 px-6 md:px-10">
+        <div className="max-w-6xl mx-auto">
           <Reveal>
-            <div className="text-center mb-14">
-              <h2 className="text-4xl font-black text-slate-900 mb-3">Why iNi?</h2>
+            <div className="text-center mb-16">
+              <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-primary text-xs font-bold uppercase tracking-widest mb-4">Why iNi</span>
+              <h2 className="text-4xl font-black text-slate-900 mb-4">Finance teams are drowning in<br />manual work. iNi fixes that.</h2>
               <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-                Why customers should choose iNi over manual workflows or legacy tools.
+                Customers choose iNi because it eliminates the spreadsheet chaos that slows down every finance team.
               </p>
             </div>
           </Reveal>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+
+          {/* Before / After comparison */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+            <Reveal delay={0}>
+              <div className="bg-white border border-red-100 rounded-2xl p-6 h-full">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <span className="text-sm font-bold text-red-500 uppercase tracking-wide">The Old Way</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    "Chasing portfolio companies for spreadsheets every quarter",
+                    "2–4 weeks to close books and produce board reports",
+                    "Finance team spends 40% of time just consolidating data",
+                    "No single source of truth across fund + portfolio",
+                    "M&A due diligence managed in email threads and shared drives",
+                    "Manual reconciliation across 5+ disconnected tools",
+                  ].map((item) => (
+                    <div key={item} className="flex items-start gap-2.5 text-sm text-slate-600">
+                      <div className="w-4 h-4 rounded-full bg-red-100 text-red-400 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">✕</div>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+            <Reveal delay={100}>
+              <div className="bg-white border border-emerald-100 rounded-2xl p-6 h-full">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                  <span className="text-sm font-bold text-emerald-600 uppercase tracking-wide">The iNi Way</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    "Portfolio data flows in automatically — no chasing needed",
+                    "Real-time books and one-click board pack generation",
+                    "Finance team focuses entirely on strategy and decisions",
+                    "One unified platform for fund, portfolio, and M&A",
+                    "Structured deal pipeline with automated DD checklists",
+                    "All tools connected — QuickBooks, Salesforce, Carta, and more",
+                  ].map((item) => (
+                    <div key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { value: "30%", label: "Faster Decisions", desc: "Save weeks of time with automated reporting", color: "text-[#2563EB]" },
-              { value: "2x", label: "More Efficient", desc: "Reduce deal costs by cutting intermediaries", color: "text-emerald-500" },
-              { value: "Real-Time", label: "Live Insights", desc: "Make faster, better decisions with real-time insights", color: "text-purple-600" },
-              { value: "100%", label: "Verified Data", desc: "Secure, verified data you can trust", color: "text-teal-500" },
+              { value: "30%", label: "Faster Decisions", desc: "Automated reporting saves weeks every quarter", color: "text-[#2563EB]" },
+              { value: "2x", label: "More Efficient", desc: "Cut deal costs by removing intermediaries", color: "text-emerald-500" },
+              { value: "Real-Time", label: "Live Insights", desc: "Data updated continuously, not once a month", color: "text-purple-600" },
+              { value: "100%", label: "Verified Data", desc: "Secure, auditable data you can trust", color: "text-teal-500" },
             ].map((stat, i) => (
               <Reveal key={stat.label} delay={i * 80}>
-                <div className="flex flex-col items-center">
-                  <div className={`text-4xl md:text-5xl font-black mb-2 ${stat.color}`}>{stat.value}</div>
-                  <div className="font-bold text-slate-800 text-sm mb-2">{stat.label}</div>
-                  <div className="text-xs text-slate-500 leading-relaxed max-w-[160px]">{stat.desc}</div>
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                  <div className={`text-4xl font-black mb-1 ${stat.color}`}>{stat.value}</div>
+                  <div className="font-bold text-slate-800 text-sm mb-1">{stat.label}</div>
+                  <div className="text-xs text-slate-500 leading-relaxed">{stat.desc}</div>
                 </div>
               </Reveal>
             ))}
@@ -272,42 +306,96 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Wave: why ini → how it works ── */}
+      <WaveDown fromColor="#eff6ff" toColor="#ffffff" />
+
+      {/* ── How It Works ── */}
+      <section id="how-it-works" className="bg-white pb-24 px-6 md:px-10">
+        <div className="max-w-5xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-16">
+              <span className="inline-block px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-widest mb-4">How It Works</span>
+              <h2 className="text-4xl font-black text-slate-900 mb-4">From fragmented data to<br />real-time intelligence in 3 steps</h2>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 relative">
+            {/* Connecting line */}
+            <div className="hidden md:block absolute top-10 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-blue-200 via-blue-400 to-blue-200" style={{ left: "18%", right: "18%" }} />
+            {[
+              {
+                step: "01",
+                icon: PlugZap,
+                title: "Connect Your Tools",
+                desc: "Link QuickBooks, Salesforce, Carta, Stripe, and 20+ other tools in minutes. iNi pulls your data automatically — no manual exports.",
+                color: "bg-blue-50 border-blue-100",
+                iconColor: "text-blue-600",
+                numColor: "text-blue-300",
+              },
+              {
+                step: "02",
+                icon: Database,
+                title: "iNi Unifies & Analyzes",
+                desc: "Our AI engine normalizes, reconciles, and enriches your data across fund and portfolio — giving you one live, trusted source of truth.",
+                color: "bg-purple-50 border-purple-100",
+                iconColor: "text-purple-600",
+                numColor: "text-purple-300",
+              },
+              {
+                step: "03",
+                icon: BarChart3,
+                title: "Insights On Demand",
+                desc: "Get real-time dashboards, automated reports, anomaly alerts, and board-ready exports. Decisions in hours, not weeks.",
+                color: "bg-emerald-50 border-emerald-100",
+                iconColor: "text-emerald-600",
+                numColor: "text-emerald-300",
+              },
+            ].map((s, i) => (
+              <Reveal key={s.step} delay={i * 120}>
+                <div className="flex flex-col items-center text-center px-6">
+                  <div className={`w-20 h-20 rounded-2xl border-2 ${s.color} flex items-center justify-center mb-5 relative z-10 shadow-md`}>
+                    <s.icon className={`w-8 h-8 ${s.iconColor}`} />
+                  </div>
+                  <div className={`text-5xl font-black ${s.numColor} mb-2 leading-none`}>{s.step}</div>
+                  <div className="font-bold text-slate-800 text-lg mb-3">{s.title}</div>
+                  <p className="text-slate-500 text-sm leading-relaxed">{s.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Wave: white → solutions ── */}
+      <WaveDown fromColor="#ffffff" toColor="#f8fafc" />
+
       {/* ── Two User Profiles ── */}
-      <section id="solutions" className="py-24 px-6 md:px-10 bg-white">
+      <section id="solutions" className="bg-slate-50 pb-24 px-6 md:px-10">
         <div className="max-w-6xl mx-auto">
           <Reveal>
             <div className="text-center mb-12">
+              <span className="inline-block px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest mb-4">Solutions</span>
               <h2 className="text-4xl font-black text-slate-900 mb-3">Built for Two Perspectives</h2>
               <p className="text-slate-500 text-lg max-w-2xl mx-auto">
                 Whether you're managing a fund or running a portfolio company — iNi gives you exactly what you need.
               </p>
             </div>
           </Reveal>
-
-          {/* Tab switcher */}
           <Reveal delay={100}>
             <div className="flex items-center justify-center gap-3 mb-10">
               {[
                 { id: "investor", label: "Investor / Fund Manager", icon: Building2 },
                 { id: "company", label: "Portfolio Company / Operator", icon: Users },
               ].map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id as "investor" | "company")}
+                <button key={id} onClick={() => setActiveTab(id as "investor" | "company")}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
-                    activeTab === id
-                      ? "bg-primary text-white border-primary shadow-md"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-primary/40"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
+                    activeTab === id ? "bg-primary text-white border-primary shadow-md" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40"
+                  }`}>
+                  <Icon className="w-4 h-4" />{label}
                 </button>
               ))}
             </div>
           </Reveal>
 
-          {/* Investor view */}
           {activeTab === "investor" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               <Reveal delay={50}>
@@ -321,8 +409,8 @@ export default function Landing() {
                   </p>
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {investorFeatures.map((f, i) => (
-                      <div key={i} className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-primary/20 hover:bg-blue-50/30 transition-all group">
-                        <f.icon className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                      <div key={i} className="p-4 rounded-xl border border-slate-100 bg-white hover:border-primary/20 hover:shadow-sm transition-all group">
+                        <f.icon className="w-5 h-5 text-primary mb-2" />
                         <div className="font-bold text-slate-800 text-sm mb-1">{f.title}</div>
                         <div className="text-xs text-muted-foreground leading-snug">{f.desc}</div>
                       </div>
@@ -374,7 +462,6 @@ export default function Landing() {
             </div>
           )}
 
-          {/* Company view */}
           {activeTab === "company" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               <Reveal delay={50}>
@@ -388,8 +475,8 @@ export default function Landing() {
                   </p>
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {companyFeatures.map((f, i) => (
-                      <div key={i} className="p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all group">
-                        <f.icon className="w-5 h-5 text-emerald-600 mb-2 group-hover:scale-110 transition-transform" />
+                      <div key={i} className="p-4 rounded-xl border border-slate-100 bg-white hover:border-emerald-200 hover:shadow-sm transition-all group">
+                        <f.icon className="w-5 h-5 text-emerald-600 mb-2" />
                         <div className="font-bold text-slate-800 text-sm mb-1">{f.title}</div>
                         <div className="text-xs text-muted-foreground leading-snug">{f.desc}</div>
                       </div>
@@ -427,10 +514,7 @@ export default function Landing() {
                       <div key={d.label} className="flex items-center gap-3 mb-2">
                         <span className="text-xs text-slate-600 w-20 shrink-0">{d.label}</span>
                         <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-2 rounded-full transition-all ${d.status === "over" ? "bg-red-400" : "bg-emerald-500"}`}
-                            style={{ width: `${Math.min(d.pct, 100)}%` }}
-                          />
+                          <div className={`h-2 rounded-full ${d.status === "over" ? "bg-red-400" : "bg-emerald-500"}`} style={{ width: `${Math.min(d.pct, 100)}%` }} />
                         </div>
                         <span className={`text-xs font-bold w-10 text-right ${d.status === "over" ? "text-red-500" : "text-emerald-600"}`}>{d.pct}%</span>
                       </div>
@@ -443,26 +527,30 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Platform modules ── */}
-      <section id="platform" className="py-24 px-6 md:px-10 bg-slate-50">
+      {/* ── Wave: slate → dark platform ── */}
+      <WaveDown fromColor="#f8fafc" toColor="#0f172a" />
+
+      {/* ── Platform modules (dark) ── */}
+      <section id="platform" className="bg-slate-900 pb-24 px-6 md:px-10">
         <div className="max-w-6xl mx-auto">
           <Reveal>
             <div className="text-center mb-14">
-              <h2 className="text-4xl font-black text-slate-900 mb-3">One Platform. Every Business Function.</h2>
-              <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-                10 modules covering every business function — from daily operations and finance to growth strategy and M&A.
+              <span className="inline-block px-3 py-1 rounded-full bg-slate-800 text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Platform</span>
+              <h2 className="text-4xl font-black text-white mb-3">One Platform. Every Business Function.</h2>
+              <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+                10 modules covering every business function — from daily operations to growth strategy and M&A.
               </p>
             </div>
           </Reveal>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {modules.map((mod, i) => (
               <Reveal key={mod.name} delay={i * 40}>
-                <div className="bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all group cursor-default">
+                <div className="bg-slate-800 rounded-2xl border border-slate-700 p-4 hover:border-slate-500 hover:bg-slate-750 transition-all group cursor-default">
                   <div className={`w-8 h-8 rounded-lg ${mod.color} mb-3 flex items-center justify-center`}>
                     <div className="w-3 h-3 bg-white/70 rounded-sm" />
                   </div>
-                  <div className="font-bold text-slate-800 text-xs mb-1 leading-tight">{mod.name}</div>
-                  <div className="text-[10px] text-muted-foreground leading-snug">{mod.desc}</div>
+                  <div className="font-bold text-slate-200 text-xs mb-1 leading-tight">{mod.name}</div>
+                  <div className="text-[10px] text-slate-500 leading-snug">{mod.desc}</div>
                 </div>
               </Reveal>
             ))}
@@ -470,8 +558,11 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Wave: dark → M&A ── */}
+      <WaveUp fromColor="#0f172a" toColor="#ffffff" />
+
       {/* ── M&A Highlight ── */}
-      <section className="py-24 px-6 md:px-10 bg-white overflow-hidden">
+      <section className="bg-white pb-24 px-6 md:px-10">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <Reveal>
             <div>
@@ -480,8 +571,7 @@ export default function Landing() {
               </div>
               <h2 className="text-3xl font-black text-slate-900 mb-4">End-to-End Deal Management</h2>
               <p className="text-slate-500 leading-relaxed mb-6">
-                From first sourcing conversation to post-merger integration — iNi manages every step of your M&A workflow.
-                Track deals through a visual pipeline, automate due diligence checklists, manage your document vault, and model synergies — all in one place.
+                From first sourcing conversation to post-merger integration — iNi manages every step of your M&A workflow. Track deals through a visual pipeline, automate due diligence checklists, manage your document vault, and model synergies — all in one place.
               </p>
               <div className="space-y-3">
                 {[
@@ -494,8 +584,7 @@ export default function Landing() {
                   "Advisor and stakeholder management",
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
-                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                    {item}
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />{item}
                   </div>
                 ))}
               </div>
@@ -542,11 +631,17 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Wave: white → testimonials ── */}
+      <WaveDown fromColor="#ffffff" toColor="#f8fafc" />
+
       {/* ── Testimonials ── */}
-      <section className="py-20 px-6 md:px-10 bg-slate-50">
+      <section className="bg-slate-50 pb-24 px-6 md:px-10">
         <div className="max-w-5xl mx-auto">
           <Reveal>
-            <h2 className="text-3xl font-black text-slate-900 text-center mb-12">What Finance Leaders Say</h2>
+            <div className="text-center mb-12">
+              <span className="inline-block px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest mb-4">What Finance Leaders Say</span>
+              <h2 className="text-3xl font-black text-slate-900">Trusted by CFOs and Fund Managers</h2>
+            </div>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
@@ -572,8 +667,11 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Wave: slate → about ── */}
+      <WaveUp fromColor="#f8fafc" toColor="#ffffff" />
+
       {/* ── About ── */}
-      <section id="about" className="py-20 px-6 md:px-10 bg-white">
+      <section id="about" className="bg-white pb-24 px-6 md:px-10">
         <div className="max-w-5xl mx-auto">
           <Reveal>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -596,12 +694,12 @@ export default function Landing() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { icon: "🏗️", title: "Purpose-Built", desc: "Every module designed around how finance teams actually work, not how developers think they work." },
-                  { icon: "⚡", title: "Real-Time Intelligence", desc: "Live data across portfolio companies, deals, and financials — updated automatically." },
-                  { icon: "🔗", title: "End-to-End Coverage", desc: "From FP&A and cash flow to M&A due diligence and investor reporting — all in one platform." },
-                  { icon: "🎯", title: "Two User Profiles", desc: "Tailored experiences for Investor / Fund Managers and Portfolio Company Operators." },
+                  { icon: "🏗️", title: "Purpose-Built", desc: "Every module designed around how finance teams actually work." },
+                  { icon: "⚡", title: "Real-Time Intelligence", desc: "Live data across portfolio companies, deals, and financials." },
+                  { icon: "🔗", title: "End-to-End Coverage", desc: "From FP&A and cash flow to M&A due diligence and LP reporting." },
+                  { icon: "🎯", title: "Two User Profiles", desc: "Tailored for Investors/Fund Managers and Portfolio Operators." },
                 ].map((card) => (
-                  <div key={card.title} className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                  <div key={card.title} className="bg-slate-50 rounded-2xl p-5 border border-slate-100 hover:border-primary/20 hover:shadow-sm transition-all">
                     <div className="text-2xl mb-2">{card.icon}</div>
                     <div className="font-bold text-slate-800 text-sm mb-1">{card.title}</div>
                     <div className="text-slate-500 text-xs leading-relaxed">{card.desc}</div>
@@ -613,50 +711,27 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Wave: white → contact ── */}
+      <WaveDown fromColor="#ffffff" toColor="#f8fafc" />
 
       {/* ── Contact Us ── */}
-      <section id="contact" className="py-20 px-6 md:px-10 bg-white">
+      <section id="contact" className="bg-slate-50 pb-24 px-6 md:px-10">
         <div className="max-w-4xl mx-auto">
           <Reveal>
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-semibold mb-4">
-                <Globe className="w-3.5 h-3.5" /> Get in Touch
-              </div>
+              <span className="inline-block px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest mb-4">Get in Touch</span>
               <h2 className="text-4xl font-black text-slate-900 mb-3">Contact Us</h2>
-              <p className="text-slate-500 text-lg max-w-xl mx-auto">
-                Have questions or want to learn more about iNi? We'd love to hear from you.
-              </p>
+              <p className="text-slate-500 text-lg max-w-xl mx-auto">Have questions or want to learn more? We'd love to hear from you.</p>
             </div>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              {
-                icon: "✉️",
-                title: "Email Us",
-                value: "info@inventninvest.com",
-                href: "mailto:info@inventninvest.com",
-                desc: "We typically respond within 24 hours",
-              },
-              {
-                icon: "🌐",
-                title: "Visit Our Website",
-                value: "inventninvest.com",
-                href: "https://inventninvest.com",
-                desc: "Learn more about Invent N Invest",
-              },
-              {
-                icon: "🚀",
-                title: "Request Access",
-                value: "Get Early Access",
-                href: "/request-access",
-                desc: "Limited spots available — apply today",
-              },
+              { icon: "✉️", title: "Email Us", value: "info@inventninvest.com", href: "mailto:info@inventninvest.com", desc: "We typically respond within 24 hours" },
+              { icon: "🌐", title: "Visit Our Website", value: "inventninvest.com", href: "https://inventninvest.com", desc: "Learn more about Invent N Invest" },
+              { icon: "🚀", title: "Request Access", value: "Get Early Access", href: "/request-access", desc: "Limited spots available — apply today" },
             ].map((item) => (
               <Reveal key={item.title} delay={80}>
-                <a
-                  href={item.href}
-                  className="block bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:border-primary/30 hover:bg-blue-50/30 hover:shadow-md transition-all group text-center"
-                >
+                <a href={item.href} className="block bg-white rounded-2xl p-6 border border-slate-100 hover:border-primary/30 hover:shadow-md transition-all group text-center">
                   <div className="text-3xl mb-3">{item.icon}</div>
                   <div className="font-bold text-slate-800 text-sm mb-1">{item.title}</div>
                   <div className="text-primary font-semibold text-sm mb-2 group-hover:underline">{item.value}</div>
@@ -668,25 +743,22 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Wave: slate → CTA ── */}
+      <WaveDown fromColor="#f8fafc" toColor="#1d4ed8" />
+
       {/* ── CTA ── */}
-      <section className="py-20 px-6 bg-gradient-to-r from-primary to-blue-700 text-white text-center">
+      <section className="bg-primary py-20 px-6 text-white text-center">
         <Reveal>
           <div className="max-w-2xl mx-auto">
             <h2 className="text-3xl font-black mb-4">Ready to Transform Your Finance Stack?</h2>
             <p className="text-blue-100 mb-8 leading-relaxed">
-              Join growth-stage companies and investors using iNi to replace manual, fragmented business intelligence with a single real-time platform built for how modern finance teams actually operate.
+              Join growth-stage companies and investors using iNi to replace manual, fragmented business intelligence with a single real-time platform.
             </p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
-              <button
-                onClick={goRequestAccess}
-                className="flex items-center gap-2 px-7 py-3.5 bg-white text-primary rounded-xl font-bold hover:bg-blue-50 transition-all shadow-md"
-              >
+              <button onClick={goRequestAccess} className="flex items-center gap-2 px-7 py-3.5 bg-white text-primary rounded-xl font-bold hover:bg-blue-50 transition-all shadow-md">
                 Request Demo Access <ArrowRight className="w-4 h-4" />
               </button>
-              <button
-                onClick={goApp}
-                className="px-7 py-3.5 border border-blue-300/50 text-white rounded-xl font-semibold hover:bg-white/10 transition-all"
-              >
+              <button onClick={goApp} className="px-7 py-3.5 border border-blue-300/50 text-white rounded-xl font-semibold hover:bg-white/10 transition-all">
                 Explore Dashboard
               </button>
             </div>
@@ -709,28 +781,12 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Animation keyframes */}
       <style>{`
-        @keyframes fadeInDown {
-          from { opacity: 0; transform: translateY(-16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeInRight {
-          from { opacity: 0; transform: translateX(24px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes floatA {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes floatB {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(10px); }
-        }
-        @keyframes floatC {
-          0%, 100% { transform: translateY(-50%) translateX(0px); }
-          50% { transform: translateY(-50%) translateX(-6px); }
-        }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes floatA { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        @keyframes floatB { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(10px); } }
+        @keyframes floatC { 0%, 100% { transform: translateY(-50%) translateX(0px); } 50% { transform: translateY(-50%) translateX(-6px); } }
       `}</style>
     </div>
   );
