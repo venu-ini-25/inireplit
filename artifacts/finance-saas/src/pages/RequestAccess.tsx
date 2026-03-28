@@ -137,10 +137,10 @@ export default function RequestAccess() {
         <div className="w-full max-w-2xl">
           {/* Header */}
           <div className="text-center mb-8">
-            {storedUser?.email && (
+            {user?.primaryEmailAddress?.emailAddress && (
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-medium mb-3">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-                Signed in as <strong>{storedUser.email}</strong>
+                Signed in as <strong>{user.primaryEmailAddress.emailAddress}</strong>
               </div>
             )}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-medium mb-4">
