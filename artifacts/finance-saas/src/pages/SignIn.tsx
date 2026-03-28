@@ -33,8 +33,7 @@ export default function SignIn() {
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <ClerkSignIn
           routing="hash"
-          afterSignInUrl={`${BASE}/app`}
-          afterSignUpUrl={`${BASE}/app`}
+          fallbackRedirectUrl={`${BASE}/app`}
           appearance={{
             elements: {
               rootBox: "w-full max-w-md",
