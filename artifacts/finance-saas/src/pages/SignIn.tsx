@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff, Loader2, ArrowLeft, AlertCircle } from "lucide-react";
+import { loginWithEmail, getStoredUser } from "../hooks/useAuth";
 
 const logoImg = "/images/ini-logo-transparent.png";
 
@@ -34,21 +35,6 @@ function AppleIcon() {
   );
 }
 
-type AuthUser = { email: string; name: string; provider: string };
-
-function saveUser(user: AuthUser) {
-  localStorage.setItem("ini_user", JSON.stringify(user));
-}
-
-export function getStoredUser(): AuthUser | null {
-  try {
-    const raw = localStorage.getItem("ini_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 export default function SignIn() {
   const [, navigate] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -78,25 +64,30 @@ export default function SignIn() {
     }
 
     setLoading("email");
-    await new Promise((r) => setTimeout(r, 1200));
 
-    // Check if an account already exists in localStorage
-    const stored = localStorage.getItem("ini_user");
-    if (stored) {
-      const user = JSON.parse(stored) as AuthUser;
-      if (user.email === form.email) {
-        setLoading(null);
-        saveUser(user);
+    const result = await loginWithEmail(form.email.trim(), form.password);
+    setLoading(null);
+
+    if (result.success) {
+      if (result.user.role === "master") {
+        navigate("/admin");
+      } else {
+        navigate("/app");
+      }
+      return;
+    }
+
+    if (result.error === "Invalid email or password.") {
+      const stored = getStoredUser();
+      if (stored && stored.email.toLowerCase() === form.email.trim().toLowerCase()) {
         navigate("/app");
         return;
       }
+      navigate("/request-access");
+      return;
     }
 
-    // No existing account — create one and go to request-access
-    const newUser: AuthUser = { email: form.email, name: "", provider: "email" };
-    saveUser(newUser);
-    setLoading(null);
-    navigate("/request-access");
+    setError(result.error);
   };
 
   return (
@@ -121,7 +112,6 @@ export default function SignIn() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-7">
-            {/* SSO Buttons */}
             <div className="space-y-3">
               {(["Google", "Microsoft", "Apple"] as const).map((provider) => (
                 <button

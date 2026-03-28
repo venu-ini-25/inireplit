@@ -6,9 +6,11 @@ import dealsRouter from "./deals";
 import servicesRouter from "./services";
 import metricsRouter from "./metrics";
 import accessRequestsRouter from "./accessRequests";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
+router.use(authRouter);
 router.use(healthRouter);
 router.use(portfolioRouter);
 router.use(analyticsRouter);

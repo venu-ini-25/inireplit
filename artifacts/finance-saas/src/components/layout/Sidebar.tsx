@@ -18,17 +18,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { getStoredUser, clearAuth } from "../../hooks/useAuth";
 const logoImg = "/images/ini-logo-transparent.png";
 
 type NavSection = "finance" | "portfolio" | "settings" | null;
-
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("ini_user");
-    if (!raw) return null;
-    return JSON.parse(raw) as { name?: string; email?: string };
-  } catch { return null; }
-}
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const [location, navigate] = useLocation();
@@ -47,7 +40,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const navClick = () => onClose?.();
 
   const handleLogout = () => {
-    localStorage.removeItem("ini_user");
+    clearAuth();
     onClose?.();
     navigate("/");
   };
@@ -78,7 +71,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const user = getStoredUser();
   const initials = (user?.name ?? user?.email ?? "U").charAt(0).toUpperCase();
-  const isAdmin = (user?.email ?? "").includes("@inventninvest.com") || (user?.email ?? "").includes("venu");
+  const isAdmin = user?.role === "master" || user?.role === "admin";
 
   return (
     <aside className="w-64 h-screen flex flex-col bg-white border-r border-border z-40">
@@ -232,7 +225,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-slate-800 truncate">{user?.name || user?.email || "Guest"}</div>
+            <div className="text-xs font-semibold text-slate-800 truncate flex items-center gap-1.5">
+              {user?.name || user?.email || "Guest"}
+              {user?.role === "master" && (
+                <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary uppercase tracking-wide">Master</span>
+              )}
+            </div>
             <div className="text-[10px] text-muted-foreground truncate">{user?.email ?? ""}</div>
           </div>
           <button

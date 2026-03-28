@@ -2,14 +2,7 @@ import { Sidebar } from "./Sidebar";
 import { Search, Bell, RotateCw, Menu } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
-
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("ini_user");
-    if (!raw) return null;
-    return JSON.parse(raw) as { name?: string; email?: string };
-  } catch { return null; }
-}
+import { getStoredUser } from "../../hooks/useAuth";
 
 export function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -80,7 +73,7 @@ export function Layout({ children }: { children: ReactNode }) {
             >
               <div className="hidden md:flex flex-col items-end">
                 <span className="text-sm font-medium text-foreground leading-none">{displayName}</span>
-                <span className="text-xs text-muted-foreground mt-1">Demo Access</span>
+                <span className="text-xs text-muted-foreground mt-1">{user?.role === "master" ? "Master Admin" : "Demo Access"}</span>
               </div>
               <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-sm text-sm shrink-0">
                 {initials}
