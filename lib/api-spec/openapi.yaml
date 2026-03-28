@@ -1,15 +1,22 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Finance Tech SaaS Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard metrics and data
+  - name: transactions
+    description: Financial transactions
+  - name: accounts
+    description: Account management
+  - name: analytics
+    description: Analytics and reporting
 paths:
   /healthz:
     get:
@@ -24,6 +31,114 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/metrics:
+    get:
+      operationId: getDashboardMetrics
+      tags: [dashboard]
+      summary: Get dashboard metrics
+      description: Returns key financial metrics for the dashboard
+      responses:
+        "200":
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardMetrics"
+
+  /dashboard/revenue-chart:
+    get:
+      operationId: getRevenueChart
+      tags: [dashboard]
+      summary: Get revenue chart data
+      description: Returns revenue data for charting
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+          description: Time period for chart data
+      responses:
+        "200":
+          description: Revenue chart data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueChartData"
+
+  /transactions:
+    get:
+      operationId: getTransactions
+      tags: [transactions]
+      summary: List transactions
+      description: Returns a paginated list of transactions
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [income, expense, transfer]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed, cancelled]
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionList"
+
+  /accounts:
+    get:
+      operationId: getAccounts
+      tags: [accounts]
+      summary: List accounts
+      description: Returns all financial accounts
+      responses:
+        "200":
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+
+  /analytics/spending:
+    get:
+      operationId: getSpendingAnalytics
+      tags: [analytics]
+      summary: Get spending analytics
+      description: Returns spending breakdown by category
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+      responses:
+        "200":
+          description: Spending analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingAnalytics"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +149,195 @@ components:
       required:
         - status
 
+    DashboardMetrics:
+      type: object
+      properties:
+        totalRevenue:
+          type: number
+          description: Total revenue in cents
+        totalExpenses:
+          type: number
+        netProfit:
+          type: number
+        cashFlow:
+          type: number
+        revenueChange:
+          type: number
+          description: Percentage change from last period
+        expensesChange:
+          type: number
+        profitChange:
+          type: number
+        cashFlowChange:
+          type: number
+        activeAccounts:
+          type: integer
+        pendingTransactions:
+          type: integer
+      required:
+        - totalRevenue
+        - totalExpenses
+        - netProfit
+        - cashFlow
+        - revenueChange
+        - expensesChange
+        - profitChange
+        - cashFlowChange
+        - activeAccounts
+        - pendingTransactions
+
+    ChartDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        revenue:
+          type: number
+        expenses:
+          type: number
+      required:
+        - date
+        - revenue
+        - expenses
+
+    RevenueChartData:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartDataPoint"
+        totalRevenue:
+          type: number
+        totalExpenses:
+          type: number
+        growthRate:
+          type: number
+      required:
+        - data
+        - totalRevenue
+        - totalExpenses
+        - growthRate
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense, transfer]
+        status:
+          type: string
+          enum: [pending, completed, failed, cancelled]
+        category:
+          type: string
+        account:
+          type: string
+        date:
+          type: string
+        merchant:
+          type: string
+      required:
+        - id
+        - description
+        - amount
+        - type
+        - status
+        - category
+        - account
+        - date
+
+    TransactionList:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - transactions
+        - total
+        - page
+        - limit
+
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [checking, savings, investment, credit, crypto]
+        balance:
+          type: number
+        currency:
+          type: string
+        institution:
+          type: string
+        lastActivity:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, frozen]
+        accountNumber:
+          type: string
+      required:
+        - id
+        - name
+        - type
+        - balance
+        - currency
+        - institution
+        - lastActivity
+        - status
+
+    SpendingCategory:
+      type: object
+      properties:
+        name:
+          type: string
+        amount:
+          type: number
+        percentage:
+          type: number
+        color:
+          type: string
+        change:
+          type: number
+      required:
+        - name
+        - amount
+        - percentage
+        - color
+
+    SpendingAnalytics:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpendingCategory"
+        totalSpending:
+          type: number
+        averageDaily:
+          type: number
+        topCategory:
+          type: string
+      required:
+        - categories
+        - totalSpending
+        - averageDaily
+        - topCategory
