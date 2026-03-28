@@ -131,41 +131,49 @@ export default function Landing() {
       <nav className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled ? "bg-white/97 backdrop-blur-md shadow-md border-b border-slate-100" : "bg-white/80 backdrop-blur-sm"
       }`}>
-        <div className="flex items-center justify-between px-5 sm:px-8 lg:px-14">
-          {/* Logo — responsive height */}
+        {/* ── Desktop row (lg+): logo left | links center | buttons right ── */}
+        <div className="hidden lg:flex items-center justify-between px-14">
           <img
             src={logoImg}
             alt="iNi"
             className="w-auto shrink-0"
-            style={{ height: "clamp(60px, 8vw, 100px)", mixBlendMode: "multiply" }}
+            style={{ height: "100px", mixBlendMode: "multiply" }}
           />
-
-          {/* Desktop nav links — only lg+ */}
-          <div className="hidden lg:flex items-center gap-7">
+          <div className="flex items-center gap-7">
             {navLinks.map(({ label, href }) => (
               <a key={label} href={href} className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold whitespace-nowrap">
                 {label}
               </a>
             ))}
           </div>
-
-          {/* Right side buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button onClick={goSignIn} className="hidden lg:block px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all whitespace-nowrap">
+          <div className="flex items-center gap-3">
+            <button onClick={goSignIn} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all whitespace-nowrap">
               Sign In
             </button>
-            <button onClick={goRequestAccess} className="px-4 py-2 sm:px-5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg whitespace-nowrap">
+            <button onClick={goRequestAccess} className="px-5 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-md hover:shadow-lg whitespace-nowrap">
               Request Access
             </button>
-            {/* Hamburger — hidden on lg+ */}
-            <button
-              onClick={() => setMobileOpen((v) => !v)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
+        </div>
+
+        {/* ── Mobile / Tablet row (<lg): hamburger | logo center | CTA ── */}
+        <div className="flex lg:hidden items-center justify-between px-4 py-1">
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+          <img
+            src={logoImg}
+            alt="iNi"
+            className="w-auto absolute left-1/2 -translate-x-1/2"
+            style={{ height: "80px", mixBlendMode: "multiply" }}
+          />
+          <button onClick={goRequestAccess} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-all shadow whitespace-nowrap">
+            Request Access
+          </button>
         </div>
 
         {/* Mobile / Tablet menu drawer */}
