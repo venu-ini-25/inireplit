@@ -114,7 +114,7 @@ export default function Landing() {
 
   const goRequestAccess = () => navigate("/request-access");
   const goSignIn = () => navigate("/login");
-  const goApp = () => navigate("/app");
+  const goApp = () => navigate("/login");
 
   return (
     <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">

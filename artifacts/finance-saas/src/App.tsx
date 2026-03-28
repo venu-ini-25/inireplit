@@ -9,6 +9,7 @@ import Landing from "@/pages/Landing";
 import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
 import RequestAccess from "@/pages/RequestAccess";
+import Settings from "@/pages/Settings";
 import Dashboard from "@/pages/Dashboard";
 import FinancePL from "@/pages/FinancePL";
 import FinanceCashFlow from "@/pages/FinanceCashFlow";
@@ -64,6 +65,8 @@ function Router() {
             <Route path="/ma" component={MASupport} />
             <Route path="/reports" component={Reports} />
             <Route path="/services" component={ProfessionalServices} />
+            <Route path="/settings/:tab?" component={Settings} />
+            <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
           </Switch>
         </Layout>

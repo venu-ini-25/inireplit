@@ -1,9 +1,23 @@
 import { Sidebar } from "./Sidebar";
-import { Search, Bell, RotateCw, Menu, X } from "lucide-react";
+import { Search, Bell, RotateCw, Menu } from "lucide-react";
 import { ReactNode, useState } from "react";
+import { useLocation } from "wouter";
+
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem("ini_user");
+    if (!raw) return null;
+    return JSON.parse(raw) as { name?: string; email?: string };
+  } catch { return null; }
+}
 
 export function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [, navigate] = useLocation();
+
+  const user = getStoredUser();
+  const initials = (user?.name ?? user?.email ?? "U").charAt(0).toUpperCase();
+  const displayName = user?.name ?? user?.email ?? "Guest";
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -60,15 +74,18 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full border border-white" />
             </button>
 
-            <div className="flex items-center gap-2 md:gap-3 md:border-l md:border-border md:pl-4">
+            <button
+              onClick={() => navigate("/settings/profile")}
+              className="flex items-center gap-2 md:gap-3 md:border-l md:border-border md:pl-4 hover:opacity-80 transition-opacity"
+            >
               <div className="hidden md:flex flex-col items-end">
-                <span className="text-sm font-medium text-foreground leading-none">venu@venuvegi.com</span>
-                <span className="text-xs text-muted-foreground mt-1">Business Access</span>
+                <span className="text-sm font-medium text-foreground leading-none">{displayName}</span>
+                <span className="text-xs text-muted-foreground mt-1">Demo Access</span>
               </div>
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary text-white flex items-center justify-center font-medium shadow-sm text-sm shrink-0">
-                V
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-sm text-sm shrink-0">
+                {initials}
               </div>
-            </div>
+            </button>
           </div>
         </header>
 
