@@ -5,6 +5,7 @@
  * iNi - Invent N Invest Finance Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { ServicesOverviewRevenueMonthlyItem } from "./servicesOverviewRevenueMonthlyItem";
 import type { ServiceTypeCount } from "./serviceTypeCount";
 
 export interface ServicesOverview {
@@ -14,4 +15,5 @@ export interface ServicesOverview {
   completedThisYear: number;
   revenueChange: number;
   engagementsByType: ServiceTypeCount[];
+  revenueMonthly: ServicesOverviewRevenueMonthlyItem[];
 }

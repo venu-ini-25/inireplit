@@ -42,11 +42,6 @@ const TYPE_COLORS: Record<string, string> = {
 
 const STATUS_FILTERS = ["All", "Active", "Pipeline", "Completed"];
 
-const revenueMonthly = [
-  { month: "Jul", rev: 38000 }, { month: "Aug", rev: 44000 }, { month: "Sep", rev: 52000 },
-  { month: "Oct", rev: 48000 }, { month: "Nov", rev: 61000 }, { month: "Dec", rev: 72000 },
-];
-
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
@@ -131,7 +126,7 @@ export default function ProfessionalServices() {
 
         <ChartCard title="Monthly Services Revenue" subtitle="Last 6 months — billed revenue">
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={revenueMonthly}>
+            <LineChart data={overview?.revenueMonthly ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={(v) => `$${v / 1000}K`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />

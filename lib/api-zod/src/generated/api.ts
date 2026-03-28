@@ -198,6 +198,14 @@ export const GetBenchmarksResponse = zod.object({
       unit: zod.string(),
     }),
   ),
+  radarData: zod.array(
+    zod.object({
+      subject: zod.string(),
+      portfolio: zod.number(),
+      peerMedian: zod.number(),
+      fullMark: zod.number(),
+    }),
+  ),
 });
 
 /**
@@ -348,6 +356,36 @@ export const GetDealResponse = zod.object({
       type: zod.enum(["milestone", "document", "meeting", "update"]),
     }),
   ),
+  overview: zod.string(),
+  thesis: zod.string(),
+  financials: zod.object({
+    arr: zod.number(),
+    nrr: zod.number(),
+    growth: zod.number(),
+    ebitda: zod.number(),
+  }),
+  synergies: zod.array(
+    zod.object({
+      type: zod.string(),
+      value: zod.string(),
+      confidence: zod.string(),
+    }),
+  ),
+  contacts: zod.array(
+    zod.object({
+      name: zod.string(),
+      role: zod.string(),
+      email: zod.string().optional(),
+    }),
+  ),
+  documents: zod.array(
+    zod.object({
+      name: zod.string(),
+      type: zod.string(),
+      date: zod.string(),
+      size: zod.string(),
+    }),
+  ),
 });
 
 /**
@@ -405,6 +443,12 @@ export const GetServicesOverviewResponse = zod.object({
       type: zod.string(),
       count: zod.number(),
       revenue: zod.number(),
+    }),
+  ),
+  revenueMonthly: zod.array(
+    zod.object({
+      month: zod.string(),
+      rev: zod.number(),
     }),
   ),
 });

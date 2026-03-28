@@ -47,14 +47,20 @@ router.get("/analytics/benchmarks", (req, res) => {
   const response = GetBenchmarksResponse.parse({
     industry,
     metrics: [
-      { label: "Revenue Growth", company: 48.2, industry: 28.4, topQuartile: 65.0, unit: "%" },
-      { label: "Gross Margin", company: 74.2, industry: 68.5, topQuartile: 82.0, unit: "%" },
-      { label: "EBITDA Margin", company: 18.4, industry: 12.1, topQuartile: 24.0, unit: "%" },
-      { label: "NRR", company: 118, industry: 108, topQuartile: 130, unit: "%" },
-      { label: "CAC Payback", company: 14, industry: 18, topQuartile: 10, unit: "months" },
-      { label: "Rule of 40", company: 66.6, industry: 40.5, topQuartile: 89.0, unit: "" },
-      { label: "Revenue / Employee", company: 198000, industry: 155000, topQuartile: 280000, unit: "$" },
-      { label: "Cash Runway", company: 18, industry: 14, topQuartile: 24, unit: "months" },
+      { label: "Gross Margin", company: 81, industry: 74, topQuartile: 85, unit: "%" },
+      { label: "Net Rev Retention", company: 118, industry: 108, topQuartile: 125, unit: "%" },
+      { label: "CAC Payback", company: 14, industry: 20, topQuartile: 10, unit: "months" },
+      { label: "ARR Growth", company: 94, industry: 60, topQuartile: 110, unit: "%" },
+      { label: "Magic Number", company: 1.4, industry: 0.9, topQuartile: 1.8, unit: "x" },
+      { label: "Rule of 40", company: 68, industry: 42, topQuartile: 82, unit: "%" },
+    ],
+    radarData: [
+      { subject: "Gross Margin", portfolio: 81, peerMedian: 74, fullMark: 100 },
+      { subject: "NRR", portfolio: 94, peerMedian: 80, fullMark: 100 },
+      { subject: "Efficiency", portfolio: 72, peerMedian: 55, fullMark: 100 },
+      { subject: "Growth", portfolio: 85, peerMedian: 60, fullMark: 100 },
+      { subject: "Retention", portfolio: 88, peerMedian: 70, fullMark: 100 },
+      { subject: "Burn Rate", portfolio: 68, peerMedian: 52, fullMark: 100 },
     ],
   });
   res.json(response);

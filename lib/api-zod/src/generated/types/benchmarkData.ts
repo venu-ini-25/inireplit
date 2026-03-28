@@ -5,9 +5,11 @@
  * iNi - Invent N Invest Finance Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { BenchmarkDataRadarDataItem } from "./benchmarkDataRadarDataItem";
 import type { BenchmarkItem } from "./benchmarkItem";
 
 export interface BenchmarkData {
   industry: string;
   metrics: BenchmarkItem[];
+  radarData: BenchmarkDataRadarDataItem[];
 }

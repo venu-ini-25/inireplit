@@ -158,9 +158,17 @@ export interface BenchmarkItem {
   unit: string;
 }
 
+export type BenchmarkDataRadarDataItem = {
+  subject: string;
+  portfolio: number;
+  peerMedian: number;
+  fullMark: number;
+};
+
 export interface BenchmarkData {
   industry: string;
   metrics: BenchmarkItem[];
+  radarData: BenchmarkDataRadarDataItem[];
 }
 
 export type ReportType = (typeof ReportType)[keyof typeof ReportType];
@@ -273,6 +281,32 @@ export interface Deal {
   dataRoomAccess: boolean;
 }
 
+export type DealDetailFinancials = {
+  arr: number;
+  nrr: number;
+  growth: number;
+  ebitda: number;
+};
+
+export type DealDetailSynergiesItem = {
+  type: string;
+  value: string;
+  confidence: string;
+};
+
+export type DealDetailContactsItem = {
+  name: string;
+  role: string;
+  email?: string;
+};
+
+export type DealDetailDocumentsItem = {
+  name: string;
+  type: string;
+  date: string;
+  size: string;
+};
+
 export type DueDiligenceItemStatus =
   (typeof DueDiligenceItemStatus)[keyof typeof DueDiligenceItemStatus];
 
@@ -326,6 +360,12 @@ export interface DealDetail {
   dataRoomAccess: boolean;
   dueDiligenceItems: DueDiligenceItem[];
   timeline: TimelineEvent[];
+  overview: string;
+  thesis: string;
+  financials: DealDetailFinancials;
+  synergies: DealDetailSynergiesItem[];
+  contacts: DealDetailContactsItem[];
+  documents: DealDetailDocumentsItem[];
 }
 
 export interface StageCount {
@@ -377,6 +417,11 @@ export interface Engagement {
   description: string;
 }
 
+export type ServicesOverviewRevenueMonthlyItem = {
+  month: string;
+  rev: number;
+};
+
 export interface ServiceTypeCount {
   type: string;
   count: number;
@@ -390,6 +435,7 @@ export interface ServicesOverview {
   completedThisYear: number;
   revenueChange: number;
   engagementsByType: ServiceTypeCount[];
+  revenueMonthly: ServicesOverviewRevenueMonthlyItem[];
 }
 
 export interface HeadcountPoint {

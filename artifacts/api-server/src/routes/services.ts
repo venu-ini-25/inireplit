@@ -89,11 +89,15 @@ router.get("/services/overview", (_req, res) => {
     completedThisYear: 1,
     revenueChange: 42.8,
     engagementsByType: [
-      { type: "FP&A", count: 2, revenue: 96000 },
-      { type: "Strategic Finance", count: 1, revenue: 95000 },
-      { type: "Corp Dev", count: 1, revenue: 120000 },
-      { type: "Due Diligence", count: 1, revenue: 48000 },
-      { type: "Valuation", count: 1, revenue: 35000 },
+      { type: "fpa", count: 2, revenue: 96000 },
+      { type: "strategic_finance", count: 1, revenue: 95000 },
+      { type: "corp_dev", count: 1, revenue: 120000 },
+      { type: "due_diligence", count: 1, revenue: 48000 },
+      { type: "valuation", count: 1, revenue: 35000 },
+    ],
+    revenueMonthly: [
+      { month: "Jul", rev: 38000 }, { month: "Aug", rev: 44000 }, { month: "Sep", rev: 52000 },
+      { month: "Oct", rev: 48000 }, { month: "Nov", rev: 61000 }, { month: "Dec", rev: 72000 },
     ],
   });
   res.json(data);

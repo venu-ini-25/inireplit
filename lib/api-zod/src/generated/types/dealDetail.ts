@@ -5,6 +5,10 @@
  * iNi - Invent N Invest Finance Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { DealDetailContactsItem } from "./dealDetailContactsItem";
+import type { DealDetailDocumentsItem } from "./dealDetailDocumentsItem";
+import type { DealDetailFinancials } from "./dealDetailFinancials";
+import type { DealDetailSynergiesItem } from "./dealDetailSynergiesItem";
 import type { DueDiligenceItem } from "./dueDiligenceItem";
 import type { TimelineEvent } from "./timelineEvent";
 
@@ -26,4 +30,10 @@ export interface DealDetail {
   dataRoomAccess: boolean;
   dueDiligenceItems: DueDiligenceItem[];
   timeline: TimelineEvent[];
+  overview: string;
+  thesis: string;
+  financials: DealDetailFinancials;
+  synergies: DealDetailSynergiesItem[];
+  contacts: DealDetailContactsItem[];
+  documents: DealDetailDocumentsItem[];
 }

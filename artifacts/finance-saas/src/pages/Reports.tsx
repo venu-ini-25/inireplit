@@ -1,30 +1,12 @@
 import { useState } from "react";
 import { FileText, Download, Share2, MoreVertical, Search } from "lucide-react";
-import { useGetReports } from "@workspace/api-client-react";
+import { useGetReports, useGetBenchmarks } from "@workspace/api-client-react";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { ChartCard } from "@/components/ui/ChartCard";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+  Tooltip,
 } from "recharts";
-
-const benchmarkData = [
-  { metric: "Gross Margin", company: 81, peer: 74, top: 85 },
-  { metric: "Net Rev Retention", company: 118, peer: 108, top: 125 },
-  { metric: "CAC Payback", company: 14, peer: 20, top: 10 },
-  { metric: "ARR Growth", company: 94, peer: 60, top: 110 },
-  { metric: "Magic Number", company: 1.4, peer: 0.9, top: 1.8 },
-  { metric: "Rule of 40", company: 68, peer: 42, top: 82 },
-];
-
-const radarData = [
-  { subject: "Gross Margin", A: 81, B: 74, fullMark: 100 },
-  { subject: "NRR", A: 94, B: 80, fullMark: 100 },
-  { subject: "Efficiency", A: 72, B: 55, fullMark: 100 },
-  { subject: "Growth", A: 85, B: 60, fullMark: 100 },
-  { subject: "Retention", A: 88, B: 70, fullMark: 100 },
-  { subject: "Burn Rate", A: 68, B: 52, fullMark: 100 },
-];
 
 const CATEGORIES = ["All Reports", "Financial", "Operational", "Portfolio", "M&A"];
 const STATUSES = ["All Statuses", "draft", "ready", "published", "archived"];
@@ -38,6 +20,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function Reports() {
   const { data: reports, isLoading } = useGetReports();
+  const { data: benchmarks } = useGetBenchmarks();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Reports");
   const [status, setStatus] = useState("All Statuses");
@@ -48,6 +31,13 @@ export default function Reports() {
     const matchStatus = status === "All Statuses" || r.status === status;
     return matchCat && matchSearch && matchStatus;
   });
+
+  const unitSuffix = (label: string) => {
+    if (label.includes("Margin") || label.includes("Growth") || label.includes("Rule") || label.includes("Retention")) return "%";
+    if (label.includes("Payback")) return " mo";
+    if (label.includes("Number")) return "x";
+    return "";
+  };
 
   return (
     <div className="space-y-6">
@@ -63,44 +53,57 @@ export default function Reports() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ChartCard title="Performance vs Peers" subtitle="iNi portfolio vs SaaS peer median (indexed)">
-          <ResponsiveContainer width="100%" height={220}>
-            <RadarChart data={radarData}>
-              <PolarGrid stroke="#f1f5f9" />
-              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
-              <Radar name="Portfolio" dataKey="A" stroke="#2563EB" fill="#2563EB" fillOpacity={0.25} />
-              <Radar name="Peer Median" dataKey="B" stroke="#94A3B8" fill="#94A3B8" fillOpacity={0.15} />
-              <Tooltip />
-            </RadarChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 justify-center mt-1">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="w-3 h-1 bg-primary rounded" />Portfolio</div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="w-3 h-1 bg-slate-400 rounded" />Peer Median</div>
-          </div>
+          {benchmarks?.radarData ? (
+            <>
+              <ResponsiveContainer width="100%" height={220}>
+                <RadarChart data={benchmarks.radarData}>
+                  <PolarGrid stroke="#f1f5f9" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
+                  <Radar name="Portfolio" dataKey="portfolio" stroke="#2563EB" fill="#2563EB" fillOpacity={0.25} />
+                  <Radar name="Peer Median" dataKey="peerMedian" stroke="#94A3B8" fill="#94A3B8" fillOpacity={0.15} />
+                  <Tooltip />
+                </RadarChart>
+              </ResponsiveContainer>
+              <div className="flex gap-4 justify-center mt-1">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="w-3 h-1 bg-primary rounded" />Portfolio</div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="w-3 h-1 bg-slate-400 rounded" />Peer Median</div>
+              </div>
+            </>
+          ) : (
+            <div className="h-48 flex items-center justify-center text-muted-foreground text-sm animate-pulse">Loading chart...</div>
+          )}
         </ChartCard>
 
-        <ChartCard title="KPI Benchmarks" subtitle="Portfolio vs peer median vs top quartile">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-muted-foreground border-b border-slate-100">
-                  <th className="text-left py-2 font-medium">Metric</th>
-                  <th className="text-right py-2 font-medium text-primary">Portfolio</th>
-                  <th className="text-right py-2 font-medium">Peer Median</th>
-                  <th className="text-right py-2 font-medium text-success">Top Quartile</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {benchmarkData.map((row, i) => (
-                  <tr key={i} className="hover:bg-slate-50/50">
-                    <td className="py-2.5 text-slate-700">{row.metric}</td>
-                    <td className="py-2.5 text-right font-bold text-primary">{row.company}{row.metric.includes("Margin") || row.metric.includes("Growth") || row.metric.includes("Rule") ? "%" : row.metric.includes("Payback") ? "mo" : "x"}</td>
-                    <td className="py-2.5 text-right text-muted-foreground">{row.peer}{row.metric.includes("Margin") || row.metric.includes("Growth") || row.metric.includes("Rule") ? "%" : row.metric.includes("Payback") ? "mo" : "x"}</td>
-                    <td className="py-2.5 text-right font-medium text-success">{row.top}{row.metric.includes("Margin") || row.metric.includes("Growth") || row.metric.includes("Rule") ? "%" : row.metric.includes("Payback") ? "mo" : "x"}</td>
+        <ChartCard title="KPI Benchmarks" subtitle={`Portfolio vs peer median vs top quartile — ${benchmarks?.industry ?? "SaaS"}`}>
+          {benchmarks?.metrics ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-muted-foreground border-b border-slate-100">
+                    <th className="text-left py-2 font-medium">Metric</th>
+                    <th className="text-right py-2 font-medium text-primary">Portfolio</th>
+                    <th className="text-right py-2 font-medium">Peer Median</th>
+                    <th className="text-right py-2 font-medium text-success">Top Quartile</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {benchmarks.metrics.map((row, i) => {
+                    const suffix = unitSuffix(row.label);
+                    return (
+                      <tr key={i} className="hover:bg-slate-50/50">
+                        <td className="py-2.5 text-slate-700">{row.label}</td>
+                        <td className="py-2.5 text-right font-bold text-primary">{row.company}{suffix}</td>
+                        <td className="py-2.5 text-right text-muted-foreground">{row.industry}{suffix}</td>
+                        <td className="py-2.5 text-right font-medium text-success">{row.topQuartile}{suffix}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="h-48 flex items-center justify-center text-muted-foreground text-sm animate-pulse">Loading data...</div>
+          )}
         </ChartCard>
       </div>
 

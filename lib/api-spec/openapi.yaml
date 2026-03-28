@@ -614,7 +614,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BenchmarkItem"
-      required: [industry, metrics]
+        radarData:
+          type: array
+          items:
+            type: object
+            properties:
+              subject:
+                type: string
+              portfolio:
+                type: number
+              peerMedian:
+                type: number
+              fullMark:
+                type: number
+            required: [subject, portfolio, peerMedian, fullMark]
+      required: [industry, metrics, radarData]
 
     Report:
       type: object
@@ -784,7 +798,61 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TimelineEvent"
-      required: [id, companyName, industry, dealType, stage, dealSize, valuation, targetRevenue, assignedTo, priority, createdAt, updatedAt, ndaSigned, dataRoomAccess, dueDiligenceItems, timeline]
+        overview:
+          type: string
+        thesis:
+          type: string
+        financials:
+          type: object
+          properties:
+            arr:
+              type: number
+            nrr:
+              type: number
+            growth:
+              type: number
+            ebitda:
+              type: number
+          required: [arr, nrr, growth, ebitda]
+        synergies:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              value:
+                type: string
+              confidence:
+                type: string
+            required: [type, value, confidence]
+        contacts:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              role:
+                type: string
+              email:
+                type: string
+            required: [name, role]
+        documents:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+              date:
+                type: string
+              size:
+                type: string
+            required: [name, type, date, size]
+      required: [id, companyName, industry, dealType, stage, dealSize, valuation, targetRevenue, assignedTo, priority, createdAt, updatedAt, ndaSigned, dataRoomAccess, dueDiligenceItems, timeline, overview, thesis, financials, synergies, contacts, documents]
 
     DueDiligenceItem:
       type: object
@@ -890,7 +958,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ServiceTypeCount"
-      required: [activeEngagements, totalRevenue, avgEngagementSize, completedThisYear, revenueChange, engagementsByType]
+        revenueMonthly:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              rev:
+                type: number
+            required: [month, rev]
+      required: [activeEngagements, totalRevenue, avgEngagementSize, completedThisYear, revenueChange, engagementsByType, revenueMonthly]
 
     ServiceTypeCount:
       type: object
