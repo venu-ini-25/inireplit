@@ -127,7 +127,6 @@ export default function Landing() {
         <div className="hidden md:flex items-center gap-6">
           <a href="#solutions" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">Solutions</a>
           <a href="#platform" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">Platform</a>
-          <a href="#pricing" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">Pricing</a>
           <a href="#about" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">About</a>
         </div>
         <div className="flex items-center gap-3">
@@ -162,7 +161,7 @@ export default function Landing() {
               style={{ animation: "fadeInDown 0.6s ease forwards" }}
             >
               <Zap className="w-3.5 h-3.5" />
-              Now in early access · Raising $700K–$1.2M seed
+              Now in early access · Limited spots available
             </div>
 
             <h1
@@ -436,9 +435,9 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <Reveal>
             <div className="text-center mb-14">
-              <h2 className="text-4xl font-black text-slate-900 mb-3">One Platform. Every Finance Function.</h2>
+              <h2 className="text-4xl font-black text-slate-900 mb-3">One Platform. Every Business Function.</h2>
               <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-                10 modules covering the complete CFO mandate — from daily cash flow to complex M&A transactions.
+                10 modules covering every business function — from daily operations and finance to growth strategy and M&A.
               </p>
             </div>
           </Reveal>
@@ -560,106 +559,47 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Founder + About ── */}
+      {/* ── About ── */}
       <section id="about" className="py-20 px-6 md:px-10 bg-white">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <Reveal>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-semibold mb-4">
                   <Globe className="w-3.5 h-3.5" /> About iNi
                 </div>
-                <h2 className="text-3xl font-black text-slate-900 mb-4">Built by a CFO.<br />For CFOs.</h2>
+                <h2 className="text-3xl font-black text-slate-900 mb-4">Built from real finance experience.<br />For real finance teams.</h2>
                 <p className="text-slate-500 leading-relaxed mb-4">
-                  Venu Vegi brings 12+ years of FP&A leadership at Visa, Macy's, and Gap — and built iNi because no platform existed that truly understood how finance teams work.
+                  iNi was created by a finance leader with 12+ years of FP&A experience at Fortune 500 companies including Visa, Macy's, and Gap — someone who lived the pain of spreadsheet-heavy finance work and knew there had to be a better way.
                 </p>
                 <p className="text-slate-500 leading-relaxed mb-6">
-                  iNi isn't just software — it's the culmination of real enterprise finance experience, built to eliminate the manual work that consumes growth-stage finance teams and replaces it with real-time intelligence.
+                  iNi isn't just software — it's a purpose-built platform that brings together financial planning, portfolio oversight, M&A support, and investor reporting in a single, intelligent workspace. No more tool sprawl. No more manual consolidation.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {["Visa", "Macy's", "Gap"].map((co) => (
-                    <div key={co} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold">{co}</div>
+                  {["12+ Years FP&A", "Fortune 500 Experience", "Visa · Macy's · Gap"].map((tag) => (
+                    <div key={tag} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold">{tag}</div>
                   ))}
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-3xl p-8 border border-slate-100">
-                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-2xl mb-4">V</div>
-                <div className="font-black text-slate-900 text-xl mb-0.5">Venu Vegi</div>
-                <div className="text-primary text-sm font-semibold mb-3">Founder & CEO</div>
-                <div className="text-slate-500 text-sm leading-relaxed mb-4">
-                  12+ years FP&A at Fortune 500 companies. Built financial models that drove $B+ decisions. Now building the platform he always wished existed.
-                </div>
-                <a href="mailto:venu.vegi@inventninvest.com" className="text-xs text-primary font-medium hover:underline">
-                  venu.vegi@inventninvest.com
-                </a>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: "🏗️", title: "Purpose-Built", desc: "Every module designed around how finance teams actually work, not how developers think they work." },
+                  { icon: "⚡", title: "Real-Time Intelligence", desc: "Live data across portfolio companies, deals, and financials — updated automatically." },
+                  { icon: "🔗", title: "End-to-End Coverage", desc: "From FP&A and cash flow to M&A due diligence and investor reporting — all in one platform." },
+                  { icon: "🎯", title: "Two User Profiles", desc: "Tailored experiences for Investor / Fund Managers and Portfolio Company Operators." },
+                ].map((card) => (
+                  <div key={card.title} className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                    <div className="text-2xl mb-2">{card.icon}</div>
+                    <div className="font-bold text-slate-800 text-sm mb-1">{card.title}</div>
+                    <div className="text-slate-500 text-xs leading-relaxed">{card.desc}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ── Pricing ── */}
-      <section id="pricing" className="py-20 px-6 md:px-10 bg-slate-50">
-        <div className="max-w-5xl mx-auto">
-          <Reveal>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-black text-slate-900 mb-2">Simple, Transparent Pricing</h2>
-              <p className="text-muted-foreground">Start with SaaS, extend with expert advisory when you need it.</p>
-            </div>
-          </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {[
-              {
-                name: "SaaS Platform",
-                price: "$5K–$15K",
-                period: "/month",
-                desc: "Full platform access for your finance team",
-                features: ["All 10 modules included", "Unlimited users & companies", "API integrations", "Automated reporting", "Priority support", "14-day onboarding"],
-                cta: "Request Access",
-                primary: true,
-                action: goRequestAccess,
-              },
-              {
-                name: "Professional Services",
-                price: "$25K–$150K",
-                period: "/engagement",
-                desc: "Expert-led FP&A, M&A, and strategic finance",
-                features: ["Dedicated finance expert", "Custom financial modeling", "M&A advisory & due diligence", "Investor presentation prep", "SaaS platform included", "Ongoing advisory retainer"],
-                cta: "Talk to Venu",
-                primary: false,
-                action: goRequestAccess,
-              },
-            ].map((plan) => (
-              <Reveal key={plan.name} delay={100}>
-                <div className={`rounded-2xl p-8 border ${plan.primary ? "border-primary bg-primary text-white shadow-xl" : "border-slate-200 bg-white"}`}>
-                  <div className={`text-xs font-semibold mb-1 ${plan.primary ? "text-blue-200" : "text-muted-foreground"}`}>{plan.name}</div>
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-3xl font-black">{plan.price}</span>
-                    <span className={`text-sm ${plan.primary ? "text-blue-200" : "text-muted-foreground"}`}>{plan.period}</span>
-                  </div>
-                  <p className={`text-sm mb-6 ${plan.primary ? "text-blue-100" : "text-muted-foreground"}`}>{plan.desc}</p>
-                  <ul className="space-y-2.5 mb-8">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className={`w-4 h-4 shrink-0 ${plan.primary ? "text-blue-200" : "text-success"}`} />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    onClick={plan.action}
-                    className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
-                      plan.primary ? "bg-white text-primary hover:bg-blue-50" : "bg-primary text-white hover:bg-primary/90"
-                    }`}
-                  >
-                    {plan.cta}
-                  </button>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── CTA ── */}
       <section className="py-20 px-6 bg-gradient-to-r from-primary to-blue-700 text-white text-center">
@@ -667,7 +607,7 @@ export default function Landing() {
           <div className="max-w-2xl mx-auto">
             <h2 className="text-3xl font-black mb-4">Ready to Transform Your Finance Stack?</h2>
             <p className="text-blue-100 mb-8 leading-relaxed">
-              Join growth-stage companies and investors using iNi to replace manual finance work with real-time intelligence. Raising $700K–$1.2M seed to accelerate product-market scale.
+              Join growth-stage companies and investors using iNi to replace manual, fragmented business intelligence with a single real-time platform built for how modern finance teams actually operate.
             </p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <button
@@ -695,7 +635,7 @@ export default function Landing() {
             <span className="text-xs text-muted-foreground">© 2025 Invent N Invest. All rights reserved.</span>
           </div>
           <div className="text-xs text-muted-foreground text-center">
-            Venu Vegi, Founder & CEO · venu.vegi@inventninvest.com · www.inventninvest.com
+            venu.vegi@inventninvest.com · www.inventninvest.com
           </div>
         </div>
       </footer>
