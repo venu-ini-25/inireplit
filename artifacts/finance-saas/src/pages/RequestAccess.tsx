@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
-import { useUser, useAuth } from "@clerk/clerk-react";
+import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -36,6 +36,7 @@ export default function RequestAccess() {
   const [, navigate] = useLocation();
   const { user } = useUser();
   const { isSignedIn } = useAuth();
+  const { signOut } = useClerk();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -138,9 +139,17 @@ export default function RequestAccess() {
           {/* Header */}
           <div className="text-center mb-8">
             {user?.primaryEmailAddress?.emailAddress && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-medium mb-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-                Signed in as <strong>{user.primaryEmailAddress.emailAddress}</strong>
+              <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                  Signed in as <strong>{user.primaryEmailAddress.emailAddress}</strong>
+                </div>
+                <button
+                  onClick={async () => { await signOut(); navigate("/login"); }}
+                  className="text-xs text-muted-foreground hover:text-red-500 transition-colors underline underline-offset-2"
+                >
+                  Not you? Sign out
+                </button>
               </div>
             )}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-medium mb-4">
