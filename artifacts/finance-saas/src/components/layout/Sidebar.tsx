@@ -8,13 +8,13 @@ import {
   ShoppingCart,
   Users,
   BarChart2,
-  Briefcase,
   Building2,
   HandshakeIcon,
   Wrench,
   LogOut,
   User,
   Plug,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -78,6 +78,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const user = getStoredUser();
   const initials = (user?.name ?? user?.email ?? "U").charAt(0).toUpperCase();
+  const isAdmin = (user?.email ?? "").includes("@inventninvest.com") || (user?.email ?? "").includes("venu");
 
   return (
     <aside className="w-64 h-screen flex flex-col bg-white border-r border-border z-40">
@@ -183,6 +184,14 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </Link>
 
         <div className="border-t border-border my-2" />
+
+        {/* Admin — only visible to admin users */}
+        {isAdmin && (
+          <Link href="/admin" className={linkCls("/admin")} onClick={navClick}>
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            Admin Panel
+          </Link>
+        )}
 
         {/* Settings Section */}
         <div>

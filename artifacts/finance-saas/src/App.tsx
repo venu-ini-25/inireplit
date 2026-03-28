@@ -10,6 +10,7 @@ import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
 import RequestAccess from "@/pages/RequestAccess";
 import Settings from "@/pages/Settings";
+import Admin from "@/pages/Admin";
 import Dashboard from "@/pages/Dashboard";
 import FinancePL from "@/pages/FinancePL";
 import FinanceCashFlow from "@/pages/FinanceCashFlow";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/login" component={SignIn} />
       <Route path="/signup" component={SignUp} />
       <Route path="/request-access" component={RequestAccess} />
+      <Route path="/admin" component={Admin} />
 
       {/* App pages — inside Layout */}
       <Route>

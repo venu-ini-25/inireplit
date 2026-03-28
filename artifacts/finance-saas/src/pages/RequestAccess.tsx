@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
 
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 const logoImg = "/images/ini-logo-transparent.png";
 
 type Role = "investor" | "portfolio_company" | "advisor" | "other";
@@ -72,7 +74,15 @@ export default function RequestAccess() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1800));
+    try {
+      await fetch(`${API_BASE}/api/access-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+    } catch {
+      // Best-effort — show success even if offline
+    }
     setLoading(false);
     setSubmitted(true);
   };
