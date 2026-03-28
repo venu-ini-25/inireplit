@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout/Layout";
 
 import Landing from "@/pages/Landing";
+import RequestAccess from "@/pages/RequestAccess";
 import Dashboard from "@/pages/Dashboard";
 import FinancePL from "@/pages/FinancePL";
 import FinanceCashFlow from "@/pages/FinanceCashFlow";
@@ -34,14 +35,19 @@ const queryClient = new QueryClient({
 function Router() {
   return (
     <Switch>
-      {/* Landing page — no sidebar */}
-      <Route path="/landing" component={Landing} />
+      {/* Public pages — no sidebar */}
+      <Route path="/" component={Landing} />
+      <Route path="/landing">
+        <Redirect to="/" />
+      </Route>
+      <Route path="/request-access" component={RequestAccess} />
+      <Route path="/login" component={RequestAccess} />
 
       {/* App pages — inside Layout */}
       <Route>
         <Layout>
           <Switch>
-            <Route path="/" component={Dashboard} />
+            <Route path="/app" component={Dashboard} />
             <Route path="/finance/pl" component={FinancePL} />
             <Route path="/finance/cashflow" component={FinanceCashFlow} />
             <Route path="/finance/expenses" component={FinanceExpenses} />

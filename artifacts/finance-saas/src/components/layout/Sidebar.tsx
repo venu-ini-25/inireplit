@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import logoImg from "/images/ini-logo.jpeg";
+const logoImg = "/images/ini-logo-transparent.png";
 
 type NavSection = "finance" | "portfolio" | null;
 
@@ -60,11 +60,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     <aside className="w-64 h-screen flex flex-col bg-white border-r border-border z-40">
       {/* Logo */}
       <div className="h-14 md:h-16 flex items-center px-4 border-b border-border shrink-0 gap-2">
-        <Link href="/" className="flex items-center gap-2 flex-1 min-w-0" onClick={onClose}>
+        <Link href="/app" className="flex items-center gap-2 flex-1 min-w-0" onClick={onClose}>
           <img
             src={logoImg}
             alt="INVENT N INVEST"
-            className="h-8 w-auto object-contain"
+            className="h-9 w-auto object-contain"
+            style={{ mixBlendMode: "multiply" }}
           />
         </Link>
         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100 shrink-0">
@@ -75,7 +76,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <div className="flex-1 py-4 px-3 flex flex-col gap-0.5 overflow-y-auto">
         {/* Executive Summary */}
-        <Link href="/" className={linkCls("/")} onClick={navClick}>
+        <Link href="/app" className={linkCls("/app")} onClick={navClick}>
           <LayoutGrid className="w-4 h-4 shrink-0" />
           Executive Summary
         </Link>
@@ -156,8 +157,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </div>
 
       {/* Landing page link */}
-      <div className="border-t border-border mt-2 pt-2">
-        <Link href="/landing" className={linkCls("/landing")} onClick={navClick}>
+      <div className="border-t border-border mt-2 pt-2 px-3">
+        <Link href="/" className={linkCls("/")} onClick={navClick}>
           <Globe className="w-4 h-4 shrink-0" />
           Landing Page
         </Link>
