@@ -169,7 +169,7 @@ export default function Landing() {
             src={logoImg}
             alt="iNi"
             className="w-auto absolute left-1/2 -translate-x-1/2"
-            style={{ height: "80px", mixBlendMode: "multiply" }}
+            style={{ height: "110px", mixBlendMode: "multiply" }}
           />
           <button onClick={goRequestAccess} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-all shadow whitespace-nowrap">
             Request Access
