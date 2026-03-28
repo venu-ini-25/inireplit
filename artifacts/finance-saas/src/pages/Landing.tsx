@@ -157,7 +157,7 @@ export default function Landing() {
             </h1>
             <p className="text-lg text-slate-600 leading-relaxed mb-8 max-w-lg" style={{ animation: "fadeInDown 0.7s ease 0.2s both" }}>
               iNi unifies portfolio management, FP&A, M&A support, and strategic reporting into one AI-powered platform.
-              Replace weeks of manual work with real-time intelligence — built by a CFO, for CFOs.
+              Replace weeks of manual work with real-time intelligence — built by a seasoned FP&A leader, for CFOs and fund managers.
             </p>
             <div className="flex flex-wrap items-center gap-3" style={{ animation: "fadeInDown 0.7s ease 0.3s both" }}>
               <button onClick={goRequestAccess} className="flex items-center gap-2 px-6 py-3.5 bg-primary text-white rounded-xl font-semibold text-base hover:bg-primary/90 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
@@ -813,7 +813,7 @@ export default function Landing() {
           </div>
           <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-600">
             <span>© 2025 Invent N Invest. All rights reserved.</span>
-            <span>Built by a CFO, for CFOs and Fund Managers.</span>
+            <span>Built by a seasoned FP&A leader, for CFOs and fund managers.</span>
           </div>
         </div>
       </footer>
