@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   CheckCircle2, XCircle, Clock, Users, RefreshCw,
@@ -82,6 +82,8 @@ export default function Admin() {
     }
   };
 
+  useEffect(() => { load(); }, []);
+
   const act = async (id: string, action: "approve" | "deny") => {
     setActing(id);
     try {
@@ -126,14 +128,22 @@ export default function Admin() {
             className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            {loaded ? "Refresh" : "Load Requests"}
+            Refresh
           </button>
         </div>
 
-        {!loaded && !loading && (
+        {loading && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-16 text-center">
+            <RefreshCw className="w-8 h-8 text-slate-300 mx-auto mb-3 animate-spin" />
+            <p className="text-muted-foreground text-sm">Loading requests…</p>
+          </div>
+        )}
+
+        {!loading && loaded && requests.length === 0 && (
           <div className="bg-white rounded-2xl border border-slate-100 p-16 text-center">
             <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">Click "Load Requests" to see all demo access requests.</p>
+            <p className="text-slate-700 font-semibold mb-1">No access requests yet</p>
+            <p className="text-muted-foreground text-sm">When someone fills out the Request Access form, they'll appear here.</p>
           </div>
         )}
 

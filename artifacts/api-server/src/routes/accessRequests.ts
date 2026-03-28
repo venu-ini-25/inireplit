@@ -18,47 +18,7 @@ export interface AccessRequest {
 }
 
 // In-memory store (persists while server is running)
-const store: AccessRequest[] = [
-  {
-    id: "req_001",
-    firstName: "Sarah",
-    lastName: "Chen",
-    email: "sarah.chen@redwoodvc.com",
-    company: "Redwood Ventures",
-    role: "investor",
-    aum: "$200M – $1B",
-    message: "Looking to track our 14 portfolio companies in one place.",
-    status: "pending",
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    reviewedAt: null,
-  },
-  {
-    id: "req_002",
-    firstName: "Marcus",
-    lastName: "Rivera",
-    email: "marcus@claritygrowth.io",
-    company: "Clarity Growth Partners",
-    role: "portfolio_company",
-    aum: "$10M – $50M",
-    message: "We need better FP&A tooling for our Series B reporting.",
-    status: "pending",
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    reviewedAt: null,
-  },
-  {
-    id: "req_003",
-    firstName: "Priya",
-    lastName: "Nair",
-    email: "priya.nair@summitfund.com",
-    company: "Summit Growth Fund",
-    role: "investor",
-    aum: "$1M – $10M",
-    message: "",
-    status: "approved",
-    submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    reviewedAt: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
-  },
-];
+const store: AccessRequest[] = [];
 
 const router = Router();
 
