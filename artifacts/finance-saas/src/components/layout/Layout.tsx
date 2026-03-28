@@ -2,19 +2,22 @@ import { Sidebar } from "./Sidebar";
 import { Search, Bell, RotateCw, Menu } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
-import { getStoredUser } from "../../hooks/useAuth";
+import { useUser } from "@clerk/clerk-react";
+
+const MASTER_EMAIL = "venu.vegi@inventninvest.com";
 
 export function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [, navigate] = useLocation();
+  const { user } = useUser();
 
-  const user = getStoredUser();
-  const initials = (user?.name ?? user?.email ?? "U").charAt(0).toUpperCase();
-  const displayName = user?.name ?? user?.email ?? "Guest";
+  const userEmail = user?.primaryEmailAddress?.emailAddress ?? "";
+  const displayName = user?.fullName || user?.firstName || userEmail;
+  const initials = (user?.firstName || userEmail || "U").charAt(0).toUpperCase();
+  const isMaster = userEmail === MASTER_EMAIL;
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-30 md:hidden"
@@ -22,7 +25,6 @@ export function Layout({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* Sidebar */}
       <div
         className={`
           fixed inset-y-0 left-0 z-40 md:relative md:block
@@ -34,9 +36,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </div>
 
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Header */}
         <header className="h-14 md:h-16 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 shrink-0 gap-3">
-          {/* Hamburger — mobile only */}
           <button
             className="md:hidden p-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0"
             onClick={() => setSidebarOpen(true)}
@@ -44,7 +44,6 @@ export function Layout({ children }: { children: ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Search */}
           <div className="flex-1 flex items-center min-w-0">
             <div className="relative w-full max-w-xs md:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -73,10 +72,14 @@ export function Layout({ children }: { children: ReactNode }) {
             >
               <div className="hidden md:flex flex-col items-end">
                 <span className="text-sm font-medium text-foreground leading-none">{displayName}</span>
-                <span className="text-xs text-muted-foreground mt-1">{user?.role === "master" ? "Master Admin" : "Demo Access"}</span>
+                <span className="text-xs text-muted-foreground mt-1">{isMaster ? "Master Admin" : "Platform Access"}</span>
               </div>
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-sm text-sm shrink-0">
-                {initials}
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-sm text-sm shrink-0 overflow-hidden">
+                {user?.imageUrl ? (
+                  <img src={user.imageUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  initials
+                )}
               </div>
             </button>
           </div>

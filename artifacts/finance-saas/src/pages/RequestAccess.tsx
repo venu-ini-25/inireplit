@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -31,28 +32,16 @@ const roleOptions: { value: Role; label: string; desc: string }[] = [
   },
 ];
 
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("ini_user");
-    if (!raw) return null;
-    return JSON.parse(raw) as { name?: string; email?: string; company?: string };
-  } catch { return null; }
-}
-
 export default function RequestAccess() {
   const [, navigate] = useLocation();
+  const { user } = useUser();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const storedUser = getStoredUser();
-  const [nameParts] = useState(() => {
-    const parts = (storedUser?.name ?? "").trim().split(" ");
-    return { first: parts[0] ?? "", last: parts.slice(1).join(" ") };
-  });
   const [form, setForm] = useState({
-    firstName: nameParts.first,
-    lastName: nameParts.last,
-    email: storedUser?.email ?? "",
-    company: storedUser?.company ?? "",
+    firstName: user?.firstName ?? "",
+    lastName: user?.lastName ?? "",
+    email: user?.primaryEmailAddress?.emailAddress ?? "",
+    company: "",
     role: "" as Role | "",
     aum: "",
     message: "",

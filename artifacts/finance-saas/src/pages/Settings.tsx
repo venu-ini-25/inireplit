@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import {
   User, LogOut, Plug, Shield, Bell, ChevronRight,
@@ -6,14 +6,7 @@ import {
   BarChart2, CreditCard, Mail, Slack, Github, Database,
   Edit2, Save, X, AlertCircle
 } from "lucide-react";
-
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem("ini_user");
-    if (!raw) return null;
-    return JSON.parse(raw) as { name?: string; email?: string; company?: string; provider?: string };
-  } catch { return null; }
-}
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 const INTEGRATIONS = [
   { id: "quickbooks", name: "QuickBooks Online", category: "Accounting", icon: "💼", status: "connected", lastSync: "2 min ago", desc: "Sync P&L, cash flow, and chart of accounts" },
@@ -37,20 +30,31 @@ export default function Settings() {
   const [, params] = useRoute("/settings/:tab");
   const activeTab: Tab = (params?.tab as Tab) || "profile";
 
-  const user = getStoredUser();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [syncing, setSyncing] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
-    name: user?.name ?? "",
-    email: user?.email ?? "",
-    company: user?.company ?? "",
+    name: user?.fullName ?? "",
+    email: user?.primaryEmailAddress?.emailAddress ?? "",
+    company: "",
     role: "Investor / Fund Manager",
   });
   const [saved, setSaved] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "connected" | "not_connected">("all");
 
-  const handleLogout = () => {
-    localStorage.removeItem("ini_user");
+  useEffect(() => {
+    if (user) {
+      setProfileForm(prev => ({
+        ...prev,
+        name: user.fullName ?? prev.name,
+        email: user.primaryEmailAddress?.emailAddress ?? prev.email,
+      }));
+    }
+  }, [user]);
+
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
 

@@ -18,8 +18,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { getStoredUser, clearAuth } from "../../hooks/useAuth";
+import { useUser, useClerk } from "@clerk/clerk-react";
+
 const logoImg = "/images/ini-logo-transparent.png";
+
+const MASTER_EMAIL = "venu.vegi@inventninvest.com";
 
 type NavSection = "finance" | "portfolio" | "settings" | null;
 
@@ -31,6 +34,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     return "finance";
   });
 
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
   const toggle = (section: NavSection) =>
     setExpanded((prev) => (prev === section ? null : section));
 
@@ -39,8 +45,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const navClick = () => onClose?.();
 
-  const handleLogout = () => {
-    clearAuth();
+  const handleLogout = async () => {
+    await signOut();
     onClose?.();
     navigate("/");
   };
@@ -69,13 +75,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
     );
 
-  const user = getStoredUser();
-  const initials = (user?.name ?? user?.email ?? "U").charAt(0).toUpperCase();
-  const isAdmin = user?.role === "master" || user?.role === "admin";
+  const userEmail = user?.primaryEmailAddress?.emailAddress ?? "";
+  const userName = user?.fullName || user?.firstName || userEmail;
+  const initials = (user?.firstName || userEmail || "U").charAt(0).toUpperCase();
+  const isMaster = userEmail === MASTER_EMAIL;
 
   return (
     <aside className="w-64 h-screen flex flex-col bg-white border-r border-border z-40">
-      {/* Logo */}
       <div className="h-14 md:h-16 flex items-center px-4 border-b border-border shrink-0 gap-2">
         <Link href="/app" className="flex items-center gap-2 flex-1 min-w-0" onClick={onClose}>
           <img
@@ -92,13 +98,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </div>
 
       <div className="flex-1 py-4 px-3 flex flex-col gap-0.5 overflow-y-auto">
-        {/* Executive Summary */}
         <Link href="/app" className={linkCls("/app")} onClick={navClick}>
           <LayoutGrid className="w-4 h-4 shrink-0" />
           Executive Summary
         </Link>
 
-        {/* Finance Section */}
         <div className="mt-1">
           <button onClick={() => toggle("finance")} className={sectionBtnCls("/finance")}>
             <div className="flex items-center gap-3">
@@ -116,31 +120,26 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           )}
         </div>
 
-        {/* Operations */}
         <Link href="/operations" className={linkCls("/operations")} onClick={navClick}>
           <Settings className="w-4 h-4 shrink-0" />
           Operations
         </Link>
 
-        {/* Product */}
         <Link href="/product" className={linkCls("/product")} onClick={navClick}>
           <Box className="w-4 h-4 shrink-0" />
           Product
         </Link>
 
-        {/* Marketing */}
         <Link href="/marketing" className={linkCls("/marketing")} onClick={navClick}>
           <Megaphone className="w-4 h-4 shrink-0" />
           Marketing
         </Link>
 
-        {/* Sales */}
         <Link href="/sales" className={linkCls("/sales")} onClick={navClick}>
           <ShoppingCart className="w-4 h-4 shrink-0" />
           Sales
         </Link>
 
-        {/* People */}
         <Link href="/people" className={linkCls("/people")} onClick={navClick}>
           <Users className="w-4 h-4 shrink-0" />
           People
@@ -148,7 +147,6 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
         <div className="border-t border-border my-2" />
 
-        {/* Portfolio */}
         <Link
           href="/portfolio"
           className={cn(linkCls("/portfolio"), isPrefix("/portfolio") && !isActive("/portfolio") ? "bg-blue-50 text-primary" : "")}
@@ -158,19 +156,16 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           Portfolio
         </Link>
 
-        {/* M&A Support */}
         <Link href="/ma" className={linkCls("/ma")} onClick={navClick}>
           <HandshakeIcon className="w-4 h-4 shrink-0" />
           M&A Support
         </Link>
 
-        {/* Reports & Analytics */}
         <Link href="/reports" className={linkCls("/reports")} onClick={navClick}>
           <BarChart2 className="w-4 h-4 shrink-0" />
           Reports & Analytics
         </Link>
 
-        {/* Professional Services */}
         <Link href="/services" className={linkCls("/services")} onClick={navClick}>
           <Wrench className="w-4 h-4 shrink-0" />
           Professional Services
@@ -178,15 +173,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
         <div className="border-t border-border my-2" />
 
-        {/* Admin — only visible to admin users */}
-        {isAdmin && (
+        {isMaster && (
           <Link href="/admin" className={linkCls("/admin")} onClick={navClick}>
             <ShieldCheck className="w-4 h-4 shrink-0" />
             Admin Panel
           </Link>
         )}
 
-        {/* Settings Section */}
         <div>
           <button onClick={() => toggle("settings")} className={sectionBtnCls("/settings")}>
             <div className="flex items-center gap-3">
@@ -218,20 +211,23 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
-      {/* User footer with logout */}
       <div className="px-3 py-3 border-t border-border shrink-0">
         <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-50 group">
-          <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0">
-            {initials}
+          <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt={userName} className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-semibold text-slate-800 truncate flex items-center gap-1.5">
-              {user?.name || user?.email || "Guest"}
-              {user?.role === "master" && (
+              {userName}
+              {isMaster && (
                 <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary uppercase tracking-wide">Master</span>
               )}
             </div>
-            <div className="text-[10px] text-muted-foreground truncate">{user?.email ?? ""}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{userEmail}</div>
           </div>
           <button
             onClick={handleLogout}

@@ -1,7 +1,9 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ClerkProvider, useAuth } from "@clerk/clerk-react";
+import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout/Layout";
 
@@ -26,6 +28,8 @@ import MASupport from "@/pages/MASupport";
 import Reports from "@/pages/Reports";
 import ProfessionalServices from "@/pages/ProfessionalServices";
 
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -36,10 +40,31 @@ const queryClient = new QueryClient({
   },
 });
 
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      navigate("/login");
+    }
+  }, [isLoaded, isSignedIn, navigate]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isSignedIn) return null;
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
-      {/* Public pages — no sidebar */}
       <Route path="/" component={Landing} />
       <Route path="/landing">
         <Redirect to="/" />
@@ -47,31 +72,37 @@ function Router() {
       <Route path="/login" component={SignIn} />
       <Route path="/signup" component={SignUp} />
       <Route path="/request-access" component={RequestAccess} />
-      <Route path="/admin" component={Admin} />
 
-      {/* App pages — inside Layout */}
+      <Route path="/admin">
+        <RequireAuth>
+          <Admin />
+        </RequireAuth>
+      </Route>
+
       <Route>
-        <Layout>
-          <Switch>
-            <Route path="/app" component={Dashboard} />
-            <Route path="/finance/pl" component={FinancePL} />
-            <Route path="/finance/cashflow" component={FinanceCashFlow} />
-            <Route path="/finance/expenses" component={FinanceExpenses} />
-            <Route path="/operations" component={Operations} />
-            <Route path="/product" component={Product} />
-            <Route path="/marketing" component={Marketing} />
-            <Route path="/sales" component={Sales} />
-            <Route path="/people" component={People} />
-            <Route path="/portfolio" component={Portfolio} />
-            <Route path="/portfolio/:id" component={PortfolioDetail} />
-            <Route path="/ma" component={MASupport} />
-            <Route path="/reports" component={Reports} />
-            <Route path="/services" component={ProfessionalServices} />
-            <Route path="/settings/:tab?" component={Settings} />
-            <Route path="/settings" component={Settings} />
-            <Route component={NotFound} />
-          </Switch>
-        </Layout>
+        <RequireAuth>
+          <Layout>
+            <Switch>
+              <Route path="/app" component={Dashboard} />
+              <Route path="/finance/pl" component={FinancePL} />
+              <Route path="/finance/cashflow" component={FinanceCashFlow} />
+              <Route path="/finance/expenses" component={FinanceExpenses} />
+              <Route path="/operations" component={Operations} />
+              <Route path="/product" component={Product} />
+              <Route path="/marketing" component={Marketing} />
+              <Route path="/sales" component={Sales} />
+              <Route path="/people" component={People} />
+              <Route path="/portfolio" component={Portfolio} />
+              <Route path="/portfolio/:id" component={PortfolioDetail} />
+              <Route path="/ma" component={MASupport} />
+              <Route path="/reports" component={Reports} />
+              <Route path="/services" component={ProfessionalServices} />
+              <Route path="/settings/:tab?" component={Settings} />
+              <Route path="/settings" component={Settings} />
+              <Route component={NotFound} />
+            </Switch>
+          </Layout>
+        </RequireAuth>
       </Route>
     </Switch>
   );
@@ -79,14 +110,16 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 }
 
