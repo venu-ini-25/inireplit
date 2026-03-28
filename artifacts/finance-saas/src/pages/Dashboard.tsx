@@ -1,265 +1,257 @@
-import { useState } from "react";
-import { DollarSign, ArrowUpRight, ArrowDownRight, Activity, CreditCard, ChevronDown } from "lucide-react";
+import { ArrowUp, ArrowDown, Activity, Star } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { MetricCard, MetricCardSkeleton } from "@/components/ui/MetricCard";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
+  LineChart, Line
 } from "recharts";
 import { 
-  useGetDashboardMetrics, 
-  useGetRevenueChart, 
-  useGetTransactions, 
-  useGetSpendingAnalytics 
+  useGetPortfolioSummary,
+  useGetRevenueAnalytics
 } from "@workspace/api-client-react";
 
 export default function Dashboard() {
-  const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "1y">("30d");
-  
-  // Use TanStack Query hooks from generated API client
-  const { data: metrics, isLoading: isMetricsLoading } = useGetDashboardMetrics();
-  const { data: chartData, isLoading: isChartLoading } = useGetRevenueChart({ period });
-  const { data: recentTxns, isLoading: isTxnsLoading } = useGetTransactions({ limit: 5 });
-  const { data: spending, isLoading: isSpendingLoading } = useGetSpendingAnalytics({ period });
+  const { data: summary, isLoading: isSummaryLoading } = useGetPortfolioSummary();
+  const { data: revenueData, isLoading: isChartLoading } = useGetRevenueAnalytics({ period: "1y" });
+
+  // Fake chart data to match screenshot 1 specifically
+  const mockRevenueData = [
+    { name: "Jan", actual: 1.2, target: 1.5 },
+    { name: "Feb", actual: 1.4, target: 1.6 },
+    { name: "Mar", actual: 1.5, target: 1.7 },
+    { name: "Apr", actual: 1.7, target: 1.8 },
+    { name: "May", actual: 1.9, target: 1.9 },
+    { name: "Jun", actual: 2.1, target: 2.0 },
+    { name: "Jul", actual: 2.3, target: 2.2 },
+    { name: "Aug", actual: 2.5, target: 2.4 },
+    { name: "Sep", actual: 2.6, target: 2.5 },
+    { name: "Oct", actual: 2.4, target: 2.6 },
+    { name: "Nov", actual: 2.7, target: 2.7 },
+    { name: "Dec", actual: 2.9, target: 2.8 }
+  ];
+
+  const mockCustomerData = [
+    { name: "Jan", users: 800 },
+    { name: "Feb", users: 950 },
+    { name: "Mar", users: 1050 },
+    { name: "Apr", users: 1100 },
+    { name: "May", users: 1150 },
+    { name: "Jun", users: 1247 },
+  ];
 
   return (
-    <div className="flex flex-col gap-8 pb-12">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header section matching screenshot 1 */}
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Financial Overview</h1>
-          <p className="text-muted-foreground mt-1">Here's what's happening with your finances today.</p>
+          <h1 className="text-2xl font-bold text-foreground">Business Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage data connections and monitor real-time business performance.</p>
         </div>
         
-        <div className="relative inline-flex items-center bg-card border border-border rounded-xl p-1 shadow-sm">
-          {(["7d", "30d", "90d", "1y"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
-                period === p 
-                  ? "bg-primary text-primary-foreground shadow-md" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-            >
-              {p.toUpperCase()}
-            </button>
-          ))}
+        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-primary text-primary rounded-md text-sm font-medium hover:bg-blue-50 transition-colors shadow-sm">
+          <Star className="w-4 h-4 fill-primary" />
+          Auto-Sync Active
+        </button>
+      </div>
+
+      {/* 4 KPI metric cards in a row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Monthly Revenue */}
+        <div className="bg-white p-5 rounded-xl border border-border shadow-sm flex flex-col gap-2">
+          <div className="text-sm text-muted-foreground font-medium">Monthly Revenue</div>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold">$2.1M</div>
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+              <span className="font-serif font-bold text-lg leading-none">$</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-success flex items-center font-medium">
+              <ArrowUp className="w-3 h-3 mr-0.5" /> 15.3%
+            </span>
+            <span className="text-muted-foreground text-xs ml-1">vs last month</span>
+          </div>
+        </div>
+
+        {/* Card 2: Customer Growth */}
+        <div className="bg-white p-5 rounded-xl border border-border shadow-sm flex flex-col gap-2">
+          <div className="text-sm text-muted-foreground font-medium">Customer Growth</div>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold">1,247</div>
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-success flex items-center font-medium">
+              <ArrowUp className="w-3 h-3 mr-0.5" /> 8.2%
+            </span>
+            <span className="text-muted-foreground text-xs ml-1">vs last month</span>
+          </div>
+        </div>
+
+        {/* Card 3: Burn Rate */}
+        <div className="bg-white p-5 rounded-xl border border-border shadow-sm flex flex-col gap-2">
+          <div className="text-sm text-muted-foreground font-medium">Burn Rate</div>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold">$340K</div>
+            <div className="w-8 h-8 rounded-full bg-red-50 text-destructive flex items-center justify-center">
+              <Activity className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-success flex items-center font-medium">
+              <ArrowDown className="w-3 h-3 mr-0.5" /> 5.1%
+            </span>
+            <span className="text-muted-foreground text-xs ml-1">improvement</span>
+          </div>
+        </div>
+
+        {/* Card 4: Runway */}
+        <div className="bg-white p-5 rounded-xl border border-border shadow-sm flex flex-col gap-2">
+          <div className="text-sm text-muted-foreground font-medium">Runway</div>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold">18 months</div>
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-success flex items-center font-medium">
+              <ArrowUp className="w-3 h-3 mr-0.5" /> 2 months
+            </span>
+            <span className="text-muted-foreground text-xs ml-1">extension</span>
+          </div>
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isMetricsLoading || !metrics ? (
-          Array.from({ length: 4 }).map((_, i) => <MetricCardSkeleton key={i} delay={i * 0.1} />)
-        ) : (
-          <>
-            <MetricCard
-              title="Total Revenue"
-              value={formatCurrency(metrics.totalRevenue)}
-              change={metrics.revenueChange}
-              icon={<DollarSign className="w-5 h-5" />}
-              delay={0}
-            />
-            <MetricCard
-              title="Total Expenses"
-              value={formatCurrency(metrics.totalExpenses)}
-              change={metrics.expensesChange}
-              icon={<ArrowDownRight className="w-5 h-5" />}
-              delay={0.1}
-            />
-            <MetricCard
-              title="Net Profit"
-              value={formatCurrency(metrics.netProfit)}
-              change={metrics.profitChange}
-              icon={<ArrowUpRight className="w-5 h-5" />}
-              delay={0.2}
-            />
-            <MetricCard
-              title="Cash Flow"
-              value={formatCurrency(metrics.cashFlow)}
-              change={metrics.cashFlowChange}
-              icon={<Activity className="w-5 h-5" />}
-              delay={0.3}
-            />
-          </>
-        )}
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Area Chart */}
-        <div className="lg:col-span-2 glass-card rounded-2xl p-6 border-border/50">
+      {/* Two charts below */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Trends */}
+        <div className="bg-white rounded-xl border border-border shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-display font-semibold text-lg">Revenue vs Expenses</h3>
-            <button className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-muted">
-              <ChevronDown className="w-4 h-4" />
-            </button>
+            <h3 className="font-semibold text-lg">Revenue Trends</h3>
+            <div className="flex gap-3 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <div className="w-3 h-3 rounded bg-primary/20 border border-primary"></div>
+                Actual
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <div className="w-3 h-3 rounded bg-slate-100 border border-slate-300"></div>
+                Target
+              </div>
+            </div>
           </div>
           
-          <div className="h-[300px] w-full">
-            {isChartLoading || !chartData ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData.data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    dy={10}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    tickFormatter={(val) => `$${val/1000}k`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--popover))', 
-                      borderColor: 'hsl(var(--border))',
-                      borderRadius: '12px',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                    }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: number) => formatCurrency(value * 100)}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-                  <Area type="monotone" dataKey="expenses" stroke="hsl(var(--chart-2))" strokeWidth={3} fillOpacity={1} fill="url(#colorExp)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={mockRevenueData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  tickFormatter={(val) => `$${val}M`}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    borderColor: '#e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: number) => `$${value}M`}
+                />
+                <Area type="monotone" dataKey="target" stroke="#cbd5e1" strokeDasharray="5 5" fill="none" />
+                <Area type="monotone" dataKey="actual" stroke="hsl(var(--primary))" strokeWidth={2} fillOpacity={1} fill="url(#colorRev)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Donut Chart */}
-        <div className="glass-card rounded-2xl p-6 border-border/50 flex flex-col">
-          <h3 className="font-display font-semibold text-lg mb-6">Spending Categories</h3>
-          <div className="flex-1 w-full min-h-[250px]">
-            {isSpendingLoading || !spending ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-chart-2/20 border-t-chart-2 rounded-full animate-spin" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={spending.categories}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="amount"
-                    stroke="none"
-                  >
-                    {spending.categories.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || `hsl(var(--chart-${(index % 5) + 1}))`} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--popover))', 
-                      borderColor: 'hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36} 
-                    iconType="circle"
-                    formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
+        {/* Customer Growth */}
+        <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+          <h3 className="font-semibold text-lg mb-6">Customer Growth</h3>
+          
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={mockCustomerData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    borderColor: '#e2e8f0',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="users" 
+                  stroke="hsl(var(--chart-2))" 
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, fill: "hsl(var(--chart-2))" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Recent Transactions */}
-      <div className="glass-card rounded-2xl border-border/50 overflow-hidden">
-        <div className="p-6 border-b border-border/50 flex items-center justify-between">
-          <h3 className="font-display font-semibold text-lg">Recent Transactions</h3>
-          <button className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
-            View All
-          </button>
+      {/* Cash Flow Analysis section below charts */}
+      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-semibold text-lg">Cash Flow Analysis</h3>
+          <button className="text-sm font-medium text-primary hover:underline">View Detailed Report</button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-muted/20">
-                <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {isTxnsLoading || !recentTxns ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-6 py-4"><div className="h-5 w-32 bg-muted rounded animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-24 bg-muted rounded animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-20 bg-muted rounded animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-6 w-16 bg-muted rounded-full animate-pulse" /></td>
-                    <td className="px-6 py-4 text-right"><div className="h-5 w-20 bg-muted rounded ml-auto animate-pulse" /></td>
-                  </tr>
-                ))
-              ) : recentTxns.transactions.length === 0 ? (
-                 <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                      No recent transactions found.
-                    </td>
-                 </tr>
-              ) : (
-                recentTxns.transactions.map((txn) => (
-                  <tr key={txn.id} className="hover:bg-muted/10 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{txn.description}</p>
-                          <p className="text-xs text-muted-foreground">{txn.account}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">{txn.category}</td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {new Date(txn.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={txn.status} />
-                    </td>
-                    <td className={`px-6 py-4 text-right font-medium ${
-                      txn.type === 'income' ? 'text-success' : 'text-foreground'
-                    }`}>
-                      {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-border">
+          <div className="pt-4 md:pt-0 pr-6">
+            <p className="text-sm text-muted-foreground mb-1">Operating Cash Flow</p>
+            <p className="text-2xl font-bold">$420K</p>
+            <div className="mt-2 text-xs text-muted-foreground">Generated from core business activities. Stable and growing.</div>
+          </div>
+          <div className="py-4 md:py-0 px-0 md:px-6">
+            <p className="text-sm text-muted-foreground mb-1">Investing Cash Flow</p>
+            <p className="text-2xl font-bold">-$150K</p>
+            <div className="mt-2 text-xs text-muted-foreground">Capital expenditure on new equipment and technology upgrades.</div>
+          </div>
+          <div className="pb-4 md:pb-0 pl-0 md:pl-6">
+            <p className="text-sm text-muted-foreground mb-1">Financing Cash Flow</p>
+            <p className="text-2xl font-bold">-$80K</p>
+            <div className="mt-2 text-xs text-muted-foreground">Debt repayments and shareholder dividends.</div>
+          </div>
         </div>
       </div>
     </div>

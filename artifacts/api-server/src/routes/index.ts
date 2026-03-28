@@ -1,16 +1,16 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
-import dashboardRouter from "./dashboard";
-import transactionsRouter from "./transactions";
-import accountsRouter from "./accounts";
-import analyticsRouter from "./analytics";
+import portfolioRouter from "./portfolio";
+import analyticsRouter from "./analyticsIni";
+import dealsRouter from "./deals";
+import servicesRouter from "./services";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
-router.use(dashboardRouter);
-router.use(transactionsRouter);
-router.use(accountsRouter);
+router.use(portfolioRouter);
 router.use(analyticsRouter);
+router.use(dealsRouter);
+router.use(servicesRouter);
 
 export default router;

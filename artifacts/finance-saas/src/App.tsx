@@ -7,9 +7,12 @@ import { Layout } from "@/components/layout/Layout";
 
 // Import pages
 import Dashboard from "@/pages/Dashboard";
-import Transactions from "@/pages/Transactions";
-import Accounts from "@/pages/Accounts";
-import Analytics from "@/pages/Analytics";
+import FinancePL from "@/pages/FinancePL";
+import FinanceCashFlow from "@/pages/FinanceCashFlow";
+import FinanceExpenses from "@/pages/FinanceExpenses";
+import Portfolio from "@/pages/Portfolio";
+import Reports from "@/pages/Reports";
+import MASupport from "@/pages/MASupport";
 
 // Configure React Query
 const queryClient = new QueryClient({
@@ -27,12 +30,12 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Dashboard} />
-        <Route path="/transactions" component={Transactions} />
-        <Route path="/accounts" component={Accounts} />
-        <Route path="/analytics" component={Analytics} />
-        <Route path="/settings">
-          <Redirect to="/" />
-        </Route>
+        <Route path="/finance/pl" component={FinancePL} />
+        <Route path="/finance/cashflow" component={FinanceCashFlow} />
+        <Route path="/finance/expenses" component={FinanceExpenses} />
+        <Route path="/portfolio" component={Portfolio} />
+        <Route path="/reports" component={Reports} />
+        <Route path="/ma" component={MASupport} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

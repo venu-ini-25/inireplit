@@ -1,85 +1,164 @@
 import { Link, useLocation } from "wouter";
 import { 
-  LayoutDashboard, 
-  ArrowLeftRight, 
-  Wallet, 
-  LineChart, 
-  Settings, 
-  LogOut,
-  Hexagon
+  LayoutGrid, 
+  ChevronDown,
+  Settings,
+  Box,
+  Megaphone,
+  ShoppingCart,
+  Users,
+  BarChart2,
+  Briefcase
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/accounts", label: "Accounts", icon: Wallet },
-  { href: "/analytics", label: "Analytics", icon: LineChart },
-];
+import { useState } from "react";
 
 export function Sidebar() {
   const [location] = useLocation();
+  const [financeExpanded, setFinanceExpanded] = useState(true);
+
+  const isFinanceActive = location.startsWith("/finance");
 
   return (
-    <aside className="w-64 h-screen sticky top-0 left-0 flex flex-col glass-panel z-40">
-      <div className="h-20 flex items-center px-6 border-b border-border/50">
-        <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center shadow-lg shadow-primary/20">
-            <Hexagon className="w-6 h-6 text-white fill-white/20" />
+    <aside className="w-64 h-screen sticky top-0 left-0 flex flex-col bg-white border-r border-border z-40">
+      {/* Logo Area */}
+      <div className="h-16 flex items-center px-6 border-b border-border shrink-0">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-1 text-primary">
+            {/* Simple logo icon representing two figures */}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="8" r="4" />
+              <path d="M9 14C5.13401 14 2 17.134 2 21H16C16 17.134 12.866 14 9 14Z" />
+              <circle cx="17" cy="10" r="3" />
+              <path d="M17 15C15.9324 15 14.9201 15.238 14.0152 15.6592C15.2492 16.9208 16 18.8746 16 21H22C22 17.6863 19.7614 15 17 15Z" />
+            </svg>
           </div>
-          <span className="font-display font-bold text-xl tracking-wide text-foreground">
-            FinTech<span className="text-primary">Pro</span>
-          </span>
+          <span className="font-bold text-foreground tracking-tight">INVENT N INVEST</span>
         </Link>
+        <div className="ml-3 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100">
+          <div className="w-1.5 h-1.5 rounded-full bg-success"></div>
+          <span className="text-[10px] font-medium text-success">Connected</span>
+        </div>
       </div>
 
-      <div className="flex-1 py-8 px-4 flex flex-col gap-2">
-        <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Main Menu
-        </div>
-        {NAV_ITEMS.map((item) => {
-          const isActive = location === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all duration-200 group relative",
-                isActive 
-                  ? "bg-primary/10 text-primary" 
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-              )}
-              <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "text-primary")} />
-              {item.label}
-            </Link>
-          );
-        })}
+      <div className="flex-1 py-6 px-4 flex flex-col gap-1 overflow-y-auto">
+        {/* Executive Summary */}
+        <Link
+          href="/"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors",
+            location === "/" 
+              ? "bg-primary text-white shadow-sm" 
+              : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+          )}
+        >
+          <LayoutGrid className="w-4 h-4" />
+          Executive Summary
+        </Link>
 
-        <div className="px-3 mt-8 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Preferences
+        {/* Finance Section */}
+        <div className="mt-2">
+          <button 
+            onClick={() => setFinanceExpanded(!financeExpanded)}
+            className={cn(
+              "w-full flex items-center justify-between px-3 py-2 rounded-md font-medium text-sm transition-colors",
+              isFinanceActive && !financeExpanded
+                ? "text-primary"
+                : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <span className="font-bold font-serif text-lg leading-none tracking-tighter w-4 h-4 text-center inline-block">$</span>
+              Finance
+            </div>
+            <ChevronDown className={cn("w-4 h-4 transition-transform", financeExpanded ? "rotate-180" : "")} />
+          </button>
+          
+          {financeExpanded && (
+            <div className="mt-1 ml-4 pl-4 border-l border-border flex flex-col gap-1">
+              <Link
+                href="/finance/pl"
+                className={cn(
+                  "flex items-center px-3 py-2 rounded-md font-medium text-sm transition-colors",
+                  location === "/finance/pl" 
+                    ? "bg-primary text-white shadow-sm" 
+                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+                )}
+              >
+                P&L
+              </Link>
+              <Link
+                href="/finance/cashflow"
+                className={cn(
+                  "flex items-center px-3 py-2 rounded-md font-medium text-sm transition-colors",
+                  location === "/finance/cashflow" 
+                    ? "bg-primary text-white shadow-sm" 
+                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+                )}
+              >
+                Cash Flow
+              </Link>
+              <Link
+                href="/finance/expenses"
+                className={cn(
+                  "flex items-center px-3 py-2 rounded-md font-medium text-sm transition-colors",
+                  location === "/finance/expenses" 
+                    ? "bg-primary text-white shadow-sm" 
+                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+                )}
+              >
+                Expenses
+              </Link>
+            </div>
+          )}
         </div>
-        <button className="flex items-center gap-3 px-3 py-3 rounded-xl font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-200 group text-left">
-          <Settings className="w-5 h-5 transition-transform group-hover:rotate-45" />
-          Settings
-        </button>
-      </div>
 
-      <div className="p-4 border-t border-border/50">
-        <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer group">
-          <img 
-            src={`${import.meta.env.BASE_URL}images/avatar-placeholder.png`} 
-            alt="User avatar" 
-            className="w-10 h-10 rounded-full border-2 border-border object-cover"
-          />
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-semibold text-foreground truncate">Alex Morgan</p>
-            <p className="text-xs text-muted-foreground truncate">alex@fintech.pro</p>
-          </div>
-          <LogOut className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
+        {/* Other menu items */}
+        <div className="mt-2 flex flex-col gap-1">
+          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
+            <Settings className="w-4 h-4" />
+            Operations
+          </button>
+          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
+            <Box className="w-4 h-4" />
+            Product
+          </button>
+          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
+            <Megaphone className="w-4 h-4" />
+            Marketing
+          </button>
+          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
+            <ShoppingCart className="w-4 h-4" />
+            Sales
+          </button>
+          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
+            <Users className="w-4 h-4" />
+            People
+          </button>
+          <Link
+            href="/reports"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors",
+              location === "/reports" 
+                ? "bg-primary text-white shadow-sm" 
+                : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+            )}
+          >
+            <BarChart2 className="w-4 h-4" />
+            Reports & Analytics
+          </Link>
+          <Link
+            href="/ma"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors",
+              location === "/ma" 
+                ? "bg-primary text-white shadow-sm" 
+                : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+            )}
+          >
+            <Briefcase className="w-4 h-4" />
+            M&A Support
+          </Link>
         </div>
       </div>
     </aside>
