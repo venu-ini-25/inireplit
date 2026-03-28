@@ -100,6 +100,27 @@ export default function Product() {
         </ChartCard>
       </div>
 
+      <ChartCard title="Customer Waterfall" subtitle="Net customer movement — MoM Dec 2024 → Jan 2025">
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={churnWaterfall} barSize={48}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis domain={[290, 360]} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(v: number) => [Math.abs(v), ""]} />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              {churnWaterfall.map((d, i) => (
+                <Cell key={i} fill={d.type === "base" ? "#2563EB" : d.type === "pos" ? "#22C55E" : "#EF4444"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex gap-4 mt-2 justify-center">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="w-2.5 h-2.5 rounded-sm bg-primary" />Base</div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="w-2.5 h-2.5 rounded-sm bg-success" />Growth</div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><div className="w-2.5 h-2.5 rounded-sm bg-destructive" />Churn/Contraction</div>
+        </div>
+      </ChartCard>
+
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-border">
           <h3 className="font-semibold text-slate-800">Cohort Retention Analysis</h3>

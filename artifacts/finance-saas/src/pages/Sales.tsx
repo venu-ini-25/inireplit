@@ -48,6 +48,13 @@ const deals = [
   { company: "ClearPath Capital", stage: "Negotiation", arr: "$380K", owner: "S. Chen", close: "Dec 28", score: 88 },
 ];
 
+const acvBySegment = [
+  { segment: "Enterprise (500+ seats)", acv: 420 },
+  { segment: "Mid-Market (100–499)", acv: 185 },
+  { segment: "SMB (10–99)", acv: 42 },
+  { segment: "Self-Serve (<10)", acv: 8 },
+];
+
 const stageColor: Record<string, string> = {
   "Prospecting": "bg-slate-100 text-slate-600",
   "Qualified": "bg-blue-50 text-primary",
@@ -109,8 +116,24 @@ export default function Sales() {
         </ChartCard>
       </div>
 
-      <div className="grid grid-cols-5 gap-6">
-        <div className="col-span-2 bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+      <ChartCard title="ACV by Customer Segment" subtitle="Average Contract Value ($K) by company size">
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={acvBySegment} layout="vertical" barSize={18}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+            <XAxis type="number" tickFormatter={(v) => `$${v}K`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="segment" width={160} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(v: number) => [`$${v}K`, "ACV"]} />
+            <Bar dataKey="acv" radius={[0, 4, 4, 0]}>
+              {acvBySegment.map((d, i) => (
+                <Cell key={i} fill={["#2563EB", "#7C3AED", "#0891B2", "#94A3B8"][i]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-border">
             <h3 className="font-semibold text-slate-800">Pipeline by Stage</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Deals and value across funnel</p>
@@ -133,7 +156,7 @@ export default function Sales() {
           </div>
         </div>
 
-        <div className="col-span-3 bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="lg:col-span-3 bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-border">
             <h3 className="font-semibold text-slate-800">Deal Summary</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Active opportunities — top 6 by close probability</p>

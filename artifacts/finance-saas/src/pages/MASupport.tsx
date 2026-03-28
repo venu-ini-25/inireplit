@@ -1,32 +1,82 @@
 import { useState } from "react";
 import { useGetDeals } from "@workspace/api-client-react";
 import { SlideOver } from "@/components/ui/SlideOver";
-import { CheckCircle2, Circle, Plus } from "lucide-react";
+import { CheckCircle2, Circle, Plus, FileText } from "lucide-react";
 
-const DD_CHECKLIST = [
-  "NDA executed", "Data room access granted", "Management interviews completed",
-  "Financial statements (3yr) reviewed", "QoE analysis complete",
-  "Working capital analysis", "Debt & liabilities review",
-  "Legal entity structure verified", "IP & contracts reviewed",
-  "Employee & equity schedule", "Customer concentration analysis",
-  "Final report drafted",
+type Deal = {
+  id: string;
+  companyName: string;
+  industry: string;
+  dealType: "acquisition" | "merger" | "investment" | "divestiture";
+  stage: "sourcing" | "nda" | "due_diligence" | "negotiation" | "closing" | "closed" | "passed";
+  dealSize: number;
+  valuation: number;
+  targetRevenue: number;
+  assignedTo: string;
+  priority: "high" | "medium" | "low";
+  createdAt: string;
+  updatedAt: string;
+  closingDate?: string;
+  ndaSigned: boolean;
+  dataRoomAccess: boolean;
+};
+
+const DD_SECTIONS = [
+  {
+    category: "Governance & Legal",
+    items: ["NDA executed", "LOI / term sheet agreed", "Legal entity structure verified", "IP & contracts reviewed"],
+  },
+  {
+    category: "Financial & Operational",
+    items: ["Financial statements (3yr) reviewed", "QoE analysis complete", "Working capital analysis", "Debt & liabilities schedule"],
+  },
+  {
+    category: "Commercial & People",
+    items: ["Management interviews completed", "Customer concentration analysis", "Employee & equity schedule", "Data room access granted"],
+  },
+  {
+    category: "Closing",
+    items: ["Final DD report drafted", "Board approval received"],
+  },
 ];
+
+const DD_ITEMS = DD_SECTIONS.flatMap((s) => s.items);
+
+const DOCS_LIST: Record<string, { name: string; type: string; date: string }[]> = {
+  "Meridian Analytics": [
+    { name: "NDA — Meridian Analytics.pdf", type: "NDA", date: "Jan 15, 2025" },
+    { name: "LOI — Draft v2.docx", type: "LOI", date: "Feb 10, 2025" },
+    { name: "Meridian — CIM.pdf", type: "CIM", date: "Feb 20, 2025" },
+    { name: "QoE Report — EY.pdf", type: "QoE", date: "Mar 5, 2025" },
+  ],
+  default: [{ name: "NDA — Executed.pdf", type: "NDA", date: "—" }],
+};
 
 const DEAL_DETAILS: Record<string, { overview: string; ddComplete: number; contacts: { name: string; role: string }[] }> = {
   "Meridian Analytics": {
-    overview: "SaaS analytics platform targeting enterprise finance teams. $45M all-cash acquisition. Strong ARR of $4.2M with 112% NRR. Synergy thesis: cross-sell to existing portfolio.",
-    ddComplete: 7,
+    overview: "SaaS analytics platform targeting enterprise finance teams. $45M all-cash acquisition. Strong ARR of $7.2M with 112% NRR. Synergy thesis: cross-sell iNi platform to Meridian's 200+ enterprise customers.",
+    ddComplete: 9,
     contacts: [{ name: "Alex Rivera", role: "CEO" }, { name: "Kim Park", role: "CFO" }],
   },
-  "Apex Capital Partners": {
-    overview: "Buy-side PE fund with $180M AUM seeking a FinTech add-on. iNi advising on target identification, valuation, and deal structuring.",
-    ddComplete: 4,
-    contacts: [{ name: "James Chen", role: "Managing Director" }],
+  "GreenRoute Logistics": {
+    overview: "Supply chain SaaS with $14.8M ARR and dominant position in last-mile optimization. $78M acquisition in negotiation stage. Strategic fit: iNi's portfolio has 3 supply chain companies that would benefit from integration.",
+    ddComplete: 6,
+    contacts: [{ name: "Priya Nair", role: "Lead Partner" }, { name: "Tom Haines", role: "CEO" }],
   },
-  "NovaTech Solutions": {
-    overview: "B2B SaaS platform for supply chain management. Early-stage prospecting — reviewing initial financials and customer references.",
-    ddComplete: 2,
-    contacts: [{ name: "Lisa Nguyen", role: "Founder & CEO" }],
+  "Orbit DevOps": {
+    overview: "Developer tools platform with $4.9M ARR growing 60% YoY. $18M Series B investment. Strong NRR of 128%. Closing stage — final legal docs being reviewed.",
+    ddComplete: 11,
+    contacts: [{ name: "Sarah Chen", role: "Lead Partner" }],
+  },
+  "FlexForce HR": {
+    overview: "HR Tech platform with $3.4M ARR. $12M investment opportunity. NDA signed, data room in progress. Evaluating strategic fit with iNi's people analytics roadmap.",
+    ddComplete: 4,
+    contacts: [{ name: "Marcus Williams", role: "Lead Partner" }],
+  },
+  "SkyBridge Capital": {
+    overview: "Financial services group with $22M revenue seeking merger partner. $120M deal size. Early sourcing stage — initial meetings scheduled with leadership team.",
+    ddComplete: 1,
+    contacts: [{ name: "James Park", role: "Lead Partner" }],
   },
   default: {
     overview: "Deal overview and details will be added once the engagement is scoped.",
@@ -37,18 +87,18 @@ const DEAL_DETAILS: Record<string, { overview: string; ddComplete: number; conta
 
 export default function MASupport() {
   const { data: deals, isLoading } = useGetDeals();
-  const [selectedDeal, setSelectedDeal] = useState<any>(null);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
-  const stages = [
-    { id: "prospecting", name: "Prospecting", dot: "bg-slate-400" },
+  const stages: { id: Deal["stage"]; name: string; dot: string }[] = [
+    { id: "sourcing", name: "Sourcing", dot: "bg-slate-400" },
     { id: "nda", name: "NDA Signed", dot: "bg-blue-500" },
-    { id: "diligence", name: "Due Diligence", dot: "bg-amber-500" },
-    { id: "loi", name: "LOI Issued", dot: "bg-purple-500" },
-    { id: "closed", name: "Closed", dot: "bg-green-500" },
+    { id: "due_diligence", name: "Due Diligence", dot: "bg-amber-500" },
+    { id: "negotiation", name: "Negotiation", dot: "bg-purple-500" },
+    { id: "closing", name: "Closing", dot: "bg-green-500" },
   ];
 
   const detail = selectedDeal
-    ? DEAL_DETAILS[selectedDeal.targetCompany] ?? DEAL_DETAILS["default"]
+    ? DEAL_DETAILS[selectedDeal.companyName] ?? DEAL_DETAILS["default"]
     : null;
 
   const fmt = (v: number) => {
@@ -78,7 +128,7 @@ export default function MASupport() {
                 {stage.name}
               </h3>
               <span className="text-xs font-medium text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-sm">
-                {deals?.filter((d) => d.stage === stage.id).length || 0}
+                {deals?.filter((d: Deal) => d.stage === stage.id).length || 0}
               </span>
             </div>
 
@@ -86,7 +136,7 @@ export default function MASupport() {
               {isLoading ? (
                 <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm animate-pulse h-32" />
               ) : (
-                deals?.filter((d) => d.stage === stage.id).map((deal) => (
+                deals?.filter((d: Deal) => d.stage === stage.id).map((deal: Deal) => (
                   <div
                     key={deal.id}
                     onClick={() => setSelectedDeal(deal)}
@@ -94,7 +144,7 @@ export default function MASupport() {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-bold text-slate-900 group-hover:text-primary transition-colors text-sm line-clamp-1">
-                        {deal.targetCompany}
+                        {deal.companyName}
                       </h4>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
                         deal.priority === "high" ? "bg-red-50 text-red-700" :
@@ -106,9 +156,9 @@ export default function MASupport() {
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                         <div className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center font-bold">
-                          {deal.leadPartner?.charAt(0) ?? "?"}
+                          {deal.assignedTo?.charAt(0) ?? "?"}
                         </div>
-                        {deal.leadPartner?.split(" ")[0] ?? "—"}
+                        {deal.assignedTo?.split(" ")[0] ?? "—"}
                       </div>
                       <span className="text-[10px] text-slate-400">
                         {new Date(deal.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -126,7 +176,7 @@ export default function MASupport() {
         <SlideOver
           open={!!selectedDeal}
           onClose={() => setSelectedDeal(null)}
-          title={selectedDeal.targetCompany}
+          title={selectedDeal.companyName}
           subtitle={`${selectedDeal.dealType ?? "M&A"} · ${fmt(selectedDeal.dealSize)}`}
           width="lg"
         >
@@ -134,7 +184,7 @@ export default function MASupport() {
             <div className="grid grid-cols-3 gap-3">
               {[
                 ["Deal Size", fmt(selectedDeal.dealSize)],
-                ["Lead Partner", selectedDeal.leadPartner],
+                ["Assigned To", selectedDeal.assignedTo],
                 ["Priority", selectedDeal.priority?.toUpperCase()],
               ].map(([k, v]) => (
                 <div key={k} className="p-3 bg-slate-50 rounded-lg">
@@ -152,23 +202,55 @@ export default function MASupport() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-semibold text-slate-800">Due Diligence Checklist</h4>
-                <span className="text-xs text-muted-foreground">{detail.ddComplete}/{DD_CHECKLIST.length} complete</span>
+                <span className="text-xs text-muted-foreground">{detail.ddComplete}/{DD_ITEMS.length} complete</span>
               </div>
               <div className="w-full h-1.5 bg-slate-100 rounded-full mb-4">
                 <div
                   className="h-1.5 bg-primary rounded-full transition-all"
-                  style={{ width: `${(detail.ddComplete / DD_CHECKLIST.length) * 100}%` }}
+                  style={{ width: `${(detail.ddComplete / DD_ITEMS.length) * 100}%` }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {DD_CHECKLIST.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    {i < detail.ddComplete ? (
-                      <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                    ) : (
-                      <Circle className="w-4 h-4 text-slate-300 shrink-0" />
-                    )}
-                    <span className={`text-xs ${i < detail.ddComplete ? "text-slate-500 line-through" : "text-slate-700"}`}>{item}</span>
+              <div className="space-y-4">
+                {(() => {
+                  let idx = 0;
+                  return DD_SECTIONS.map((section) => (
+                    <div key={section.category}>
+                      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{section.category}</div>
+                      <div className="space-y-1.5">
+                        {section.items.map((item) => {
+                          const done = idx < detail.ddComplete;
+                          idx++;
+                          return (
+                            <div key={item} className="flex items-center gap-2">
+                              {done ? (
+                                <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-slate-300 shrink-0" />
+                              )}
+                              <span className={`text-xs ${done ? "text-slate-400 line-through" : "text-slate-700"}`}>{item}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-slate-800 mb-3">Documents</h4>
+              <div className="space-y-2">
+                {(DOCS_LIST[selectedDeal.companyName] ?? DOCS_LIST["default"]).map((doc, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="w-7 h-7 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-slate-800 truncate">{doc.name}</div>
+                      <div className="text-xs text-muted-foreground">{doc.type} · {doc.date}</div>
+                    </div>
+                    <span className="text-xs text-primary font-medium hover:underline cursor-pointer">View</span>
                   </div>
                 ))}
               </div>

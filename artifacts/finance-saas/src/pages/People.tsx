@@ -1,6 +1,6 @@
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
-  LineChart, Line, PieChart, Pie
+  LineChart, Line, PieChart, Pie, Legend
 } from "recharts";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { ChartCard } from "@/components/ui/ChartCard";
@@ -47,6 +47,15 @@ const openRoles = [
   { role: "Marketing Manager", dept: "Marketing", level: "IC4", comp: "$120K–$145K", status: "Screening", days: 19 },
   { role: "Customer Success Manager", dept: "Support", level: "IC3", comp: "$90K–$110K", status: "Offer Accepted", days: 52 },
   { role: "VP of Engineering", dept: "Engineering", level: "VP", comp: "$240K–$290K", status: "Searching", days: 64 },
+];
+
+const compBreakdown = [
+  { dept: "Engineering", base: 165, bonus: 18, equity: 42 },
+  { dept: "Sales", base: 95, bonus: 48, equity: 22 },
+  { dept: "Marketing", base: 118, bonus: 20, equity: 15 },
+  { dept: "G&A", base: 132, bonus: 16, equity: 12 },
+  { dept: "Product", base: 145, bonus: 18, equity: 30 },
+  { dept: "Support", base: 82, bonus: 10, equity: 8 },
 ];
 
 const statusColor: Record<string, string> = {
@@ -113,8 +122,23 @@ export default function People() {
         </ChartCard>
       </div>
 
-      <div className="grid grid-cols-5 gap-6">
-        <ChartCard title="Attrition by Department" subtitle="Voluntary turnover rate" className="col-span-2">
+      <ChartCard title="Compensation Breakdown by Department" subtitle="Base salary, annual bonus, and equity value ($K avg per employee)">
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={compBreakdown} barGap={3} barSize={14}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis dataKey="dept" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={(v) => `$${v}K`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(v: number) => [`$${v}K`, ""]} />
+            <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
+            <Bar dataKey="base" name="Base Salary" stackId="comp" fill="#2563EB" />
+            <Bar dataKey="bonus" name="Annual Bonus" stackId="comp" fill="#22C55E" />
+            <Bar dataKey="equity" name="Equity" stackId="comp" fill="#7C3AED" radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <ChartCard title="Attrition by Department" subtitle="Voluntary turnover rate" className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={attrition} layout="vertical" barSize={14}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
@@ -128,7 +152,7 @@ export default function People() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <div className="col-span-3 bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="lg:col-span-3 bg-white rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-slate-800">Open Roles</h3>

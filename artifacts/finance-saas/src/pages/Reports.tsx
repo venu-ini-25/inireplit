@@ -27,16 +27,19 @@ const radarData = [
 ];
 
 const CATEGORIES = ["All Reports", "Financial", "Operational", "Portfolio", "M&A"];
+const STATUSES = ["All Statuses", "completed", "processing", "draft"];
 
 export default function Reports() {
   const { data: reports, isLoading } = useGetReports();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Reports");
+  const [status, setStatus] = useState("All Statuses");
 
   const filtered = reports?.filter((r) => {
     const matchCat = category === "All Reports" || r.type?.toLowerCase().includes(category.toLowerCase().split(" ")[0]);
     const matchSearch = search === "" || r.title.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
+    const matchStatus = status === "All Statuses" || r.status === status;
+    return matchCat && matchSearch && matchStatus;
   });
 
   return (
@@ -109,6 +112,7 @@ export default function Reports() {
             />
           </div>
           <FilterBar options={CATEGORIES} active={category} onChange={setCategory} />
+          <FilterBar options={STATUSES} active={status} onChange={setStatus} />
         </div>
 
         <table className="w-full text-left">
