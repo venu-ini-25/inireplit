@@ -121,7 +121,7 @@ export default function Landing() {
       <nav className={`h-20 flex items-center justify-between px-8 md:px-14 sticky top-0 z-50 transition-all duration-300 ${
         scrolled ? "bg-white/97 backdrop-blur-md shadow-md border-b border-slate-100" : "bg-white/80 backdrop-blur-sm"
       }`}>
-        <img src={logoImg} alt="iNi" className="h-16 w-auto" style={{ mixBlendMode: "multiply" }} />
+        <img src={logoImg} alt="iNi" className="h-10 w-auto" style={{ mixBlendMode: "multiply" }} />
         <div className="hidden md:flex items-center gap-8">
           <a href="#solutions" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">Solutions</a>
           <a href="#how-it-works" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">How It Works</a>
@@ -769,16 +769,51 @@ export default function Landing() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="py-8 px-8 border-t border-slate-100 bg-white">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src={logoImg} alt="iNi" className="h-7 w-auto" style={{ mixBlendMode: "multiply" }} />
-            <span className="text-xs text-muted-foreground">© 2025 Invent N Invest. All rights reserved.</span>
+      <footer className="bg-slate-900 text-slate-400 pt-14 pb-8 px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+            {/* Brand */}
+            <div className="md:col-span-1">
+              <img src={logoImg} alt="iNi" className="h-9 w-auto mb-4 brightness-0 invert" />
+              <p className="text-xs leading-relaxed text-slate-500">
+                The AI-powered finance platform built for growth-stage investors and portfolio companies.
+              </p>
+            </div>
+            {/* Platform */}
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-4">Platform</div>
+              <ul className="space-y-2.5 text-sm">
+                {["Portfolio Management", "Finance & FP&A", "M&A Support", "Reports & Analytics", "AI Insights"].map(l => (
+                  <li key={l}><a href="#platform" className="hover:text-white transition-colors">{l}</a></li>
+                ))}
+              </ul>
+            </div>
+            {/* Solutions */}
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-4">Solutions</div>
+              <ul className="space-y-2.5 text-sm">
+                {["Investors & Fund Managers", "Portfolio Companies", "M&A Teams", "FP&A Teams"].map(l => (
+                  <li key={l}><a href="#solutions" className="hover:text-white transition-colors">{l}</a></li>
+                ))}
+              </ul>
+            </div>
+            {/* Contact */}
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-300 mb-4">Contact</div>
+              <ul className="space-y-2.5 text-sm">
+                <li><a href="mailto:info@inventninvest.com" className="hover:text-white transition-colors">info@inventninvest.com</a></li>
+                <li><a href="https://inventninvest.com" className="hover:text-white transition-colors">www.inventninvest.com</a></li>
+                <li className="pt-2">
+                  <button onClick={goRequestAccess} className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 transition-all">
+                    Request Access
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground text-center">
-            <a href="mailto:info@inventninvest.com" className="hover:text-primary transition-colors">info@inventninvest.com</a>
-            {" · "}
-            <a href="https://inventninvest.com" className="hover:text-primary transition-colors">www.inventninvest.com</a>
+          <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+            <span>© 2025 Invent N Invest. All rights reserved.</span>
+            <span>Built by a CFO, for CFOs and Fund Managers.</span>
           </div>
         </div>
       </footer>
