@@ -80,19 +80,23 @@ export default function SignIn() {
     setLoading("email");
     await new Promise((r) => setTimeout(r, 1200));
 
+    // Check if an account already exists in localStorage
     const stored = localStorage.getItem("ini_user");
     if (stored) {
       const user = JSON.parse(stored) as AuthUser;
       if (user.email === form.email) {
         setLoading(null);
         saveUser(user);
-        navigate("/request-access");
+        navigate("/app");
         return;
       }
     }
 
+    // No existing account — create one and go to request-access
+    const newUser: AuthUser = { email: form.email, name: "", provider: "email" };
+    saveUser(newUser);
     setLoading(null);
-    setError("No account found with this email. Please sign up first.");
+    navigate("/request-access");
   };
 
   return (
