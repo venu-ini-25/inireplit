@@ -118,10 +118,10 @@ export default function Landing() {
     <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
 
       {/* ── Sticky Nav ── */}
-      <nav className={`h-24 flex items-center justify-between px-8 md:px-14 sticky top-0 z-50 transition-all duration-300 ${
+      <nav className={`flex items-center justify-between px-8 md:px-14 sticky top-0 z-50 transition-all duration-300 ${
         scrolled ? "bg-white/97 backdrop-blur-md shadow-md border-b border-slate-100" : "bg-white/80 backdrop-blur-sm"
       }`}>
-        <img src={logoImg} alt="iNi" className="h-20 w-auto" style={{ mixBlendMode: "multiply" }} />
+        <img src={logoImg} alt="iNi" className="w-auto" style={{ height: "100px", mixBlendMode: "multiply" }} />
         <div className="hidden md:flex items-center gap-8">
           <a href="#solutions" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">Solutions</a>
           <a href="#how-it-works" className="text-sm text-slate-600 hover:text-primary transition-colors font-semibold">How It Works</a>
