@@ -40,6 +40,12 @@ export default defineConfig({
   build: {
     outDir: "dist/public",
     emptyOutDir: true,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === "SOURCEMAP_ERROR") return;
+        warn(warning);
+      },
+    },
   },
   server: {
     port,
