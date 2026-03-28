@@ -5,7 +5,10 @@
  * iNi - Invent N Invest Finance Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { KpiMetric } from "./kpiMetric";
 
-export interface HealthStatus {
-  status: string;
+export interface KpiData {
+  metrics: KpiMetric[];
+  period: string;
+  companyName: string;
 }

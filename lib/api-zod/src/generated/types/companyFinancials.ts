@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface CompanyFinancials {
+  revenue: number;
+  expenses: number;
+  ebitda: number;
+  cashOnHand: number;
+  burnRate: number;
+  runway: number;
 }

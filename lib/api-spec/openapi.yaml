@@ -2,28 +2,27 @@ openapi: 3.1.0
 info:
   title: Api
   version: 0.1.0
-  description: Finance Tech SaaS Platform API
+  description: iNi - Invent N Invest Finance Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
-  - name: dashboard
-    description: Dashboard metrics and data
-  - name: transactions
-    description: Financial transactions
-  - name: accounts
-    description: Account management
+  - name: portfolio
+    description: Portfolio management
   - name: analytics
-    description: Analytics and reporting
+    description: Reporting and analytics
+  - name: deals
+    description: M&A deals and pipeline
+  - name: services
+    description: Professional services engagements
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -32,112 +31,221 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  /dashboard/metrics:
+  /portfolio/summary:
     get:
-      operationId: getDashboardMetrics
-      tags: [dashboard]
-      summary: Get dashboard metrics
-      description: Returns key financial metrics for the dashboard
+      operationId: getPortfolioSummary
+      tags: [portfolio]
+      summary: Get portfolio summary metrics
       responses:
         "200":
-          description: Dashboard metrics
+          description: Portfolio summary
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DashboardMetrics"
+                $ref: "#/components/schemas/PortfolioSummary"
 
-  /dashboard/revenue-chart:
+  /portfolio/companies:
     get:
-      operationId: getRevenueChart
-      tags: [dashboard]
-      summary: Get revenue chart data
-      description: Returns revenue data for charting
-      parameters:
-        - name: period
-          in: query
-          schema:
-            type: string
-            enum: [7d, 30d, 90d, 1y]
-          description: Time period for chart data
+      operationId: getPortfolioCompanies
+      tags: [portfolio]
+      summary: List portfolio companies
       responses:
         "200":
-          description: Revenue chart data
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RevenueChartData"
-
-  /transactions:
-    get:
-      operationId: getTransactions
-      tags: [transactions]
-      summary: List transactions
-      description: Returns a paginated list of transactions
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [income, expense, transfer]
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [pending, completed, failed, cancelled]
-      responses:
-        "200":
-          description: List of transactions
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TransactionList"
-
-  /accounts:
-    get:
-      operationId: getAccounts
-      tags: [accounts]
-      summary: List accounts
-      description: Returns all financial accounts
-      responses:
-        "200":
-          description: List of accounts
+          description: List of portfolio companies
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Account"
+                  $ref: "#/components/schemas/PortfolioCompany"
 
-  /analytics/spending:
+  /portfolio/companies/{id}:
     get:
-      operationId: getSpendingAnalytics
+      operationId: getPortfolioCompany
+      tags: [portfolio]
+      summary: Get a portfolio company detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Company detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioCompanyDetail"
+
+  /portfolio/kpis:
+    get:
+      operationId: getPortfolioKpis
+      tags: [portfolio]
+      summary: Get KPI dashboard data
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [Q1, Q2, Q3, Q4, TTM, YTD]
+      responses:
+        "200":
+          description: KPI data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiData"
+
+  /analytics/revenue:
+    get:
+      operationId: getRevenueAnalytics
       tags: [analytics]
-      summary: Get spending analytics
-      description: Returns spending breakdown by category
+      summary: Get revenue trend data
       parameters:
         - name: period
           in: query
           schema:
             type: string
-            enum: [7d, 30d, 90d, 1y]
+            enum: [6m, 1y, 2y, 3y]
+        - name: companyId
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: Spending analytics data
+          description: Revenue analytics
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SpendingAnalytics"
+                $ref: "#/components/schemas/RevenueAnalytics"
+
+  /analytics/benchmarks:
+    get:
+      operationId: getBenchmarks
+      tags: [analytics]
+      summary: Get industry benchmarks
+      parameters:
+        - name: industry
+          in: query
+          schema:
+            type: string
+        - name: metric
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Benchmark data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BenchmarkData"
+
+  /analytics/reports:
+    get:
+      operationId: getReports
+      tags: [analytics]
+      summary: List available reports
+      responses:
+        "200":
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+
+  /deals:
+    get:
+      operationId: getDeals
+      tags: [deals]
+      summary: List M&A deals
+      parameters:
+        - name: stage
+          in: query
+          schema:
+            type: string
+            enum: [sourcing, nda, due_diligence, negotiation, closing, closed, passed]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [acquisition, merger, investment, divestiture]
+      responses:
+        "200":
+          description: List of deals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Deal"
+
+  /deals/{id}:
+    get:
+      operationId: getDeal
+      tags: [deals]
+      summary: Get deal details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deal detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DealDetail"
+
+  /deals/pipeline-summary:
+    get:
+      operationId: getDealPipelineSummary
+      tags: [deals]
+      summary: Get M&A pipeline summary
+      responses:
+        "200":
+          description: Pipeline summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineSummary"
+
+  /services/engagements:
+    get:
+      operationId: getEngagements
+      tags: [services]
+      summary: List professional service engagements
+      responses:
+        "200":
+          description: List of engagements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Engagement"
+
+  /services/overview:
+    get:
+      operationId: getServicesOverview
+      tags: [services]
+      summary: Get professional services overview metrics
+      responses:
+        "200":
+          description: Services overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServicesOverview"
 
 components:
   schemas:
@@ -146,198 +254,441 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
-    DashboardMetrics:
+    PortfolioSummary:
       type: object
       properties:
+        totalCompanies:
+          type: integer
+        totalAum:
+          type: number
         totalRevenue:
           type: number
-          description: Total revenue in cents
-        totalExpenses:
+        avgGrowthRate:
           type: number
-        netProfit:
+        avgValuation:
           type: number
-        cashFlow:
+        totalDeals:
+          type: integer
+        aumChange:
           type: number
         revenueChange:
           type: number
-          description: Percentage change from last period
-        expensesChange:
+        growthChange:
           type: number
-        profitChange:
-          type: number
-        cashFlowChange:
-          type: number
-        activeAccounts:
-          type: integer
-        pendingTransactions:
-          type: integer
-      required:
-        - totalRevenue
-        - totalExpenses
-        - netProfit
-        - cashFlow
-        - revenueChange
-        - expensesChange
-        - profitChange
-        - cashFlowChange
-        - activeAccounts
-        - pendingTransactions
+      required: [totalCompanies, totalAum, totalRevenue, avgGrowthRate, avgValuation, totalDeals, aumChange, revenueChange, growthChange]
 
-    ChartDataPoint:
+    PortfolioCompany:
       type: object
       properties:
-        date:
+        id:
+          type: string
+        name:
+          type: string
+        industry:
+          type: string
+        stage:
+          type: string
+          enum: [seed, series_a, series_b, series_c, growth, public]
+        revenue:
+          type: number
+        valuation:
+          type: number
+        growthRate:
+          type: number
+        employees:
+          type: integer
+        location:
+          type: string
+        status:
+          type: string
+          enum: [active, monitoring, exited, watchlist]
+        dataVerified:
+          type: boolean
+        ndaSigned:
+          type: boolean
+        lastUpdated:
+          type: string
+        logo:
+          type: string
+      required: [id, name, industry, stage, revenue, valuation, growthRate, employees, location, status, dataVerified, ndaSigned, lastUpdated]
+
+    PortfolioCompanyDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        industry:
+          type: string
+        stage:
+          type: string
+        revenue:
+          type: number
+        valuation:
+          type: number
+        growthRate:
+          type: number
+        employees:
+          type: integer
+        location:
+          type: string
+        status:
+          type: string
+        dataVerified:
+          type: boolean
+        ndaSigned:
+          type: boolean
+        lastUpdated:
+          type: string
+        capTable:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapTableEntry"
+        financials:
+          $ref: "#/components/schemas/CompanyFinancials"
+        kpis:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiMetric"
+      required: [id, name, industry, stage, revenue, valuation, growthRate, employees, location, status, dataVerified, ndaSigned, lastUpdated, capTable, financials, kpis]
+
+    CapTableEntry:
+      type: object
+      properties:
+        investor:
+          type: string
+        shares:
+          type: integer
+        percentage:
+          type: number
+        shareClass:
+          type: string
+        investmentAmount:
+          type: number
+      required: [investor, shares, percentage, shareClass, investmentAmount]
+
+    CompanyFinancials:
+      type: object
+      properties:
+        revenue:
+          type: number
+        expenses:
+          type: number
+        ebitda:
+          type: number
+        cashOnHand:
+          type: number
+        burnRate:
+          type: number
+        runway:
+          type: integer
+      required: [revenue, expenses, ebitda, cashOnHand, burnRate, runway]
+
+    KpiMetric:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+        change:
+          type: number
+        trend:
+          type: string
+          enum: [up, down, flat]
+      required: [name, value, unit, change, trend]
+
+    KpiData:
+      type: object
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiMetric"
+        period:
+          type: string
+        companyName:
+          type: string
+      required: [metrics, period, companyName]
+
+    RevenueDataPoint:
+      type: object
+      properties:
+        period:
           type: string
         revenue:
           type: number
         expenses:
           type: number
-      required:
-        - date
-        - revenue
-        - expenses
+        ebitda:
+          type: number
+        arr:
+          type: number
+      required: [period, revenue, expenses, ebitda, arr]
 
-    RevenueChartData:
+    RevenueAnalytics:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/ChartDataPoint"
+            $ref: "#/components/schemas/RevenueDataPoint"
         totalRevenue:
           type: number
-        totalExpenses:
+        revenueGrowth:
           type: number
-        growthRate:
+        arrGrowth:
           type: number
-      required:
-        - data
-        - totalRevenue
-        - totalExpenses
-        - growthRate
+      required: [data, totalRevenue, revenueGrowth, arrGrowth]
 
-    Transaction:
+    BenchmarkItem:
+      type: object
+      properties:
+        label:
+          type: string
+        company:
+          type: number
+        industry:
+          type: number
+        topQuartile:
+          type: number
+        unit:
+          type: string
+      required: [label, company, industry, topQuartile, unit]
+
+    BenchmarkData:
+      type: object
+      properties:
+        industry:
+          type: string
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/BenchmarkItem"
+      required: [industry, metrics]
+
+    Report:
       type: object
       properties:
         id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum: [investor_update, financial_summary, kpi_report, board_deck, due_diligence, benchmarking]
+        status:
+          type: string
+          enum: [draft, ready, published, archived]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        sharedWith:
+          type: integer
+        companyName:
+          type: string
+      required: [id, title, type, status, createdAt, updatedAt, sharedWith, companyName]
+
+    Deal:
+      type: object
+      properties:
+        id:
+          type: string
+        companyName:
+          type: string
+        industry:
+          type: string
+        dealType:
+          type: string
+          enum: [acquisition, merger, investment, divestiture]
+        stage:
+          type: string
+          enum: [sourcing, nda, due_diligence, negotiation, closing, closed, passed]
+        dealSize:
+          type: number
+        valuation:
+          type: number
+        targetRevenue:
+          type: number
+        assignedTo:
+          type: string
+        priority:
+          type: string
+          enum: [high, medium, low]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        closingDate:
+          type: string
+        ndaSigned:
+          type: boolean
+        dataRoomAccess:
+          type: boolean
+      required: [id, companyName, industry, dealType, stage, dealSize, valuation, targetRevenue, assignedTo, priority, createdAt, updatedAt, ndaSigned, dataRoomAccess]
+
+    DealDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        companyName:
+          type: string
+        industry:
+          type: string
+        dealType:
+          type: string
+        stage:
+          type: string
+        dealSize:
+          type: number
+        valuation:
+          type: number
+        targetRevenue:
+          type: number
+        assignedTo:
+          type: string
+        priority:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        closingDate:
+          type: string
+        ndaSigned:
+          type: boolean
+        dataRoomAccess:
+          type: boolean
+        dueDiligenceItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/DueDiligenceItem"
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+      required: [id, companyName, industry, dealType, stage, dealSize, valuation, targetRevenue, assignedTo, priority, createdAt, updatedAt, ndaSigned, dataRoomAccess, dueDiligenceItems, timeline]
+
+    DueDiligenceItem:
+      type: object
+      properties:
+        category:
+          type: string
+        item:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed, flagged]
+        assignedTo:
+          type: string
+        dueDate:
+          type: string
+      required: [category, item, status, assignedTo, dueDate]
+
+    TimelineEvent:
+      type: object
+      properties:
+        date:
+          type: string
+        event:
           type: string
         description:
           type: string
-        amount:
-          type: number
         type:
           type: string
-          enum: [income, expense, transfer]
-        status:
-          type: string
-          enum: [pending, completed, failed, cancelled]
-        category:
-          type: string
-        account:
-          type: string
-        date:
-          type: string
-        merchant:
-          type: string
-      required:
-        - id
-        - description
-        - amount
-        - type
-        - status
-        - category
-        - account
-        - date
+          enum: [milestone, document, meeting, update]
+      required: [date, event, description, type]
 
-    TransactionList:
+    PipelineSummary:
       type: object
       properties:
-        transactions:
+        totalDeals:
+          type: integer
+        totalValue:
+          type: number
+        byStage:
           type: array
           items:
-            $ref: "#/components/schemas/Transaction"
-        total:
+            $ref: "#/components/schemas/StageCount"
+        avgTimeToClose:
+          type: number
+        dealsClosedThisYear:
           type: integer
-        page:
-          type: integer
-        limit:
-          type: integer
-      required:
-        - transactions
-        - total
-        - page
-        - limit
+        valueClosedThisYear:
+          type: number
+      required: [totalDeals, totalValue, byStage, avgTimeToClose, dealsClosedThisYear, valueClosedThisYear]
 
-    Account:
+    StageCount:
+      type: object
+      properties:
+        stage:
+          type: string
+        count:
+          type: integer
+        value:
+          type: number
+      required: [stage, count, value]
+
+    Engagement:
       type: object
       properties:
         id:
           type: string
-        name:
+        clientName:
           type: string
-        type:
+        serviceType:
           type: string
-          enum: [checking, savings, investment, credit, crypto]
-        balance:
-          type: number
-        currency:
-          type: string
-        institution:
-          type: string
-        lastActivity:
-          type: string
+          enum: [fpa, strategic_finance, corp_dev, due_diligence, valuation]
         status:
           type: string
-          enum: [active, inactive, frozen]
-        accountNumber:
+          enum: [active, completed, proposal, on_hold]
+        startDate:
           type: string
-      required:
-        - id
-        - name
-        - type
-        - balance
-        - currency
-        - institution
-        - lastActivity
-        - status
+        endDate:
+          type: string
+        fee:
+          type: number
+        progress:
+          type: integer
+        lead:
+          type: string
+        description:
+          type: string
+      required: [id, clientName, serviceType, status, startDate, fee, progress, lead, description]
 
-    SpendingCategory:
+    ServicesOverview:
       type: object
       properties:
-        name:
-          type: string
-        amount:
+        activeEngagements:
+          type: integer
+        totalRevenue:
           type: number
-        percentage:
+        avgEngagementSize:
           type: number
-        color:
-          type: string
-        change:
+        completedThisYear:
+          type: integer
+        revenueChange:
           type: number
-      required:
-        - name
-        - amount
-        - percentage
-        - color
-
-    SpendingAnalytics:
-      type: object
-      properties:
-        categories:
+        engagementsByType:
           type: array
           items:
-            $ref: "#/components/schemas/SpendingCategory"
-        totalSpending:
-          type: number
-        averageDaily:
-          type: number
-        topCategory:
+            $ref: "#/components/schemas/ServiceTypeCount"
+      required: [activeEngagements, totalRevenue, avgEngagementSize, completedThisYear, revenueChange, engagementsByType]
+
+    ServiceTypeCount:
+      type: object
+      properties:
+        type:
           type: string
-      required:
-        - categories
-        - totalSpending
-        - averageDaily
-        - topCategory
+        count:
+          type: integer
+        revenue:
+          type: number
+      required: [type, count, revenue]
