@@ -41,9 +41,10 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
 
 function WaveDown({ fromColor, toColor }: { fromColor: string; toColor: string }) {
   return (
-    <div style={{ background: toColor, marginTop: -1 }}>
-      <svg viewBox="0 0 1440 72" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }} preserveAspectRatio="none" height={72}>
-        <path d="M0,36 C240,72 480,0 720,36 C960,72 1200,0 1440,36 L1440,0 L0,0 Z" fill={fromColor} />
+    <div style={{ background: toColor, lineHeight: 0, fontSize: 0, overflow: "hidden", display: "block" }}>
+      <svg viewBox="0 0 1440 72" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", width: "100%", minWidth: "100%" }} preserveAspectRatio="none" height={72}>
+        <rect width="1440" height="72" fill={fromColor} />
+        <path d="M0,36 C240,72 480,0 720,36 C960,72 1200,0 1440,36 L1440,72 L0,72 Z" fill={toColor} />
       </svg>
     </div>
   );
@@ -51,9 +52,10 @@ function WaveDown({ fromColor, toColor }: { fromColor: string; toColor: string }
 
 function WaveUp({ fromColor, toColor }: { fromColor: string; toColor: string }) {
   return (
-    <div style={{ background: fromColor, marginBottom: -1 }}>
-      <svg viewBox="0 0 1440 72" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }} preserveAspectRatio="none" height={72}>
-        <path d="M0,36 C240,0 480,72 720,36 C960,0 1200,72 1440,36 L1440,72 L0,72 Z" fill={toColor} />
+    <div style={{ background: fromColor, lineHeight: 0, fontSize: 0, overflow: "hidden", display: "block" }}>
+      <svg viewBox="0 0 1440 72" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", width: "100%", minWidth: "100%" }} preserveAspectRatio="none" height={72}>
+        <rect width="1440" height="72" fill={toColor} />
+        <path d="M0,36 C240,0 480,72 720,36 C960,0 1200,72 1440,36 L1440,0 L0,0 Z" fill={fromColor} />
       </svg>
     </div>
   );
