@@ -774,7 +774,7 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
             {/* Brand */}
             <div className="md:col-span-1">
-              <img src={logoImg} alt="iNi" className="h-9 w-auto mb-4 brightness-0 invert" />
+              <img src={logoImg} alt="iNi" className="w-auto mb-4" style={{ height: "70px", filter: "brightness(0) invert(1)" }} />
               <p className="text-xs leading-relaxed text-slate-500">
                 The AI-powered finance platform built for growth-stage investors and portfolio companies.
               </p>
