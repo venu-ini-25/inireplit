@@ -1,10 +1,9 @@
 import { Router, type IRouter } from "express";
-import { GetAccountsResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 router.get("/accounts", (_req, res) => {
-  const data = GetAccountsResponse.parse([
+  const data = [
     {
       id: "acc_001",
       name: "Business Checking",
@@ -82,7 +81,7 @@ router.get("/accounts", (_req, res) => {
       status: "inactive",
       accountNumber: "****6678",
     },
-  ]);
+  ];
   res.json(data);
 });
 

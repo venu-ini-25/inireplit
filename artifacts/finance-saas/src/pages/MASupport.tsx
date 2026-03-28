@@ -42,9 +42,7 @@ export default function MASupport() {
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [search, setSearch] = useState("");
 
-  const { data: dealDetail } = useGetDeal(selectedDealId ?? "deal_001", {
-    query: { enabled: !!selectedDealId },
-  });
+  const { data: dealDetail } = useGetDeal(selectedDealId ?? "deal_001");
 
   const selectedDeal = selectedDealId ? (deals as Deal[]).find((d) => d.id === selectedDealId) ?? null : null;
 
@@ -77,7 +75,7 @@ export default function MASupport() {
       ? Math.round(
           activeDeals.reduce((sum, d) => {
             const total = dealDetail?.dueDiligenceItems?.length ?? 24;
-            const done = dealDetail?.dueDiligenceItems?.filter((i: {status: string}) => i.status === "completed").length ?? 0;
+            const done = dealDetail?.dueDiligenceItems?.filter((i) => i.status === "completed").length ?? 0;
             return sum + Math.round((done / total) * 100);
           }, 0) / activeDeals.length
         )
@@ -86,7 +84,7 @@ export default function MASupport() {
   const getDDProgress = (dealId: string) => {
     if (dealDetail && selectedDealId === dealId) {
       const total = dealDetail.dueDiligenceItems.length;
-      const done = dealDetail.dueDiligenceItems.filter((i: {status: string}) => i.status === "completed").length;
+      const done = dealDetail.dueDiligenceItems.filter((i) => i.status === "completed").length;
       return { done, total, pct: Math.round((done / total) * 100) };
     }
     return { done: 0, total: 24, pct: 0 };
@@ -369,7 +367,7 @@ export default function MASupport() {
                       ["Assigned To", selectedDeal.assignedTo?.split(" ")[0]],
                       ["NDA Signed", selectedDeal.ndaSigned ? "Yes" : "No"],
                       ["Data Room", selectedDeal.dataRoomAccess ? "Granted" : "Pending"],
-                      ["DD Complete", `${dealDetail.dueDiligenceItems.filter((i: {status: string}) => i.status === "completed").length}/${dealDetail.dueDiligenceItems.length} items`],
+                      ["DD Complete", `${dealDetail.dueDiligenceItems.filter((i) => i.status === "completed").length}/${dealDetail.dueDiligenceItems.length} items`],
                     ].map(([k, v]) => (
                       <div key={k} className="p-3 bg-slate-50 rounded-xl">
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{k}</div>
@@ -393,14 +391,14 @@ export default function MASupport() {
                     <div className="flex items-center justify-between mb-1.5">
                       <h4 className="font-bold text-slate-800 text-sm">Due Diligence Progress</h4>
                       <span className="text-xs text-muted-foreground">
-                        {dealDetail.dueDiligenceItems.filter((i: {status: string}) => i.status === "completed").length}/{dealDetail.dueDiligenceItems.length}
+                        {dealDetail.dueDiligenceItems.filter((i) => i.status === "completed").length}/{dealDetail.dueDiligenceItems.length}
                       </span>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
                         className="h-2 bg-primary rounded-full transition-all"
                         style={{
-                          width: `${(dealDetail.dueDiligenceItems.filter((i: {status: string}) => i.status === "completed").length / dealDetail.dueDiligenceItems.length) * 100}%`,
+                          width: `${(dealDetail.dueDiligenceItems.filter((i) => i.status === "completed").length / dealDetail.dueDiligenceItems.length) * 100}%`,
                         }}
                       />
                     </div>
@@ -408,7 +406,7 @@ export default function MASupport() {
                   <div>
                     <h4 className="font-bold text-slate-800 text-sm mb-2">Recent Timeline</h4>
                     <div className="space-y-2">
-                      {dealDetail.timeline.slice(-3).reverse().map((ev: {event: string; description: string; date: string}, i: number) => (
+                      {dealDetail.timeline.slice(-3).reverse().map((ev, i: number) => (
                         <div key={i} className="flex items-start gap-2.5 text-xs">
                           <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                           <div>
@@ -427,9 +425,9 @@ export default function MASupport() {
                 <div className="space-y-4">
                   {(() => {
                     const total = dealDetail.dueDiligenceItems.length;
-                    const done = dealDetail.dueDiligenceItems.filter((i: {status: string}) => i.status === "completed").length;
+                    const done = dealDetail.dueDiligenceItems.filter((i) => i.status === "completed").length;
                     const pct = Math.round((done / total) * 100);
-                    const byCategory = dealDetail.dueDiligenceItems.reduce((acc: Record<string, typeof dealDetail.dueDiligenceItems>, item: {category: string; item: string; status: string; assignedTo: string; dueDate: string}) => {
+                    const byCategory = dealDetail.dueDiligenceItems.reduce((acc: Record<string, typeof dealDetail.dueDiligenceItems>, item) => {
                       if (!acc[item.category]) acc[item.category] = [];
                       acc[item.category].push(item);
                       return acc;
@@ -447,15 +445,15 @@ export default function MASupport() {
                           <div className="h-2 bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
                         </div>
                         {Object.entries(byCategory).map(([category, items]) => {
-                          const catDone = (items as {status: string}[]).filter((i) => i.status === "completed").length;
+                          const catDone = items.filter((i) => i.status === "completed").length;
                           return (
                             <div key={category} className="bg-slate-50 rounded-xl p-4">
                               <div className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3 flex items-center justify-between">
                                 {category}
-                                <span className="font-normal text-muted-foreground">{catDone}/{(items as unknown[]).length}</span>
+                                <span className="font-normal text-muted-foreground">{catDone}/{items.length}</span>
                               </div>
                               <div className="space-y-2">
-                                {(items as {item: string; status: string}[]).map((ddItem, idx) => (
+                                {items.map((ddItem, idx) => (
                                   <div key={idx} className="flex items-center gap-2.5">
                                     {ddItem.status === "completed" ? (
                                       <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
@@ -490,7 +488,7 @@ export default function MASupport() {
                   ) : (
                     <div className="relative pl-5">
                       <div className="absolute left-1.5 top-1 bottom-1 w-px bg-slate-200" />
-                      {dealDetail.timeline.map((ev: {date: string; event: string; description: string; type: string}, i: number) => {
+                      {dealDetail.timeline.map((ev, i: number) => {
                         const isPast = new Date(ev.date) < new Date();
                         return (
                           <div key={i} className="relative mb-5">

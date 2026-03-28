@@ -1,16 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Building2, Search, TrendingUp, DollarSign, BarChart2, Briefcase } from "lucide-react";
-import { useGetPortfolioCompanies } from "@workspace/api-client-react";
-
-const FUND_KPIS = [
-  { label: "AUM", value: "$284M", icon: DollarSign, color: "text-primary", bg: "bg-blue-50" },
-  { label: "Gross IRR", value: "28.6%", icon: TrendingUp, color: "text-success", bg: "bg-green-50" },
-  { label: "MOIC", value: "2.7x", icon: BarChart2, color: "text-purple-600", bg: "bg-purple-50" },
-  { label: "Portfolio Companies", value: "8", icon: Briefcase, color: "text-amber-600", bg: "bg-amber-50" },
-  { label: "Avg Ownership", value: "19.4%", icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50" },
-  { label: "Unrealized Value", value: "$198M", icon: TrendingUp, color: "text-success", bg: "bg-green-50" },
-];
+import { useGetPortfolioCompanies, useGetPortfolioSummary } from "@workspace/api-client-react";
 
 const stageColors: Record<string, string> = {
   "seed": "bg-slate-100 text-slate-600",
@@ -28,6 +19,7 @@ const formatRevenue = (v: number) => {
 
 export default function Portfolio() {
   const { data: companies, isLoading } = useGetPortfolioCompanies();
+  const { data: summary } = useGetPortfolioSummary();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
 
@@ -57,11 +49,18 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* Fund KPI Bar */}
+      {/* Fund KPI Bar — data from /portfolio/summary */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-5">
         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Fund Overview</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 divide-x-0 lg:divide-x divide-border">
-          {FUND_KPIS.map((kpi) => (
+          {[
+            { label: "AUM", value: summary ? formatRevenue(summary.totalAum) : "$284M", icon: DollarSign, color: "text-primary", bg: "bg-blue-50" },
+            { label: "Gross IRR", value: "28.6%", icon: TrendingUp, color: "text-success", bg: "bg-green-50" },
+            { label: "MOIC", value: "2.7x", icon: BarChart2, color: "text-purple-600", bg: "bg-purple-50" },
+            { label: "Portfolio Companies", value: summary ? String(summary.totalCompanies) : "8", icon: Briefcase, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Avg Growth Rate", value: summary ? `${summary.avgGrowthRate.toFixed(1)}%` : "—", icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50" },
+            { label: "Total Revenue", value: summary ? formatRevenue(summary.totalRevenue) : "—", icon: TrendingUp, color: "text-success", bg: "bg-green-50" },
+          ].map((kpi) => (
             <div key={kpi.label} className="lg:pl-4 first:pl-0 border border-border lg:border-0 rounded-lg lg:rounded-none p-3 lg:p-0">
               <div className="flex items-center gap-2 mb-1">
                 <div className={`w-7 h-7 rounded-lg ${kpi.bg} flex items-center justify-center shrink-0`}>

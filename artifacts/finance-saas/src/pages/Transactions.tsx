@@ -2,20 +2,48 @@ import { useState } from "react";
 import { Search, Filter, Download, Plus } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { useGetTransactions } from "@workspace/api-client-react";
-import type { GetTransactionsType, GetTransactionsStatus } from "@workspace/api-client-react";
+
+type TxnType = "income" | "expense" | "transfer";
+type TxnStatus = "pending" | "completed" | "failed" | "cancelled";
+
+const MERCHANTS = ["Amazon", "Apple", "Netflix", "Stripe", "Shopify", "Google", "Microsoft", "Salesforce", "Zoom", "Slack"];
+const CATEGORIES = ["Software", "Marketing", "Payroll", "Infrastructure", "Travel", "Office", "Consulting", "Utilities"];
+const ACCOUNTS = ["Business Checking", "Operations", "Savings Reserve", "Payroll Account", "Credit Line"];
+const DESCRIPTIONS = ["Monthly subscription", "Annual license", "Service payment", "Invoice #", "Contractor payment", "Cloud services"];
+
+function generateTransactions(count: number, offset: number) {
+  return Array.from({ length: count }, (_, i) => {
+    const type: TxnType = i % 5 === 0 ? "income" : i % 7 === 0 ? "transfer" : "expense";
+    const amount = type === "income" ? Math.floor(5000 + ((i * 7) % 95000)) : Math.floor(500 + ((i * 3) % 15000));
+    const date = new Date();
+    date.setDate(date.getDate() - Math.floor((i + offset) / 2));
+    const statusRoll = (i * 13) % 100;
+    const status: TxnStatus = statusRoll > 92 ? "failed" : statusRoll > 85 ? "pending" : "completed";
+    return {
+      id: `txn_${(i + offset + 1).toString().padStart(6, "0")}`,
+      description: `${DESCRIPTIONS[i % DESCRIPTIONS.length]} ${i + offset + 1001}`,
+      amount,
+      type,
+      status,
+      category: CATEGORIES[i % CATEGORIES.length],
+      account: ACCOUNTS[i % ACCOUNTS.length],
+      date: date.toISOString().split("T")[0],
+      merchant: type !== "transfer" ? MERCHANTS[i % MERCHANTS.length] : undefined,
+    };
+  });
+}
 
 export default function Transactions() {
   const [page, setPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState<GetTransactionsType | undefined>();
-  const [statusFilter, setStatusFilter] = useState<GetTransactionsStatus | undefined>();
+  const [typeFilter, setTypeFilter] = useState<TxnType | "">("");
+  const [statusFilter, setStatusFilter] = useState<TxnStatus | "">("");
   
-  const { data, isLoading } = useGetTransactions({ 
-    page, 
-    limit: 20,
-    type: typeFilter,
-    status: statusFilter
-  });
+  const allTxns = generateTransactions(20, (page - 1) * 20);
+  const filtered = allTxns.filter(
+    (t) => (!typeFilter || t.type === typeFilter) && (!statusFilter || t.status === statusFilter)
+  );
+  const data = { transactions: filtered, total: 248, page, limit: 20 };
+  const isLoading = false;
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -52,7 +80,7 @@ export default function Transactions() {
           <select 
             className="px-4 py-2.5 rounded-xl bg-background/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm appearance-none"
             value={typeFilter || ""}
-            onChange={(e) => setTypeFilter(e.target.value ? e.target.value as GetTransactionsType : undefined)}
+            onChange={(e) => setTypeFilter(e.target.value as TxnType | "")}
           >
             <option value="">All Types</option>
             <option value="income">Income</option>
@@ -63,7 +91,7 @@ export default function Transactions() {
           <select 
             className="px-4 py-2.5 rounded-xl bg-background/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm appearance-none"
             value={statusFilter || ""}
-            onChange={(e) => setStatusFilter(e.target.value ? e.target.value as GetTransactionsStatus : undefined)}
+            onChange={(e) => setStatusFilter(e.target.value as TxnStatus | "")}
           >
             <option value="">All Statuses</option>
             <option value="completed">Completed</option>

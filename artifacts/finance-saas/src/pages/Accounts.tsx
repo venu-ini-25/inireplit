@@ -1,10 +1,20 @@
 import { Plus, CreditCard, Building2, TrendingUp, ShieldCheck, Bitcoin } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { useGetAccounts } from "@workspace/api-client-react";
+
+const ACCOUNTS = [
+  { id: "acc_001", name: "Business Checking", type: "checking", balance: 284750.5, institution: "Chase Bank", status: "active", accountNumber: "****4521" },
+  { id: "acc_002", name: "Operations Account", type: "checking", balance: 97234.25, institution: "Bank of America", status: "active", accountNumber: "****7834" },
+  { id: "acc_003", name: "Savings Reserve", type: "savings", balance: 512890.0, institution: "Wells Fargo", status: "active", accountNumber: "****2290" },
+  { id: "acc_004", name: "Investment Portfolio", type: "investment", balance: 1284500.75, institution: "Fidelity", status: "active", accountNumber: "****9012" },
+  { id: "acc_005", name: "Corporate Credit", type: "credit", balance: -34250.0, institution: "American Express", status: "active", accountNumber: "****3456" },
+  { id: "acc_006", name: "Crypto Reserve", type: "crypto", balance: 89340.22, institution: "Coinbase", status: "active", accountNumber: "0x7f...3e4a" },
+  { id: "acc_007", name: "Payroll Account", type: "checking", balance: 142000.0, institution: "Chase Bank", status: "inactive", accountNumber: "****6678" },
+];
 
 export default function Accounts() {
-  const { data: accounts, isLoading } = useGetAccounts();
+  const accounts = ACCOUNTS;
+  const isLoading = false;
 
   const getIconForType = (type: string) => {
     switch(type) {

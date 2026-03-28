@@ -1,14 +1,9 @@
 import { Router, type IRouter } from "express";
-import {
-  GetDashboardMetricsResponse,
-  GetRevenueChartResponse,
-  GetRevenueChartQueryParams,
-} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 router.get("/dashboard/metrics", (_req, res) => {
-  const data = GetDashboardMetricsResponse.parse({
+  res.json({
     totalRevenue: 4285320,
     totalExpenses: 1923450,
     netProfit: 2361870,
@@ -20,7 +15,6 @@ router.get("/dashboard/metrics", (_req, res) => {
     activeAccounts: 7,
     pendingTransactions: 14,
   });
-  res.json(data);
 });
 
 function generateChartData(period: string) {
@@ -55,20 +49,11 @@ function generateChartData(period: string) {
 }
 
 router.get("/dashboard/revenue-chart", (req, res) => {
-  const query = GetRevenueChartQueryParams.parse(req.query);
-  const period = query.period ?? "30d";
+  const period = typeof req.query.period === "string" ? req.query.period : "30d";
   const chartData = generateChartData(period);
-
   const totalRevenue = chartData.reduce((sum, d) => sum + d.revenue, 0);
   const totalExpenses = chartData.reduce((sum, d) => sum + d.expenses, 0);
-
-  const data = GetRevenueChartResponse.parse({
-    data: chartData,
-    totalRevenue,
-    totalExpenses,
-    growthRate: 12.4,
-  });
-  res.json(data);
+  res.json({ data: chartData, totalRevenue, totalExpenses, growthRate: 12.4 });
 });
 
 export default router;

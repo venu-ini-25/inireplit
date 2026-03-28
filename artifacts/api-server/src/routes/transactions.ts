@@ -1,8 +1,4 @@
 import { Router, type IRouter } from "express";
-import {
-  GetTransactionsResponse,
-  GetTransactionsQueryParams,
-} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -68,33 +64,17 @@ function generateTransactions(count: number, offset: number) {
 }
 
 router.get("/transactions", (req, res) => {
-  const query = GetTransactionsQueryParams.parse({
-    page: req.query.page ? Number(req.query.page) : 1,
-    limit: req.query.limit ? Number(req.query.limit) : 20,
-    type: req.query.type,
-    status: req.query.status,
-  });
-
-  const page = query.page ?? 1;
-  const limit = query.limit ?? 20;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 20;
+  const typeFilter = typeof req.query.type === "string" ? req.query.type : undefined;
+  const statusFilter = typeof req.query.status === "string" ? req.query.status : undefined;
   const total = 248;
 
   let transactions = generateTransactions(limit, (page - 1) * limit);
+  if (typeFilter) transactions = transactions.filter((t) => t.type === typeFilter);
+  if (statusFilter) transactions = transactions.filter((t) => t.status === statusFilter);
 
-  if (query.type) {
-    transactions = transactions.filter((t) => t.type === query.type);
-  }
-  if (query.status) {
-    transactions = transactions.filter((t) => t.status === query.status);
-  }
-
-  const data = GetTransactionsResponse.parse({
-    transactions,
-    total,
-    page,
-    limit,
-  });
-  res.json(data);
+  res.json({ transactions, total, page, limit });
 });
 
 export default router;
