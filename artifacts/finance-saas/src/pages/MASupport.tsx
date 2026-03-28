@@ -70,16 +70,13 @@ export default function MASupport() {
 
   const activeDeals = (deals as Deal[]).filter((d) => !["passed", "closed"].includes(d.stage));
   const closingThisQ = (deals as Deal[]).filter((d) => ["closing", "closed"].includes(d.stage)).length;
-  const avgDDPct =
-    dealDetail && activeDeals.length > 0
-      ? Math.round(
-          activeDeals.reduce((sum, d) => {
-            const total = dealDetail?.dueDiligenceItems?.length ?? 24;
-            const done = dealDetail?.dueDiligenceItems?.filter((i) => i.status === "completed").length ?? 0;
-            return sum + Math.round((done / total) * 100);
-          }, 0) / activeDeals.length
-        )
-      : 52;
+
+  const STAGE_DD_PCT: Record<string, number> = {
+    sourcing: 0, nda: 15, due_diligence: 55, negotiation: 82, closing: 95,
+  };
+  const avgDDPct = activeDeals.length > 0
+    ? Math.round(activeDeals.reduce((sum, d) => sum + (STAGE_DD_PCT[d.stage] ?? 0), 0) / activeDeals.length)
+    : 52;
 
   const getDDProgress = (dealId: string) => {
     if (dealDetail && selectedDealId === dealId) {

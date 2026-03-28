@@ -1,9 +1,34 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod";
+
+const DashboardMetricsSchema = z.object({
+  totalRevenue: z.number(),
+  totalExpenses: z.number(),
+  netProfit: z.number(),
+  cashFlow: z.number(),
+  revenueChange: z.number(),
+  expensesChange: z.number(),
+  profitChange: z.number(),
+  cashFlowChange: z.number(),
+  activeAccounts: z.number(),
+  pendingTransactions: z.number(),
+});
+
+const RevenueChartQuerySchema = z.object({
+  period: z.enum(["7d", "30d", "90d", "1y"]).optional(),
+});
+
+const RevenueChartResponseSchema = z.object({
+  data: z.array(z.object({ date: z.string(), revenue: z.number(), expenses: z.number() })),
+  totalRevenue: z.number(),
+  totalExpenses: z.number(),
+  growthRate: z.number(),
+});
 
 const router: IRouter = Router();
 
 router.get("/dashboard/metrics", (_req, res) => {
-  res.json({
+  const data = DashboardMetricsSchema.parse({
     totalRevenue: 4285320,
     totalExpenses: 1923450,
     netProfit: 2361870,
@@ -15,26 +40,13 @@ router.get("/dashboard/metrics", (_req, res) => {
     activeAccounts: 7,
     pendingTransactions: 14,
   });
+  res.json(data);
 });
 
 function generateChartData(period: string) {
   const now = new Date();
   const points: { date: string; revenue: number; expenses: number }[] = [];
-
-  let days: number;
-  switch (period) {
-    case "7d":
-      days = 7;
-      break;
-    case "90d":
-      days = 90;
-      break;
-    case "1y":
-      days = 365;
-      break;
-    default:
-      days = 30;
-  }
+  const days = period === "7d" ? 7 : period === "90d" ? 90 : period === "1y" ? 365 : 30;
 
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(now);
@@ -49,11 +61,19 @@ function generateChartData(period: string) {
 }
 
 router.get("/dashboard/revenue-chart", (req, res) => {
-  const period = typeof req.query.period === "string" ? req.query.period : "30d";
+  const query = RevenueChartQuerySchema.parse(req.query);
+  const period = query.period ?? "30d";
   const chartData = generateChartData(period);
   const totalRevenue = chartData.reduce((sum, d) => sum + d.revenue, 0);
   const totalExpenses = chartData.reduce((sum, d) => sum + d.expenses, 0);
-  res.json({ data: chartData, totalRevenue, totalExpenses, growthRate: 12.4 });
+
+  const data = RevenueChartResponseSchema.parse({
+    data: chartData,
+    totalRevenue,
+    totalExpenses,
+    growthRate: 12.4,
+  });
+  res.json(data);
 });
 
 export default router;
