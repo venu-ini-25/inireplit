@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -35,6 +35,7 @@ const roleOptions: { value: Role; label: string; desc: string }[] = [
 export default function RequestAccess() {
   const [, navigate] = useLocation();
   const { user } = useUser();
+  const { isSignedIn } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -107,10 +108,10 @@ export default function RequestAccess() {
             </ul>
           </div>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate(isSignedIn ? "/app" : "/")}
             className="w-full py-2.5 bg-primary text-white rounded-lg font-semibold text-sm hover:bg-primary/90 transition-colors"
           >
-            Back to Home
+            {isSignedIn ? "Check My Status" : "Back to Home"}
           </button>
         </div>
       </div>
