@@ -53,7 +53,7 @@ export const GetPortfolioCompaniesResponseItem = zod.object({
   dataVerified: zod.boolean(),
   ndaSigned: zod.boolean(),
   lastUpdated: zod.string(),
-  logo: zod.string().optional(),
+  logo: zod.string().nullable().optional(),
 });
 export const GetPortfolioCompaniesResponse = zod.array(
   GetPortfolioCompaniesResponseItem,

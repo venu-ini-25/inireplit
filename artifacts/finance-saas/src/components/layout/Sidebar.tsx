@@ -8,158 +8,164 @@ import {
   ShoppingCart,
   Users,
   BarChart2,
-  Briefcase
+  Briefcase,
+  Building2,
+  HandshakeIcon,
+  Wrench,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import logoImg from "/images/ini-logo.jpeg";
 
-export function Sidebar() {
+type NavSection = "finance" | "portfolio" | null;
+
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const [location] = useLocation();
-  const [financeExpanded, setFinanceExpanded] = useState(true);
+  const [expanded, setExpanded] = useState<NavSection>("finance");
 
-  const isFinanceActive = location.startsWith("/finance");
+  const toggle = (section: NavSection) =>
+    setExpanded((prev) => (prev === section ? null : section));
+
+  const isActive = (path: string) => location === path;
+  const isPrefix = (prefix: string) => location.startsWith(prefix);
+
+  const navClick = () => onClose?.();
+
+  const linkCls = (path: string) =>
+    cn(
+      "flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors",
+      isActive(path)
+        ? "bg-primary text-white shadow-sm"
+        : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+    );
+
+  const subLinkCls = (path: string) =>
+    cn(
+      "flex items-center px-3 py-2 rounded-md font-medium text-sm transition-colors",
+      isActive(path)
+        ? "bg-primary text-white shadow-sm"
+        : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+    );
+
+  const sectionBtnCls = (prefix: string) =>
+    cn(
+      "w-full flex items-center justify-between px-3 py-2 rounded-md font-medium text-sm transition-colors",
+      isPrefix(prefix) && expanded !== prefix
+        ? "text-primary"
+        : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+    );
 
   return (
-    <aside className="w-64 h-screen sticky top-0 left-0 flex flex-col bg-white border-r border-border z-40">
-      {/* Logo Area */}
-      <div className="h-16 flex items-center px-6 border-b border-border shrink-0">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex items-center justify-center gap-1 text-primary">
-            {/* Simple logo icon representing two figures */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="9" cy="8" r="4" />
-              <path d="M9 14C5.13401 14 2 17.134 2 21H16C16 17.134 12.866 14 9 14Z" />
-              <circle cx="17" cy="10" r="3" />
-              <path d="M17 15C15.9324 15 14.9201 15.238 14.0152 15.6592C15.2492 16.9208 16 18.8746 16 21H22C22 17.6863 19.7614 15 17 15Z" />
-            </svg>
-          </div>
-          <span className="font-bold text-foreground tracking-tight">INVENT N INVEST</span>
+    <aside className="w-64 h-screen flex flex-col bg-white border-r border-border z-40">
+      {/* Logo */}
+      <div className="h-14 md:h-16 flex items-center px-4 border-b border-border shrink-0 gap-2">
+        <Link href="/" className="flex items-center gap-2 flex-1 min-w-0" onClick={onClose}>
+          <img
+            src={logoImg}
+            alt="INVENT N INVEST"
+            className="h-8 w-auto object-contain"
+          />
         </Link>
-        <div className="ml-3 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100">
-          <div className="w-1.5 h-1.5 rounded-full bg-success"></div>
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100 shrink-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-success" />
           <span className="text-[10px] font-medium text-success">Connected</span>
         </div>
       </div>
 
-      <div className="flex-1 py-6 px-4 flex flex-col gap-1 overflow-y-auto">
+      <div className="flex-1 py-4 px-3 flex flex-col gap-0.5 overflow-y-auto">
         {/* Executive Summary */}
-        <Link
-          href="/"
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors",
-            location === "/" 
-              ? "bg-primary text-white shadow-sm" 
-              : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
-          )}
-        >
-          <LayoutGrid className="w-4 h-4" />
+        <Link href="/" className={linkCls("/")} onClick={navClick}>
+          <LayoutGrid className="w-4 h-4 shrink-0" />
           Executive Summary
         </Link>
 
         {/* Finance Section */}
-        <div className="mt-2">
-          <button 
-            onClick={() => setFinanceExpanded(!financeExpanded)}
-            className={cn(
-              "w-full flex items-center justify-between px-3 py-2 rounded-md font-medium text-sm transition-colors",
-              isFinanceActive && !financeExpanded
-                ? "text-primary"
-                : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
-            )}
-          >
+        <div className="mt-1">
+          <button onClick={() => toggle("finance")} className={sectionBtnCls("/finance")}>
             <div className="flex items-center gap-3">
-              <span className="font-bold font-serif text-lg leading-none tracking-tighter w-4 h-4 text-center inline-block">$</span>
+              <span className="font-bold text-base leading-none w-4 h-4 text-center">$</span>
               Finance
             </div>
-            <ChevronDown className={cn("w-4 h-4 transition-transform", financeExpanded ? "rotate-180" : "")} />
+            <ChevronDown className={cn("w-4 h-4 transition-transform", expanded === "finance" ? "rotate-180" : "")} />
           </button>
-          
-          {financeExpanded && (
-            <div className="mt-1 ml-4 pl-4 border-l border-border flex flex-col gap-1">
-              <Link
-                href="/finance/pl"
-                className={cn(
-                  "flex items-center px-3 py-2 rounded-md font-medium text-sm transition-colors",
-                  location === "/finance/pl" 
-                    ? "bg-primary text-white shadow-sm" 
-                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
-                )}
-              >
-                P&L
-              </Link>
-              <Link
-                href="/finance/cashflow"
-                className={cn(
-                  "flex items-center px-3 py-2 rounded-md font-medium text-sm transition-colors",
-                  location === "/finance/cashflow" 
-                    ? "bg-primary text-white shadow-sm" 
-                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
-                )}
-              >
-                Cash Flow
-              </Link>
-              <Link
-                href="/finance/expenses"
-                className={cn(
-                  "flex items-center px-3 py-2 rounded-md font-medium text-sm transition-colors",
-                  location === "/finance/expenses" 
-                    ? "bg-primary text-white shadow-sm" 
-                    : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
-                )}
-              >
-                Expenses
-              </Link>
+          {expanded === "finance" && (
+            <div className="mt-0.5 ml-4 pl-3 border-l border-border flex flex-col gap-0.5">
+              <Link href="/finance/pl" className={subLinkCls("/finance/pl")} onClick={navClick}>P&L</Link>
+              <Link href="/finance/cashflow" className={subLinkCls("/finance/cashflow")} onClick={navClick}>Cash Flow</Link>
+              <Link href="/finance/expenses" className={subLinkCls("/finance/expenses")} onClick={navClick}>Expenses</Link>
             </div>
           )}
         </div>
 
-        {/* Other menu items */}
-        <div className="mt-2 flex flex-col gap-1">
-          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
-            <Settings className="w-4 h-4" />
-            Operations
-          </button>
-          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
-            <Box className="w-4 h-4" />
-            Product
-          </button>
-          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
-            <Megaphone className="w-4 h-4" />
-            Marketing
-          </button>
-          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
-            <ShoppingCart className="w-4 h-4" />
-            Sales
-          </button>
-          <button className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:bg-slate-50 hover:text-foreground transition-colors w-full text-left">
-            <Users className="w-4 h-4" />
-            People
-          </button>
-          <Link
-            href="/reports"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors",
-              location === "/reports" 
-                ? "bg-primary text-white shadow-sm" 
-                : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
-            )}
-          >
-            <BarChart2 className="w-4 h-4" />
-            Reports & Analytics
-          </Link>
-          <Link
-            href="/ma"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors",
-              location === "/ma" 
-                ? "bg-primary text-white shadow-sm" 
-                : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
-            )}
-          >
-            <Briefcase className="w-4 h-4" />
-            M&A Support
-          </Link>
-        </div>
+        {/* Operations */}
+        <Link href="/operations" className={linkCls("/operations")} onClick={navClick}>
+          <Settings className="w-4 h-4 shrink-0" />
+          Operations
+        </Link>
+
+        {/* Product */}
+        <Link href="/product" className={linkCls("/product")} onClick={navClick}>
+          <Box className="w-4 h-4 shrink-0" />
+          Product
+        </Link>
+
+        {/* Marketing */}
+        <Link href="/marketing" className={linkCls("/marketing")} onClick={navClick}>
+          <Megaphone className="w-4 h-4 shrink-0" />
+          Marketing
+        </Link>
+
+        {/* Sales */}
+        <Link href="/sales" className={linkCls("/sales")} onClick={navClick}>
+          <ShoppingCart className="w-4 h-4 shrink-0" />
+          Sales
+        </Link>
+
+        {/* People */}
+        <Link href="/people" className={linkCls("/people")} onClick={navClick}>
+          <Users className="w-4 h-4 shrink-0" />
+          People
+        </Link>
+
+        <div className="border-t border-border my-2" />
+
+        {/* Portfolio */}
+        <Link href="/portfolio" className={cn(linkCls("/portfolio"), isPrefix("/portfolio") && !isActive("/portfolio") ? "bg-blue-50 text-primary" : "")} onClick={navClick}>
+          <Building2 className="w-4 h-4 shrink-0" />
+          Portfolio
+        </Link>
+
+        {/* M&A Support */}
+        <Link href="/ma" className={linkCls("/ma")} onClick={navClick}>
+          <HandshakeIcon className="w-4 h-4 shrink-0" />
+          M&A Support
+        </Link>
+
+        {/* Reports & Analytics */}
+        <Link href="/reports" className={linkCls("/reports")} onClick={navClick}>
+          <BarChart2 className="w-4 h-4 shrink-0" />
+          Reports & Analytics
+        </Link>
+
+        {/* Professional Services */}
+        <Link href="/services" className={linkCls("/services")} onClick={navClick}>
+          <Wrench className="w-4 h-4 shrink-0" />
+          Professional Services
+        </Link>
+      </div>
+
+      {/* Landing page link */}
+      <div className="border-t border-border mt-2 pt-2">
+        <Link href="/landing" className={linkCls("/landing")} onClick={navClick}>
+          <Globe className="w-4 h-4 shrink-0" />
+          Landing Page
+        </Link>
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-border shrink-0">
+        <p className="text-[10px] text-muted-foreground text-center">iNi Finance Platform v1.0</p>
       </div>
     </aside>
   );
