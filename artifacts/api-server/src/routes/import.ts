@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { db, companies, deals, financialSnapshots, metricsSnapshots, importLogs } from "@workspace/db";
-import { desc, sql } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { requireAdmin } from "../middleware/requireAdmin.js";
 import { randomUUID } from "crypto";
 
@@ -13,22 +13,26 @@ const MAX_ROWS = 10_000;
 
 export type TableType = "companies" | "deals" | "financials" | "metrics" | "unknown";
 
-export const DB_FIELDS: Record<Exclude<TableType, "unknown">, { required: string[]; all: string[] }> = {
+export const DB_FIELDS: Record<Exclude<TableType, "unknown">, { required: string[]; all: string[]; numeric: string[] }> = {
   companies: {
     required: ["company_name"],
     all: ["company_name", "industry", "stage", "revenue", "valuation", "growth_rate", "employees", "location", "status", "ownership", "arr", "moic", "irr", "founded"],
+    numeric: ["revenue", "valuation", "growth_rate", "employees", "founded"],
   },
   deals: {
     required: ["company_name"],
     all: ["company_name", "deal_type", "deal_size", "stage", "closing_date", "valuation", "target_revenue", "industry", "assigned_to", "priority", "overview"],
+    numeric: ["deal_size", "valuation", "target_revenue"],
   },
   financials: {
     required: ["period"],
     all: ["period", "revenue", "expenses", "ebitda", "arr"],
+    numeric: ["revenue", "expenses", "ebitda", "arr"],
   },
   metrics: {
     required: ["metric_key"],
     all: ["metric_key", "metric_label", "category", "value", "unit", "period"],
+    numeric: ["value"],
   },
 };
 
@@ -73,7 +77,7 @@ function autoMatchHeaders(rawHeaders: string[], tableType: Exclude<TableType, "u
 }
 
 interface RowMap { [k: string]: string }
-interface RowError { row: number; message: string }
+interface RowError { row: number; field: string; message: string }
 
 function parseFile(buffer: Buffer, columnMapping: Record<string, string>): {
   rawHeaders: string[];
@@ -95,7 +99,7 @@ function parseFile(buffer: Buffer, columnMapping: Record<string, string>): {
   const dataRows = jsonRows.slice(1).filter(row => row && !row.every((c) => !c));
 
   if (dataRows.length > MAX_ROWS) {
-    throw new Error(`File exceeds the maximum of ${MAX_ROWS.toLocaleString()} data rows (found ${dataRows.length.toLocaleString()}). Split the file into smaller parts and import each one.`);
+    throw new Error(`File exceeds the maximum of ${MAX_ROWS.toLocaleString()} data rows (found ${dataRows.length.toLocaleString()}). Split the file and import each part separately.`);
   }
 
   const rows: RowMap[] = dataRows.map((row) => {
@@ -113,10 +117,63 @@ function slugify(s: string, maxLen = 60): string {
 
 function r(row: RowMap, ...keys: string[]): string {
   for (const k of keys) {
-    const v = row[k] ?? row[toKey(k)];
-    if (v) return String(v);
+    const v = row[k];
+    if (v !== undefined && v !== null && v !== "") return String(v);
   }
   return "";
+}
+
+function isNumeric(value: string): boolean {
+  const cleaned = value.replace(/[$,%\s]/g, "");
+  return cleaned !== "" && !isNaN(Number(cleaned)) && isFinite(Number(cleaned));
+}
+
+function parseNum(value: string): number {
+  return Number(value.replace(/[$,%\s]/g, "")) || 0;
+}
+
+interface ValidatedRow<T> { data: T; errors: RowError[] }
+
+function validateCompanyRow(row: RowMap, rowNum: number): ValidatedRow<typeof row> {
+  const errors: RowError[] = [];
+  const name = r(row, "company_name");
+  if (!name) errors.push({ row: rowNum, field: "company_name", message: "company_name is required" });
+  for (const field of DB_FIELDS.companies.numeric) {
+    const val = r(row, field);
+    if (val && !isNumeric(val)) errors.push({ row: rowNum, field, message: `${field} must be a number (got "${val}")` });
+  }
+  return { data: row, errors };
+}
+
+function validateDealRow(row: RowMap, rowNum: number): ValidatedRow<typeof row> {
+  const errors: RowError[] = [];
+  const name = r(row, "company_name");
+  if (!name) errors.push({ row: rowNum, field: "company_name", message: "company_name is required" });
+  for (const field of DB_FIELDS.deals.numeric) {
+    const val = r(row, field);
+    if (val && !isNumeric(val)) errors.push({ row: rowNum, field, message: `${field} must be a number (got "${val}")` });
+  }
+  return { data: row, errors };
+}
+
+function validateFinancialsRow(row: RowMap, rowNum: number): ValidatedRow<typeof row> {
+  const errors: RowError[] = [];
+  const period = r(row, "period");
+  if (!period) errors.push({ row: rowNum, field: "period", message: "period is required" });
+  for (const field of DB_FIELDS.financials.numeric) {
+    const val = r(row, field);
+    if (val && !isNumeric(val)) errors.push({ row: rowNum, field, message: `${field} must be a number (got "${val}")` });
+  }
+  return { data: row, errors };
+}
+
+function validateMetricsRow(row: RowMap, rowNum: number): ValidatedRow<typeof row> {
+  const errors: RowError[] = [];
+  const key = r(row, "metric_key");
+  if (!key) errors.push({ row: rowNum, field: "metric_key", message: "metric_key is required" });
+  const value = r(row, "value");
+  if (value && !isNumeric(value)) errors.push({ row: rowNum, field: "value", message: `value must be a number (got "${value}")` });
+  return { data: row, errors };
 }
 
 router.post("/import/preview", requireAdmin, upload.single("file"), async (req, res): Promise<void> => {
@@ -129,7 +186,7 @@ router.post("/import/preview", requireAdmin, upload.single("file"), async (req, 
     const tableType: TableType = (forcedType && forcedType !== "unknown") ? forcedType : detectedType;
 
     const autoMapping = tableType !== "unknown" ? autoMatchHeaders(rawHeaders, tableType) : {};
-    const dbFields = tableType !== "unknown" ? DB_FIELDS[tableType] : { required: [], all: [] };
+    const dbFields = tableType !== "unknown" ? DB_FIELDS[tableType] : { required: [], all: [], numeric: [] };
 
     res.json({
       rawHeaders,
@@ -150,14 +207,30 @@ router.post("/import/preview", requireAdmin, upload.single("file"), async (req, 
 router.post("/import/commit", requireAdmin, upload.single("file"), async (req, res): Promise<void> => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
-    const mapping: Record<string, string> = req.body["columnMapping"] ? JSON.parse(req.body["columnMapping"]) : {};
-    const forcedType = req.body["tableType"] as TableType | undefined;
 
-    const { rows, detectedType } = parseFile(req.file.buffer, mapping);
+    let mapping: Record<string, string>;
+    let forcedType: TableType | undefined;
+    try {
+      mapping = req.body["columnMapping"] ? JSON.parse(req.body["columnMapping"]) : {};
+      forcedType = req.body["tableType"] as TableType | undefined;
+    } catch {
+      res.status(400).json({ error: "Invalid columnMapping JSON in request body" });
+      return;
+    }
+
+    let parsed: ReturnType<typeof parseFile>;
+    try {
+      parsed = parseFile(req.file.buffer, mapping);
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+      return;
+    }
+
+    const { rows, detectedType } = parsed;
     const tableType: TableType = (forcedType && forcedType !== "unknown") ? forcedType : detectedType;
 
     if (tableType === "unknown") {
-      res.status(400).json({ error: "Could not detect table type. Please select a data type before importing." });
+      res.status(400).json({ error: "Could not determine data type. Please select a data type (Portfolio Companies, Deals, etc.) before importing." });
       return;
     }
 
@@ -167,153 +240,154 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
     const rowErrors: RowError[] = [];
 
     if (tableType === "companies") {
-      const validRows: typeof rows = [];
-      const validationErrors: RowError[] = [];
+      const validRows: { row: RowMap; rowNum: number }[] = [];
       for (let i = 0; i < rows.length; i++) {
-        const name = r(rows[i], "company_name", "company", "name", "companyname");
-        if (!name) { skipped++; validationErrors.push({ row: i + 2, message: "Missing company_name" }); continue; }
-        validRows.push(rows[i]);
+        const { errors } = validateCompanyRow(rows[i], i + 2);
+        if (errors.length) { skipped++; rowErrors.push(...errors); continue; }
+        validRows.push({ row: rows[i], rowNum: i + 2 });
       }
-      rowErrors.push(...validationErrors);
       if (validRows.length > 0) {
         await db.transaction(async (tx) => {
-          for (let i = 0; i < validRows.length; i++) {
-            const row = validRows[i];
-            const name = r(row, "company_name", "company", "name", "companyname");
+          for (const { row, rowNum } of validRows) {
+            const name = r(row, "company_name");
             const id = `imp_co_${slugify(name)}`;
             try {
               await tx.insert(companies).values({
                 id, name,
                 industry: r(row, "industry") || "",
                 stage: r(row, "stage") || "seed",
-                location: r(row, "location", "geography", "country") || "",
-                revenue: Math.round(Number(r(row, "revenue")) || 0),
-                valuation: Math.round(Number(r(row, "valuation")) || 0),
-                growthRate: Number(r(row, "growth_rate", "growthrate", "growth")) || 0,
-                employees: Math.round(Number(r(row, "employees", "headcount")) || 0),
+                location: r(row, "location") || "",
+                revenue: Math.round(parseNum(r(row, "revenue"))),
+                valuation: Math.round(parseNum(r(row, "valuation"))),
+                growthRate: parseNum(r(row, "growth_rate")),
+                employees: Math.round(parseNum(r(row, "employees"))),
                 ownership: r(row, "ownership") || null,
                 arr: r(row, "arr") || null,
                 moic: r(row, "moic") || null,
                 irr: r(row, "irr") || null,
                 status: r(row, "status") || "active",
-                founded: r(row, "founded") ? Number(r(row, "founded")) : null,
+                founded: r(row, "founded") ? Math.round(parseNum(r(row, "founded"))) : null,
                 createdAt: now, updatedAt: now,
               }).onConflictDoUpdate({
                 target: companies.id,
-                set: { revenue: Math.round(Number(r(row, "revenue")) || 0), valuation: Math.round(Number(r(row, "valuation")) || 0), updatedAt: now },
+                set: {
+                  revenue: Math.round(parseNum(r(row, "revenue"))),
+                  valuation: Math.round(parseNum(r(row, "valuation"))),
+                  updatedAt: now,
+                },
               });
               imported++;
             } catch (e) {
-              rowErrors.push({ row: i + 2, message: (e as Error).message });
+              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
           }
         });
       }
     } else if (tableType === "financials") {
-      const validRows: { row: RowMap; period: string }[] = [];
+      const validRows: { row: RowMap; rowNum: number }[] = [];
       for (let i = 0; i < rows.length; i++) {
-        const period = r(rows[i], "period", "month", "quarter", "year");
-        if (!period) { skipped++; rowErrors.push({ row: i + 2, message: "Missing period" }); continue; }
-        validRows.push({ row: rows[i], period });
+        const { errors } = validateFinancialsRow(rows[i], i + 2);
+        if (errors.length) { skipped++; rowErrors.push(...errors); continue; }
+        validRows.push({ row: rows[i], rowNum: i + 2 });
       }
       if (validRows.length > 0) {
         await db.transaction(async (tx) => {
-          for (let i = 0; i < validRows.length; i++) {
-            const { row, period } = validRows[i];
+          for (const { row, rowNum } of validRows) {
+            const period = r(row, "period");
             const id = `imp_fin_${slugify(period)}`;
             try {
               await tx.insert(financialSnapshots).values({
                 id, period,
-                revenue: Math.round(Number(r(row, "revenue")) || 0),
-                expenses: Math.round(Number(r(row, "expenses", "costs")) || 0),
-                ebitda: Math.round(Number(r(row, "ebitda")) || 0),
-                arr: Math.round(Number(r(row, "arr")) || 0),
+                revenue: Math.round(parseNum(r(row, "revenue"))),
+                expenses: Math.round(parseNum(r(row, "expenses"))),
+                ebitda: Math.round(parseNum(r(row, "ebitda"))),
+                arr: Math.round(parseNum(r(row, "arr"))),
                 sortOrder: 0,
                 createdAt: now,
               }).onConflictDoUpdate({
                 target: financialSnapshots.id,
-                set: { revenue: Math.round(Number(r(row, "revenue")) || 0), ebitda: Math.round(Number(r(row, "ebitda")) || 0) },
+                set: {
+                  revenue: Math.round(parseNum(r(row, "revenue"))),
+                  ebitda: Math.round(parseNum(r(row, "ebitda"))),
+                },
               });
               imported++;
             } catch (e) {
-              rowErrors.push({ row: i + 2, message: (e as Error).message });
+              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
           }
         });
       }
     } else if (tableType === "deals") {
-      const validRows: typeof rows = [];
-      const validationErrors: RowError[] = [];
+      const validRows: { row: RowMap; rowNum: number }[] = [];
       for (let i = 0; i < rows.length; i++) {
-        const name = r(rows[i], "company_name", "deal", "deal_name", "company", "companyname");
-        if (!name) { skipped++; validationErrors.push({ row: i + 2, message: "Missing company_name" }); continue; }
-        validRows.push(rows[i]);
+        const { errors } = validateDealRow(rows[i], i + 2);
+        if (errors.length) { skipped++; rowErrors.push(...errors); continue; }
+        validRows.push({ row: rows[i], rowNum: i + 2 });
       }
-      rowErrors.push(...validationErrors);
       if (validRows.length > 0) {
         await db.transaction(async (tx) => {
-          for (let i = 0; i < validRows.length; i++) {
-            const row = validRows[i];
-            const companyName = r(row, "company_name", "deal", "deal_name", "company", "companyname");
+          for (const { row, rowNum } of validRows) {
+            const companyName = r(row, "company_name");
             const id = `imp_deal_${slugify(companyName)}`;
             try {
               await tx.insert(deals).values({
                 id, companyName,
-                dealType: r(row, "deal_type", "dealtype", "type") || "investment",
-                dealSize: Math.round(Number(r(row, "deal_size", "dealsize", "size", "amount")) || 0),
-                closingDate: r(row, "closing_date", "closingdate", "date") || null,
+                dealType: r(row, "deal_type") || "investment",
+                dealSize: Math.round(parseNum(r(row, "deal_size"))),
+                closingDate: r(row, "closing_date") || null,
                 stage: r(row, "stage") || "sourcing",
-                valuation: Math.round(Number(r(row, "valuation")) || 0),
-                targetRevenue: Math.round(Number(r(row, "target_revenue", "targetrevenue", "revenue")) || 0),
+                valuation: Math.round(parseNum(r(row, "valuation"))),
+                targetRevenue: Math.round(parseNum(r(row, "target_revenue"))),
                 industry: r(row, "industry") || "",
-                assignedTo: r(row, "assigned_to", "assignedto") || "",
+                assignedTo: r(row, "assigned_to") || "",
                 priority: r(row, "priority") || "medium",
-                overview: r(row, "overview", "notes") || "",
+                overview: r(row, "overview") || "",
                 createdAt: now,
               }).onConflictDoUpdate({
                 target: deals.id,
-                set: { dealSize: Math.round(Number(r(row, "deal_size", "dealsize", "size", "amount")) || 0), updatedAt: now },
+                set: {
+                  dealSize: Math.round(parseNum(r(row, "deal_size"))),
+                  updatedAt: now,
+                },
               });
               imported++;
             } catch (e) {
-              rowErrors.push({ row: i + 2, message: (e as Error).message });
+              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
           }
         });
       }
     } else if (tableType === "metrics") {
-      const validRows: typeof rows = [];
-      const validationErrors: RowError[] = [];
+      const validRows: { row: RowMap; rowNum: number }[] = [];
       for (let i = 0; i < rows.length; i++) {
-        const key = r(rows[i], "metric_key", "metrickey", "metric");
-        if (!key) { skipped++; validationErrors.push({ row: i + 2, message: "Missing metric_key" }); continue; }
-        validRows.push(rows[i]);
+        const { errors } = validateMetricsRow(rows[i], i + 2);
+        if (errors.length) { skipped++; rowErrors.push(...errors); continue; }
+        validRows.push({ row: rows[i], rowNum: i + 2 });
       }
-      rowErrors.push(...validationErrors);
       if (validRows.length > 0) {
         await db.transaction(async (tx) => {
-          for (let i = 0; i < validRows.length; i++) {
-            const row = validRows[i];
-            const metricKey = r(row, "metric_key", "metrickey", "metric");
-            const periodLabel = r(row, "period", "periodlabel", "period_label") || "";
+          for (const { row, rowNum } of validRows) {
+            const metricKey = r(row, "metric_key");
+            const periodLabel = r(row, "period") || "";
             const category = r(row, "category") || "import";
             const id = `imp_metric_${slugify(category)}_${slugify(metricKey)}_${slugify(periodLabel)}`;
             try {
               await tx.insert(metricsSnapshots).values({
                 id, category, metricKey,
-                metricLabel: r(row, "metric_label", "metriclabel", "label") || metricKey,
-                value: Number(r(row, "value", "amount")) || 0,
+                metricLabel: r(row, "metric_label") || metricKey,
+                value: parseNum(r(row, "value")),
                 unit: r(row, "unit") || "USD",
                 periodLabel,
                 source: "csv_import",
                 createdAt: now, updatedAt: now,
               }).onConflictDoUpdate({
                 target: metricsSnapshots.id,
-                set: { value: Number(r(row, "value", "amount")) || 0, updatedAt: now },
+                set: { value: parseNum(r(row, "value")), updatedAt: now },
               });
               imported++;
             } catch (e) {
-              rowErrors.push({ row: i + 2, message: (e as Error).message });
+              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
           }
         });
@@ -329,7 +403,7 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
       importedRows: imported,
       skippedRows: skipped,
       errorRows: rowErrors.length,
-      errors: rowErrors.slice(0, 100),
+      errors: rowErrors.slice(0, 100) as object[],
       columnMapping: mapping,
       importedAt: now,
     });

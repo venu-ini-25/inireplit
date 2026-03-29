@@ -30,7 +30,7 @@ interface PreviewResult {
   allDbFields: DbFieldsMap;
 }
 
-interface RowError { row: number; message: string }
+interface RowError { row: number; field?: string; message: string }
 
 interface ImportResult {
   tableType: TableType;
@@ -567,6 +567,7 @@ export default function BulkImport() {
                   <thead className="sticky top-0 bg-white border-b border-slate-100">
                     <tr>
                       <th className="text-left text-slate-500 font-medium px-4 py-2 w-20">Row #</th>
+                      <th className="text-left text-slate-500 font-medium px-4 py-2 w-28">Field</th>
                       <th className="text-left text-slate-500 font-medium px-4 py-2">Error</th>
                     </tr>
                   </thead>
@@ -574,6 +575,7 @@ export default function BulkImport() {
                     {result.errors.map((e, i) => (
                       <tr key={i} className="border-b border-slate-50 last:border-0">
                         <td className="px-4 py-2 text-slate-500 font-mono">{e.row}</td>
+                        <td className="px-4 py-2 text-slate-600 font-mono">{e.field ?? ""}</td>
                         <td className="px-4 py-2 text-red-600">{e.message}</td>
                       </tr>
                     ))}
