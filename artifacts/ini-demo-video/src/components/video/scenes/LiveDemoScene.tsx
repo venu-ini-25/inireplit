@@ -17,7 +17,6 @@ interface DemoStep {
  *
  * Known sidebar y positions (calibrated):
  *   Executive Summary : 6.9%
- *   Finance toggle    : ~10.0%
  *   P&L              : 12.4%
  *   Cash Flow        : 15.1%
  *   Expenses         : ~17.8%
@@ -26,7 +25,6 @@ interface DemoStep {
  *   Marketing        : ~25.9%
  *   Sales            : ~28.6%
  *   People           : ~31.3%
- *   ── separator ──
  *   Portfolio        : 35.1%
  *   M&A              : 37.8%
  *   Reports          : 40.5%
@@ -136,57 +134,84 @@ const URL_LABELS: Record<string, string> = {
 };
 
 export function LiveDemoScene() {
-  const iframeRef    = useRef<HTMLIFrameElement>(null);
-  const audioRef     = useRef<HTMLAudioElement | null>(null);
-  const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const iframeRef      = useRef<HTMLIFrameElement>(null);
+  const audioRef       = useRef<HTMLAudioElement | null>(null);
+  const fadeTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingAudioId = useRef<string | null>(null);   // audio blocked by autoplay policy
+  const audioUnlocked  = useRef(false);
 
-  const [cursorX, setCursorX]           = useState(50);
-  const [cursorY, setCursorY]           = useState(48);
-  const [isClicking, setIsClicking]     = useState(false);
-  const [callout, setCallout]           = useState<string | null>(null);
-  const [urlLabel, setUrlLabel]         = useState('inventninvest.com/app');
+  const [cursorX, setCursorX]                 = useState(50);
+  const [cursorY, setCursorY]                 = useState(48);
+  const [isClicking, setIsClicking]           = useState(false);
+  const [callout, setCallout]                 = useState<string | null>(null);
+  const [urlLabel, setUrlLabel]               = useState('inventninvest.com/app');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showAudioBadge, setShowAudioBadge]   = useState(false);
 
-  /** Play a narration MP3 with smooth crossfade from the previous clip */
+  /** Play a narration MP3 with smooth 700ms crossfade */
   const playAudio = useCallback((id: string) => {
-    const FADE_MS   = 700;
-    const STEPS     = 14;
-    const INTERVAL  = FADE_MS / STEPS;
+    pendingAudioId.current = id;
 
-    // Clear any running fade timer
+    const FADE_MS  = 700;
+    const STEPS    = 14;
+    const INTERVAL = FADE_MS / STEPS;
+
     if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
 
     const prev = audioRef.current;
     const next = new Audio(`/ini-demo-video/audio/${id}.mp3`);
     next.volume = 0;
 
-    next.play().then(() => {
-      let step = 0;
-      // Fade old out AND new in simultaneously
-      fadeTimerRef.current = setInterval(() => {
-        step++;
-        const t = step / STEPS;
-
-        if (prev && !prev.ended && !prev.paused) {
-          prev.volume = Math.max(0, 1 - t);
-        }
-        next.volume = Math.min(1, t);
-
-        if (step >= STEPS) {
-          if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-          if (prev) { prev.pause(); prev.src = ''; }
-          next.volume = 1;
-        }
-      }, INTERVAL);
-    }).catch(() => {/* autoplay blocked until first user interaction */});
+    next.play()
+      .then(() => {
+        audioUnlocked.current  = true;
+        pendingAudioId.current = null;
+        setShowAudioBadge(false);
+        let step = 0;
+        fadeTimerRef.current = setInterval(() => {
+          step++;
+          const t = step / STEPS;
+          if (prev && !prev.ended && !prev.paused) prev.volume = Math.max(0, 1 - t);
+          next.volume = Math.min(1, t);
+          if (step >= STEPS) {
+            if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
+            if (prev) { prev.pause(); prev.src = ''; }
+            next.volume = 1;
+          }
+        }, INTERVAL);
+      })
+      .catch(() => {
+        // Autoplay was blocked — show badge and wait for any interaction
+        setShowAudioBadge(true);
+      });
 
     audioRef.current = next;
   }, []);
 
+  /** Called by the first user interaction anywhere — replays the pending clip */
+  const unlockAndPlay = useCallback(() => {
+    if (audioUnlocked.current) return;
+    audioUnlocked.current = true;
+    setShowAudioBadge(false);
+    if (pendingAudioId.current) {
+      playAudio(pendingAudioId.current);
+    }
+  }, [playAudio]);
+
+  // Listen for the very first interaction anywhere on the page
+  useEffect(() => {
+    const events = ['click', 'keydown', 'touchstart', 'pointerdown'] as const;
+    const handler = () => {
+      unlockAndPlay();
+      events.forEach(e => document.removeEventListener(e, handler));
+    };
+    events.forEach(e => document.addEventListener(e, handler, { once: true }));
+    return () => events.forEach(e => document.removeEventListener(e, handler));
+  }, [unlockAndPlay]);
+
   const navigate = useCallback((path: string) => {
     setIsTransitioning(true);
     setTimeout(() => setIsTransitioning(false), 650);
-
     if (iframeRef.current?.contentWindow) {
       try {
         iframeRef.current.contentWindow.history.pushState({}, '', path);
@@ -200,9 +225,9 @@ export function LiveDemoScene() {
     setUrlLabel(URL_LABELS[path] ?? path);
   }, []);
 
+  // Run the full scripted timeline — always auto-starts visually
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-
     DEMO_STEPS.forEach((step) => {
       const t = setTimeout(() => {
         setCursorX(step.cursorX);
@@ -217,7 +242,6 @@ export function LiveDemoScene() {
       }, step.time);
       timers.push(t);
     });
-
     return () => {
       timers.forEach(clearTimeout);
       if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
@@ -294,7 +318,6 @@ export function LiveDemoScene() {
         >
           <path d="M4 2L10.8 21.5L13.5 13.5L21.5 10.8L4 2Z" fill="white" stroke="#0f172a" strokeWidth="1.4" strokeLinejoin="round" />
         </svg>
-
         <AnimatePresence>
           {isClicking && (
             <>
@@ -339,6 +362,33 @@ export function LiveDemoScene() {
               {callout}
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Audio unlock badge (appears only if browser blocked autoplay) ── */}
+      <AnimatePresence>
+        {showAudioBadge && (
+          <motion.button
+            key="audio-badge"
+            onClick={unlockAndPlay}
+            className="absolute top-14 right-5 z-50 flex items-center gap-2 cursor-pointer"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: [0.6, 1, 0.6], y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ opacity: { duration: 2, repeat: Infinity }, y: { duration: 0.4 } }}
+            style={{
+              background: 'rgba(15,23,42,0.85)',
+              border: '1px solid rgba(96,165,250,0.3)',
+              borderRadius: 999,
+              padding: '6px 14px',
+              color: '#94a3b8',
+              fontSize: '0.72rem',
+              fontFamily: 'Space Grotesk, sans-serif',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            🔊 <span>Click anywhere to enable audio</span>
+          </motion.button>
         )}
       </AnimatePresence>
     </motion.div>
