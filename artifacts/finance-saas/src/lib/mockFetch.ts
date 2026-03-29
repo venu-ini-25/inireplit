@@ -18,6 +18,8 @@ function mockResponse(data: unknown): Response {
 
 const _nativeFetch = window.fetch.bind(window);
 
+const IS_DEV = import.meta.env.DEV;
+
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const url = typeof input === "string" ? input
     : input instanceof URL ? input.href
@@ -27,21 +29,22 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
 
   const apiPath = url.split("/api/")[1]?.split("?")[0] ?? "";
 
-  // portfolio/companies/:id
+  if (IS_DEV) {
+    return _nativeFetch(input, init);
+  }
+
   if (apiPath.startsWith("portfolio/companies/")) {
     const id = apiPath.split("/")[2];
     const company = MOCK_COMPANIES[id] ?? Object.values(MOCK_COMPANIES)[0];
     return mockResponse(company);
   }
 
-  // deals/:id (but not pipeline-summary)
   if (apiPath.startsWith("deals/") && apiPath !== "deals/pipeline-summary") {
     const id = apiPath.split("/")[1];
     const deal = MOCK_DEALS[id] ?? Object.values(MOCK_DEALS)[0];
     return mockResponse(deal);
   }
 
-  // static data paths
   if (DATA_PATHS.has(apiPath)) {
     return mockResponse(MOCK_API[apiPath]);
   }

@@ -53,6 +53,35 @@ async function refreshTokens(conn: IntegrationConnection): Promise<IntegrationCo
   return updated;
 }
 
+async function fetchContacts(token: string, dealId: string): Promise<{ name: string; role: string; email?: string }[]> {
+  try {
+    const assocResp = await fetch(
+      `https://api.hubapi.com/crm/v3/objects/deals/${dealId}/associations/contacts`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!assocResp.ok) return [];
+    const assocData = await assocResp.json() as { results?: { id: string }[] };
+    const contactIds = (assocData.results ?? []).map((r) => r.id).slice(0, 5);
+    if (contactIds.length === 0) return [];
+
+    const contacts: { name: string; role: string; email?: string }[] = [];
+    for (const cid of contactIds) {
+      const cResp = await fetch(
+        `https://api.hubapi.com/crm/v3/objects/contacts/${cid}?properties=firstname,lastname,email,jobtitle`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!cResp.ok) continue;
+      const c = await cResp.json() as { properties?: Record<string, string> };
+      const p = c.properties ?? {};
+      const name = [p["firstname"], p["lastname"]].filter(Boolean).join(" ") || "Unknown";
+      contacts.push({ name, role: p["jobtitle"] ?? "Contact", email: p["email"] });
+    }
+    return contacts;
+  } catch {
+    return [];
+  }
+}
+
 const STAGE_MAP: Record<string, string> = {
   appointmentscheduled: "sourcing",
   qualifiedtobuy: "screening",
@@ -72,7 +101,7 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
     if (!conn) throw new Error("HubSpot connection not found");
     if (conn.tokenExpiresAt && conn.tokenExpiresAt < new Date(Date.now() + 60_000)) conn = await refreshTokens(conn);
 
-    const token = conn.accessToken;
+    const token = conn.accessToken ?? "";
     let after: string | undefined;
     let recordsSynced = 0;
 
@@ -82,7 +111,7 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
       url.searchParams.set("properties", "dealname,amount,dealstage,closedate,hubspot_owner_id,hs_deal_stage_probability,industry");
       if (after) url.searchParams.set("after", after);
 
-      const resp = await fetch(url.toString(), { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } });
+      const resp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
       if (!resp.ok) throw new Error(`HubSpot deals API error: ${await resp.text()}`);
       const data = await resp.json() as { results: Record<string, unknown>[]; paging?: { next?: { after: string } } };
 
@@ -91,6 +120,9 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
         const hsId = String(deal["id"]);
         const stage = STAGE_MAP[props["dealstage"]?.toLowerCase() ?? ""] ?? "sourcing";
         const id = `hs_${hsId}`;
+
+        const contacts = await fetchContacts(token, hsId);
+
         await db.insert(deals).values({
           id,
           companyName: props["dealname"] ?? "Unknown",
@@ -107,11 +139,19 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
           dataRoomAccess: false,
           overview: `Synced from HubSpot deal: ${props["dealname"]}`,
           thesis: "",
+          contacts,
           createdAt: new Date(),
           updatedAt: new Date(),
         }).onConflictDoUpdate({
           target: deals.id,
-          set: { companyName: props["dealname"] ?? "Unknown", stage, dealSize: Math.round(Number(props["amount"] ?? "0")), closingDate: props["closedate"] ?? null, updatedAt: new Date() },
+          set: {
+            companyName: props["dealname"] ?? "Unknown",
+            stage,
+            dealSize: Math.round(Number(props["amount"] ?? "0")),
+            closingDate: props["closedate"] ?? null,
+            contacts,
+            updatedAt: new Date(),
+          },
         });
         recordsSynced++;
       }

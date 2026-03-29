@@ -56,19 +56,21 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
     if (!conn) throw new Error("Gusto connection not found");
     if (conn.tokenExpiresAt && conn.tokenExpiresAt < new Date(Date.now() + 60_000)) conn = await refreshTokens(conn);
 
-    const token = conn.accessToken;
+    const token = conn.accessToken ?? "";
     const extra = conn.extra as Record<string, unknown>;
-    const companyId = String(extra?.["companyId"] ?? "");
 
-    const meResp = await fetch(`${GUSTO_API_BASE}/me`, { headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } });
+    const meResp = await fetch(`${GUSTO_API_BASE}/me`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
     if (!meResp.ok) throw new Error(`Gusto /me failed: ${await meResp.text()}`);
     const meData = await meResp.json() as { roles?: { payroll_admin?: { companies?: { uuid: string }[] } } };
-    const resolvedCompanyId = companyId || meData.roles?.payroll_admin?.companies?.[0]?.uuid;
+    const existingCompanyId = String(extra?.["companyId"] ?? "");
+    const resolvedCompanyId = existingCompanyId || meData.roles?.payroll_admin?.companies?.[0]?.uuid;
     if (!resolvedCompanyId) throw new Error("No Gusto company found");
 
-    const empResp = await fetch(`${GUSTO_API_BASE}/companies/${resolvedCompanyId}/employees?include=home_address,department`, {
-      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-    });
+    const [empResp, payrollResp] = await Promise.all([
+      fetch(`${GUSTO_API_BASE}/companies/${resolvedCompanyId}/employees`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${GUSTO_API_BASE}/companies/${resolvedCompanyId}/payrolls?processed=true&include_off_cycle=false`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+    ]);
+
     if (!empResp.ok) throw new Error(`Gusto employees failed: ${await empResp.text()}`);
     const employees = await empResp.json() as Record<string, unknown>[];
 
@@ -81,8 +83,9 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
     }
 
     const now = new Date();
+    const periodLabel = now.toISOString().slice(0, 7);
     const prefix = `gusto_${conn.id}`;
-    const metrics = [
+    const metrics: { key: string; label: string; value: number; unit: string }[] = [
       { key: "totalHeadcount", label: "Total Headcount", value: totalHeadcount, unit: "count" },
       ...Object.entries(deptCounts).map(([dept, count]) => ({
         key: `hc_${dept.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
@@ -92,15 +95,31 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
       })),
     ];
 
+    let totalPayroll = 0;
+    if (payrollResp?.ok) {
+      const payrolls = await payrollResp.json() as Record<string, unknown>[];
+      const recent = payrolls.slice(0, 12);
+      for (const p of recent) {
+        const totals = p["totals"] as Record<string, unknown> | undefined;
+        const gross = Number(totals?.["company_debit"] ?? totals?.["gross_pay"] ?? 0);
+        totalPayroll += gross;
+      }
+      const avgMonthlyPayroll = recent.length > 0 ? totalPayroll / recent.length : 0;
+      metrics.push({ key: "avgMonthlyPayroll", label: "Avg Monthly Payroll", value: parseFloat(avgMonthlyPayroll.toFixed(2)), unit: "USD" });
+      metrics.push({ key: "annualPayrollBurn", label: "Annual Payroll Burn", value: parseFloat((avgMonthlyPayroll * 12).toFixed(2)), unit: "USD" });
+    }
+
     for (const m of metrics) {
       const id = `${prefix}_${m.key}`;
       await db.insert(metricsSnapshots).values({
         id, category: "people", metricKey: m.key, metricLabel: m.label, value: m.value, unit: m.unit,
-        periodLabel: now.toISOString().slice(0, 7), source: "gusto", createdAt: now, updatedAt: now,
+        periodLabel, source: "gusto", createdAt: now, updatedAt: now,
       }).onConflictDoUpdate({ target: metricsSnapshots.id, set: { value: m.value, updatedAt: now } });
     }
 
-    await db.update(integrationConnections).set({ lastSyncAt: now, updatedAt: now, extra: { ...extra, companyId: resolvedCompanyId } }).where(eq(integrationConnections.id, connectionId));
+    await db.update(integrationConnections)
+      .set({ lastSyncAt: now, updatedAt: now, extra: { ...extra, companyId: resolvedCompanyId } })
+      .where(eq(integrationConnections.id, connectionId));
     await db.update(syncLogs).set({ status: "success", recordsSynced: metrics.length, completedAt: now }).where(eq(syncLogs.id, logId));
     return { recordsSynced: metrics.length };
   } catch (err) {

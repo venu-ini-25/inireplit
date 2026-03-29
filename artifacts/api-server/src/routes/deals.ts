@@ -330,7 +330,7 @@ async function getDeals() {
 router.get("/deals", async (req, res) => {
   const query = GetDealsQueryParams.parse(req.query);
   const dbDeals = await getDeals();
-  let filtered = dbDeals ?? MOCK_DEALS;
+  let filtered: typeof MOCK_DEALS = (dbDeals ?? MOCK_DEALS) as typeof MOCK_DEALS;
 
   if (query.stage) filtered = filtered.filter((d) => d.stage === query.stage);
   if (query.type) filtered = filtered.filter((d) => d.dealType === query.type);

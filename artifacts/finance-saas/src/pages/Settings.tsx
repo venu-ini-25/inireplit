@@ -73,6 +73,12 @@ export default function Settings() {
   const [sheetsUrl, setSheetsUrl] = useState("");
   const [sheetsTab, setSheetsTab] = useState("Sheet1");
   const [sheetsError, setSheetsError] = useState("");
+  const [sheetsStep, setSheetsStep] = useState<"url" | "mapping">("url");
+  const [sheetsHeaders, setSheetsHeaders] = useState<string[]>([]);
+  const [sheetsDetectedType, setSheetsDetectedType] = useState<string>("");
+  const [sheetsColumnMapping, setSheetsColumnMapping] = useState<Record<string, string>>({});
+  const [sheetsPreviewLoading, setSheetsPreviewLoading] = useState(false);
+  const [sheetsRowCount, setSheetsRowCount] = useState(0);
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: user?.fullName ?? "", email: user?.primaryEmailAddress?.emailAddress ?? "", company: "", role: "Investor / Fund Manager" });
@@ -191,23 +197,52 @@ export default function Settings() {
     }
   };
 
+  const handleSheetsPreview = async () => {
+    if (!sheetsUrl.trim()) { setSheetsError("Spreadsheet URL is required"); return; }
+    setSheetsPreviewLoading(true);
+    setSheetsError("");
+    try {
+      const authHeaders = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/sheets/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ spreadsheetUrl: sheetsUrl.trim(), sheetName: sheetsTab.trim() || "Sheet1" }),
+      });
+      const data = await resp.json() as { valid?: boolean; error?: string; tableType?: string; rowCount?: number; headers?: string[] };
+      if (!resp.ok || !data.valid) throw new Error(data.error ?? "Could not read sheet");
+      setSheetsHeaders(data.headers ?? []);
+      setSheetsDetectedType(data.tableType ?? "unknown");
+      setSheetsRowCount(data.rowCount ?? 0);
+      setSheetsColumnMapping({});
+      setSheetsStep("mapping");
+    } catch (err) {
+      setSheetsError((err as Error).message);
+    } finally {
+      setSheetsPreviewLoading(false);
+    }
+  };
+
   const handleSheetsConnect = async () => {
     if (!sheetsUrl.trim()) { setSheetsError("Spreadsheet URL is required"); return; }
     setConnecting("sheets");
     setSheetsError("");
     try {
-      const headers = await getAuthHeader();
+      const authHeaders = await getAuthHeader();
+      const effectiveMapping = Object.keys(sheetsColumnMapping).length > 0 ? sheetsColumnMapping : null;
       const resp = await fetch(`${API_BASE}/api/integrations/sheets/connect`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ spreadsheetUrl: sheetsUrl.trim(), sheetName: sheetsTab.trim() || "Sheet1" }),
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ spreadsheetUrl: sheetsUrl.trim(), sheetName: sheetsTab.trim() || "Sheet1", columnMapping: effectiveMapping }),
       });
       const data = await resp.json() as { ok?: boolean; error?: string; tableType?: string; rowCount?: number };
       if (!resp.ok) throw new Error(data.error ?? "Connection failed");
       setSheetsModal(false);
       setSheetsUrl("");
       setSheetsTab("Sheet1");
-      setFlashMsg({ type: "success", text: `Google Sheets connected — ${data.rowCount ?? 0} rows detected (${data.tableType ?? "unknown"} format)` });
+      setSheetsStep("url");
+      setSheetsHeaders([]);
+      setSheetsColumnMapping({});
+      setFlashMsg({ type: "success", text: `Google Sheets connected — ${data.rowCount ?? 0} rows (${data.tableType ?? "unknown"} format)` });
       await loadIntegrations();
     } catch (err) {
       setSheetsError((err as Error).message);
@@ -640,43 +675,82 @@ export default function Settings() {
       {/* Sheets Connect Modal */}
       {sheetsModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-md p-6">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-lg p-6">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-2xl">📊</span>
               <div>
                 <h3 className="font-black text-slate-900">Connect Google Sheets</h3>
-                <p className="text-xs text-muted-foreground">Import data from a shared Google Sheet</p>
+                <p className="text-xs text-muted-foreground">
+                  {sheetsStep === "url" ? "Step 1 of 2 — Enter sheet details" : `Step 2 of 2 — Column mapping (${sheetsRowCount} rows detected)`}
+                </p>
               </div>
-              <button onClick={() => { setSheetsModal(false); setSheetsUrl(""); setSheetsTab("Sheet1"); setSheetsError(""); }} className="ml-auto text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setSheetsModal(false); setSheetsUrl(""); setSheetsTab("Sheet1"); setSheetsError(""); setSheetsStep("url"); setSheetsHeaders([]); setSheetsColumnMapping({}); }} className="ml-auto text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
             </div>
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Spreadsheet URL</label>
-                <input
-                  value={sheetsUrl}
-                  onChange={(e) => setSheetsUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Sheet / Tab Name</label>
-                <input
-                  value={sheetsTab}
-                  onChange={(e) => setSheetsTab(e.target.value)}
-                  placeholder="Sheet1"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-              {sheetsError && <p className="text-xs text-red-600">{sheetsError}</p>}
-              <p className="text-xs text-muted-foreground">The sheet must be shared with the iNi service account. Supported formats: companies, financials, deals.</p>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => { setSheetsModal(false); setSheetsUrl(""); setSheetsTab("Sheet1"); setSheetsError(""); }} className="text-sm text-slate-600 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
-              <button onClick={handleSheetsConnect} disabled={connecting === "sheets"} className="text-sm text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
-                {connecting === "sheets" ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting…</> : <><Plug className="w-3.5 h-3.5" /> Connect Sheet</>}
-              </button>
-            </div>
+
+            {sheetsStep === "url" ? (
+              <>
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Spreadsheet URL</label>
+                    <input
+                      value={sheetsUrl}
+                      onChange={(e) => setSheetsUrl(e.target.value)}
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Sheet / Tab Name</label>
+                    <input
+                      value={sheetsTab}
+                      onChange={(e) => setSheetsTab(e.target.value)}
+                      placeholder="Sheet1"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  {sheetsError && <p className="text-xs text-red-600">{sheetsError}</p>}
+                  <p className="text-xs text-muted-foreground">The sheet must be shared with the iNi service account. Supported formats: companies, financials, deals.</p>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => { setSheetsModal(false); setSheetsUrl(""); setSheetsTab("Sheet1"); setSheetsError(""); }} className="text-sm text-slate-600 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
+                  <button onClick={handleSheetsPreview} disabled={sheetsPreviewLoading} className="text-sm text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                    {sheetsPreviewLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Reading…</> : "Preview Sheet →"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-semibold">Auto-detected: {sheetsDetectedType}</span>
+                  <span className="text-xs text-muted-foreground">{sheetsRowCount} data rows</span>
+                </div>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Column Mapping — map your sheet headers to iNi fields</p>
+                  <div className="max-h-52 overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-50">
+                    {sheetsHeaders.map((h) => (
+                      <div key={h} className="flex items-center gap-3 px-3 py-2">
+                        <span className="text-xs text-slate-600 w-32 shrink-0 font-mono">{h}</span>
+                        <span className="text-xs text-muted-foreground">→</span>
+                        <input
+                          value={sheetsColumnMapping[h] ?? ""}
+                          onChange={(e) => setSheetsColumnMapping(prev => ({ ...prev, [h]: e.target.value }))}
+                          placeholder={h}
+                          className="flex-1 px-2 py-1 border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Leave blank to use the original column name. Common targets: company, industry, stage, revenue, valuation, employees, period, expenses, ebitda, arr, deal, dealsize, closedate</p>
+                </div>
+                {sheetsError && <p className="text-xs text-red-600 mb-3">{sheetsError}</p>}
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setSheetsStep("url")} className="text-sm text-slate-600 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">← Back</button>
+                  <button onClick={handleSheetsConnect} disabled={connecting === "sheets"} className="text-sm text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                    {connecting === "sheets" ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting…</> : <><Plug className="w-3.5 h-3.5" /> Connect Sheet</>}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

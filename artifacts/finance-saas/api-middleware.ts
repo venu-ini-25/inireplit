@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { randomUUID } from "crypto";
+import http from "http";
 import type { Connect } from "vite";
 
 let pool: Pool | null = null;
@@ -167,7 +168,7 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         return send(200, rowToRequest(rows[0]));
       }
 
-      return next();
+      return proxyToApiServer(req, res, rawUrl);
     };
 
     handle().catch((err) => {
@@ -175,4 +176,34 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
       send(500, { error: "Internal server error" });
     });
   };
+}
+
+function proxyToApiServer(
+  req: Connect.IncomingMessage,
+  res: import("http").ServerResponse,
+  rawUrl: string,
+): void {
+  const apiPort = 8080;
+  const options: http.RequestOptions = {
+    hostname: "localhost",
+    port: apiPort,
+    path: rawUrl,
+    method: req.method ?? "GET",
+    headers: { ...req.headers, host: `localhost:${apiPort}` },
+  };
+
+  const proxyReq = http.request(options, (proxyRes) => {
+    if (res.headersSent) return;
+    res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers as import("http").OutgoingHttpHeaders);
+    proxyRes.pipe(res, { end: true });
+  });
+
+  proxyReq.on("error", () => {
+    if (!res.headersSent) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "API server unavailable" }));
+    }
+  });
+
+  req.pipe(proxyReq, { end: true });
 }
