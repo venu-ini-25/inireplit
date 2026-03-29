@@ -76,10 +76,16 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
 Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
 
 **Current schema tables** (`src/schema/index.ts`):
-- `companies` — portfolio company records (name, industry, stage, revenue, valuation, investors, trends as JSONB)
-- `deals` — M&A deal records (companyName, dealType, stage, dealSize, financials/synergies/contacts/documents/dueDiligenceItems/timeline as JSONB)
-- `financial_snapshots` — monthly revenue snapshots (period, revenue, expenses, ebitda, arr)
-- `access_requests` — user access requests (created via raw SQL in api-server, not via Drizzle migration)
+- `companies` — 8 portfolio companies (name, industry, stage, investors, arrTrend/headcountTrend/burnTrend as JSONB)
+- `deals` — M&A pipeline deals (stage, financials, synergies, contacts, documents, dueDiligenceItems, timeline as JSONB)
+- `financial_snapshots` — 12 months revenue snapshots (Jan-Dec 2024; period, revenue, expenses, ebitda, arr)
+- `metrics_snapshots` — key metrics by category (operations, product, marketing, sales, people, cashflow, spending; each row is one metric key/value pair)
+- `engagements` — services engagement records (clientName, serviceType, status, fee, progress, deliverables, team as JSONB)
+- `integration_connections` — OAuth tokens for QuickBooks/HubSpot/Stripe/Google Sheets/Gusto
+- `sync_logs` — per-integration sync history
+- `import_logs` — CSV/Excel bulk import audit trail
+
+**Re-seed the DB**: `node scripts/seed-db.mjs` (run from workspace root, requires DATABASE_URL)
 
 ### `lib/api-spec` (`@workspace/api-spec`)
 
@@ -103,11 +109,11 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 iNi (Invent N Invest) Finance Tech SaaS Platform — React + Vite frontend deployed to Vercel at `inventninvest.com`.
 
 - **Auth**: Clerk (sign-in/sign-up). Admin emails hardcoded in `src/App.tsx`, `src/components/layout/Sidebar.tsx`, `src/components/layout/Layout.tsx`: `venu.vegi@inventninvest.com`, `pitch@inventninvest.com`
-- **Data strategy**: `src/lib/mockFetch.ts` patches `window.fetch` at app startup to intercept all `/api/*` data calls and return hardcoded demo data from `src/lib/mockApiData.ts`. This enables full Vercel deployment without a backend server (zero serverless functions used for data — only `api/admin.ts` and `api/access-requests/` use serverless functions for DB-backed admin flows).
+- **Data strategy**: Frontend calls the real Express API server (`artifacts/api-server`) for all data. API routes query Neon PostgreSQL (Drizzle ORM) with hardcoded fallbacks when specific metric keys are absent. `src/lib/mockFetch.ts` exists but is disabled (controlled by `VITE_USE_MOCK` env var, currently `false`). Demo/screenshot mode also disabled (`VITE_SCREENSHOT_MODE=false`).
 - **14 pages**: Dashboard, P&L, Cash Flow, Expenses, Operations, Product, Marketing, Sales, People, Portfolio, Portfolio Detail, M&A Support, Professional Services, Reports & Analytics
 - **Vercel config**: `vercel.json` — single SPA catch-all rewrite to `index.html`. Root dir: `artifacts/finance-saas`, build: `pnpm run build`, output: `dist/public`
 - **Env vars on Vercel**: `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `DATABASE_URL` (Neon PostgreSQL)
-- **Local dev**: `pnpm --filter @workspace/finance-saas run dev` — uses the same mock fetch so data works without the api-server running
+- **Local dev**: `pnpm --filter @workspace/finance-saas run dev` — requires the api-server workflow to be running for real data; set `VITE_USE_MOCK=true` in `.env.local` only for demo/screenshot mode
 
 ### `scripts` (`@workspace/scripts`)
 
