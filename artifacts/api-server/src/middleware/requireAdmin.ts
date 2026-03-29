@@ -2,7 +2,17 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 const ADMIN_EMAILS = ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
-const JWT_SECRET = process.env["JWT_SECRET"] || "fallback-secret-change-me";
+
+function getJwtSecret(): string {
+  const secret = process.env["JWT_SECRET"];
+  if (!secret) {
+    throw new Error(
+      "[requireAdmin] JWT_SECRET environment variable must be set. " +
+      "The server refuses to start with a default secret to prevent token forgery."
+    );
+  }
+  return secret;
+}
 
 interface JwtPayload {
   email?: string;
@@ -20,9 +30,13 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
 
   let payload: JwtPayload;
   try {
-    payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
-  } catch {
-    res.status(401).json({ error: "Invalid or expired token." });
+    payload = jwt.verify(token, getJwtSecret()) as JwtPayload;
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("JWT_SECRET")) {
+      res.status(500).json({ error: "Server misconfiguration: JWT_SECRET not set." });
+    } else {
+      res.status(401).json({ error: "Invalid or expired token." });
+    }
     return;
   }
 

@@ -562,6 +562,41 @@ export default function Admin() {
   const [dbDeals, setDbDeals] = useState<DealRow[]>([]);
   const [dbSnapshots, setDbSnapshots] = useState<SnapshotRow[]>([]);
 
+  const [adminToken, setAdminToken] = useState<string | null>(() => sessionStorage.getItem("ini_admin_token"));
+  const [tokenEmail, setTokenEmail] = useState("");
+  const [tokenPassword, setTokenPassword] = useState("");
+  const [tokenLoading, setTokenLoading] = useState(false);
+
+  const loginForToken = async () => {
+    setTokenLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: tokenEmail, password: tokenPassword }),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        showToast(err.error ?? "Login failed", false);
+        return;
+      }
+      const { token } = await res.json() as { token: string };
+      setAdminToken(token);
+      sessionStorage.setItem("ini_admin_token", token);
+      showToast("Admin session started", true);
+    } catch (e) {
+      showToast(`Login error: ${(e as Error).message}`, false);
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
+  const authHeaders = (extra?: Record<string, string>): Record<string, string> => ({
+    "Content-Type": "application/json",
+    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    ...extra,
+  });
+
   const [addingCompany, setAddingCompany] = useState(false);
   const [addingDeal, setAddingDeal] = useState(false);
   const [addingSnapshot, setAddingSnapshot] = useState(false);
@@ -627,7 +662,7 @@ export default function Admin() {
   const saveCompany = async (data: Record<string, unknown>) => {
     const res = await fetch(`${API_BASE}/api/data/companies`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -639,7 +674,7 @@ export default function Admin() {
   const updateCompany = async (id: string, data: Record<string, unknown>) => {
     const res = await fetch(`${API_BASE}/api/data/companies/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -652,7 +687,10 @@ export default function Admin() {
     if (!confirm("Delete this company from the database?")) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`${API_BASE}/api/data/companies/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/data/companies/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
       if (!res.ok) throw new Error(await res.text());
       showToast("Company deleted", false);
       await Promise.all([loadDbCompanies(), loadDbStatus()]);
@@ -666,7 +704,7 @@ export default function Admin() {
   const saveDeal = async (data: Record<string, unknown>) => {
     const res = await fetch(`${API_BASE}/api/data/deals`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -678,7 +716,7 @@ export default function Admin() {
   const updateDeal = async (id: string, data: Record<string, unknown>) => {
     const res = await fetch(`${API_BASE}/api/data/deals/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -691,7 +729,10 @@ export default function Admin() {
     if (!confirm("Delete this deal from the database?")) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`${API_BASE}/api/data/deals/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/data/deals/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
       if (!res.ok) throw new Error(await res.text());
       showToast("Deal deleted", false);
       await Promise.all([loadDbDeals(), loadDbStatus()]);
@@ -705,7 +746,7 @@ export default function Admin() {
   const saveSnapshot = async (data: Record<string, unknown>) => {
     const res = await fetch(`${API_BASE}/api/data/financial-snapshots`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -717,7 +758,7 @@ export default function Admin() {
   const updateSnapshot = async (id: string, data: Record<string, unknown>) => {
     const res = await fetch(`${API_BASE}/api/data/financial-snapshots/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -730,7 +771,10 @@ export default function Admin() {
     if (!confirm("Delete this snapshot?")) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`${API_BASE}/api/data/financial-snapshots/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/data/financial-snapshots/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
       if (!res.ok) throw new Error(await res.text());
       showToast("Snapshot deleted", false);
       await Promise.all([loadDbSnapshots(), loadDbStatus()]);
@@ -1018,6 +1062,59 @@ export default function Admin() {
                 </div>
               </div>
             )}
+
+            {/* Admin API Session Panel */}
+            <div className={`mb-5 rounded-xl border p-4 ${adminToken ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}`}>
+              {adminToken ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span className="text-sm font-semibold text-green-800">Admin API session active</span>
+                    <span className="text-xs text-green-600">— mutations are authenticated</span>
+                  </div>
+                  <button
+                    onClick={() => { setAdminToken(null); sessionStorage.removeItem("ini_admin_token"); showToast("Session cleared", false); }}
+                    className="text-xs text-green-700 underline hover:no-underline"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-semibold text-blue-800 mb-3">Sign in to enable data mutations (Add / Edit / Delete)</p>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className="text-xs text-blue-700 font-medium">Email</label>
+                      <input
+                        type="email"
+                        value={tokenEmail}
+                        onChange={(e) => setTokenEmail(e.target.value)}
+                        placeholder="venu.vegi@inventninvest.com"
+                        className="w-full mt-0.5 px-3 py-1.5 text-sm border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-blue-700 font-medium">Password</label>
+                      <input
+                        type="password"
+                        value={tokenPassword}
+                        onChange={(e) => setTokenPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && loginForToken()}
+                        placeholder="••••••••"
+                        className="w-full mt-0.5 px-3 py-1.5 text-sm border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    <button
+                      onClick={loginForToken}
+                      disabled={tokenLoading || !tokenEmail || !tokenPassword}
+                      className="px-4 py-1.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {tokenLoading ? "..." : "Sign In"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* DB Status Cards */}
             {dbStatus && (

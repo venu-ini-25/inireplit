@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
 import pool from "../lib/db";
+import { requireAdmin } from "../middleware/requireAdmin";
 
 export type AccessStatus = "pending" | "approved" | "denied";
 
@@ -95,25 +96,25 @@ async function denyRequest(id: string) {
   return rows;
 }
 
-router.patch("/access-requests/:id/approve", async (req, res) => {
+router.patch("/access-requests/:id/approve", requireAdmin, async (req, res) => {
   const rows = await approveRequest(req.params.id);
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
 
-router.post("/access-requests/:id/approve", async (req, res) => {
+router.post("/access-requests/:id/approve", requireAdmin, async (req, res) => {
   const rows = await approveRequest(req.params.id);
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
 
-router.patch("/access-requests/:id/deny", async (req, res) => {
+router.patch("/access-requests/:id/deny", requireAdmin, async (req, res) => {
   const rows = await denyRequest(req.params.id);
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
 
-router.post("/access-requests/:id/deny", async (req, res) => {
+router.post("/access-requests/:id/deny", requireAdmin, async (req, res) => {
   const rows = await denyRequest(req.params.id);
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));

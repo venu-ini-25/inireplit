@@ -5,7 +5,13 @@ const router = Router();
 
 const MASTER_EMAIL = process.env["MASTER_EMAIL"];
 const MASTER_PASSWORD = process.env["MASTER_PASSWORD"];
-const JWT_SECRET = process.env["JWT_SECRET"] || "fallback-secret-change-me";
+const JWT_SECRET = process.env["JWT_SECRET"];
+if (!JWT_SECRET) {
+  throw new Error(
+    "[auth] JWT_SECRET environment variable must be set. " +
+    "The server refuses to operate without a secure secret to prevent token forgery."
+  );
+}
 
 if (!MASTER_EMAIL || !MASTER_PASSWORD) {
   console.warn("[auth] MASTER_EMAIL or MASTER_PASSWORD not set — master login will be disabled");

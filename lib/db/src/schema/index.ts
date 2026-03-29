@@ -74,6 +74,23 @@ export const financialSnapshots = pgTable("financial_snapshots", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const engagements = pgTable("engagements", {
+  id: text("id").primaryKey(),
+  clientName: text("client_name").notNull(),
+  serviceType: text("service_type").notNull().default("fpa"),
+  status: text("status").notNull().default("active"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  fee: integer("fee").notNull().default(0),
+  progress: integer("progress").notNull().default(0),
+  lead: text("lead").notNull().default(""),
+  description: text("description").notNull().default(""),
+  deliverables: jsonb("deliverables").$type<string[]>().default([]),
+  team: jsonb("team").$type<{ name: string; role: string }[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const metricsSnapshots = pgTable("metrics_snapshots", {
   id: text("id").primaryKey(),
   category: text("category").notNull(),
@@ -113,6 +130,8 @@ export const syncLogs = pgTable("sync_logs", {
   completedAt: timestamp("completed_at"),
 });
 
+export type Engagement = typeof engagements.$inferSelect;
+export type InsertEngagement = typeof engagements.$inferInsert;
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = typeof companies.$inferInsert;
 export type Deal = typeof deals.$inferSelect;
