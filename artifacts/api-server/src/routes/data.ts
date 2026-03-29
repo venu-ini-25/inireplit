@@ -123,7 +123,7 @@ router.put("/data/companies/:id", requireAdmin, async (req, res) => {
     const [row] = await db
       .update(companies)
       .set(update)
-      .where(eq(companies.id, req.params.id))
+      .where(eq(companies.id, String(req.params["id"])))
       .returning();
     if (!row) {
       res.status(404).json({ error: "Not found" });
@@ -137,7 +137,7 @@ router.put("/data/companies/:id", requireAdmin, async (req, res) => {
 
 router.delete("/data/companies/:id", requireAdmin, async (req, res) => {
   try {
-    await db.delete(companies).where(eq(companies.id, req.params.id));
+    await db.delete(companies).where(eq(companies.id, String(req.params["id"])));
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: String(e) });
@@ -223,7 +223,7 @@ router.put("/data/deals/:id", requireAdmin, async (req, res) => {
     const [row] = await db
       .update(deals)
       .set(update)
-      .where(eq(deals.id, req.params.id))
+      .where(eq(deals.id, String(req.params["id"])))
       .returning();
     if (!row) {
       res.status(404).json({ error: "Not found" });
@@ -237,7 +237,7 @@ router.put("/data/deals/:id", requireAdmin, async (req, res) => {
 
 router.delete("/data/deals/:id", requireAdmin, async (req, res) => {
   try {
-    await db.delete(deals).where(eq(deals.id, req.params.id));
+    await db.delete(deals).where(eq(deals.id, String(req.params["id"])));
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: String(e) });
@@ -304,7 +304,7 @@ router.put("/data/financial-snapshots/:id", requireAdmin, async (req, res) => {
     const [row] = await db
       .update(financialSnapshots)
       .set(update)
-      .where(eq(financialSnapshots.id, req.params.id))
+      .where(eq(financialSnapshots.id, String(req.params["id"])))
       .returning();
     if (!row) {
       res.status(404).json({ error: "Not found" });
@@ -318,7 +318,7 @@ router.put("/data/financial-snapshots/:id", requireAdmin, async (req, res) => {
 
 router.delete("/data/financial-snapshots/:id", requireAdmin, async (req, res) => {
   try {
-    await db.delete(financialSnapshots).where(eq(financialSnapshots.id, req.params.id));
+    await db.delete(financialSnapshots).where(eq(financialSnapshots.id, String(req.params["id"])));
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: String(e) });

@@ -97,25 +97,25 @@ async function denyRequest(id: string) {
 }
 
 router.patch("/access-requests/:id/approve", requireAdmin, async (req, res) => {
-  const rows = await approveRequest(req.params.id);
+  const rows = await approveRequest(String(req.params["id"]));
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
 
 router.post("/access-requests/:id/approve", requireAdmin, async (req, res) => {
-  const rows = await approveRequest(req.params.id);
+  const rows = await approveRequest(String(req.params["id"]));
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
 
 router.patch("/access-requests/:id/deny", requireAdmin, async (req, res) => {
-  const rows = await denyRequest(req.params.id);
+  const rows = await denyRequest(String(req.params["id"]));
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
 
 router.post("/access-requests/:id/deny", requireAdmin, async (req, res) => {
-  const rows = await denyRequest(req.params.id);
+  const rows = await denyRequest(String(req.params["id"]));
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
