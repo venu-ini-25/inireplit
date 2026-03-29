@@ -57,57 +57,64 @@ function rowToRequest(row: Record<string, unknown>) {
   };
 }
 
-async function parseBody(req: Connect.IncomingMessage): Promise<Record<string, unknown>> {
+async function readBody(req: Connect.IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
+    if (req.readableEnded) return resolve("");
     let data = "";
     req.on("data", (chunk: Buffer) => { data += chunk.toString(); });
-    req.on("end", () => {
-      try { resolve(JSON.parse(data || "{}")); }
-      catch { resolve({}); }
-    });
-    req.on("error", () => resolve({}));
+    req.on("end", () => resolve(data));
+    req.on("error", () => resolve(""));
   });
 }
 
+function parseQs(rawUrl: string): Record<string, string> {
+  const i = rawUrl.indexOf("?");
+  if (i === -1) return {};
+  return Object.fromEntries(new URLSearchParams(rawUrl.slice(i + 1)));
+}
+
 export function createApiMiddleware(): Connect.NextHandleFunction {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     const rawUrl = req.url ?? "";
-    const url = rawUrl.split("?")[0];
+    const path = rawUrl.split("?")[0];
     const method = req.method ?? "GET";
 
-    if (url.startsWith("/api/")) {
-      console.log(`[API] ${method} ${rawUrl}`);
-    }
-
-    if (!url.startsWith("/api/")) return next();
+    if (!path.startsWith("/api/")) return next();
 
     const send = (status: number, data: unknown) => {
+      if (res.headersSent) return;
+      const body = JSON.stringify(data);
       res.writeHead(status, {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-store",
       });
-      res.end(JSON.stringify(data));
+      res.end(body);
     };
 
     if (method === "OPTIONS") {
-      res.writeHead(200, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS" });
-      return res.end();
+      res.writeHead(200, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" });
+      res.end();
+      return;
     }
 
-    try {
+    // Run the actual async handler, catching all errors
+    const handle = async () => {
       await ensureTable();
       const db = getDb();
+      const qs = parseQs(rawUrl);
 
-      if (method === "GET" && url === "/api/access-requests") {
+      // GET /api/access-requests — list all
+      if (path === "/api/access-requests" && method === "GET") {
         const { rows } = await db.query(
           "SELECT * FROM access_requests ORDER BY submitted_at DESC"
         );
         return send(200, { requests: rows.map(rowToRequest), total: rows.length });
       }
 
-      const statusMatch = url.match(/^\/api\/access-requests\/status\/(.+)$/);
-      if (method === "GET" && statusMatch) {
-        const email = decodeURIComponent(statusMatch[1]);
+      // GET /api/access-requests/status?email=xxx — check status for a specific email
+      if (path === "/api/access-requests/status" && method === "GET") {
+        const email = qs.email ?? "";
         const { rows } = await db.query(
           "SELECT id, status FROM access_requests WHERE email = $1 ORDER BY submitted_at DESC LIMIT 1",
           [email]
@@ -116,9 +123,12 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         return send(200, { status: rows[0].status, id: rows[0].id });
       }
 
-      if (method === "POST" && url === "/api/access-requests") {
-        const body = await parseBody(req);
-        const { firstName, lastName, email, company, role, aum, message } = body as Record<string, string>;
+      // POST /api/access-requests — submit new request
+      if (path === "/api/access-requests" && method === "POST") {
+        const raw = await readBody(req);
+        let body: Record<string, string> = {};
+        try { body = JSON.parse(raw || "{}"); } catch { /* ignore */ }
+        const { firstName, lastName, email, company, role, aum, message } = body;
         if (!firstName || !email || !role)
           return send(400, { error: "firstName, email and role are required" });
 
@@ -138,30 +148,31 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         return send(201, rowToRequest(rows[0]));
       }
 
-      const approveMatch = url.match(/^\/api\/access-requests\/([^/]+)\/approve$/);
-      if (approveMatch && (method === "POST" || method === "PATCH" || method === "GET")) {
-        const { rows } = await db.query(
-          "UPDATE access_requests SET status='approved', reviewed_at=NOW() WHERE id=$1 RETURNING *",
-          [approveMatch[1]]
-        );
-        if (rows.length === 0) return send(404, { error: "Request not found" });
-        return send(200, rowToRequest(rows[0]));
-      }
+      // GET /api/admin?id=xxx&action=approve|deny|revoke — admin actions via flat URL
+      if (path === "/api/admin" && method === "GET") {
+        const { id, action } = qs;
+        if (!id || !action) return send(400, { error: "id and action are required" });
 
-      const denyMatch = url.match(/^\/api\/access-requests\/([^/]+)\/deny$/);
-      if (denyMatch && (method === "POST" || method === "PATCH" || method === "GET")) {
+        let newStatus: string;
+        if (action === "approve") newStatus = "approved";
+        else if (action === "deny") newStatus = "denied";
+        else if (action === "revoke") newStatus = "pending";
+        else return send(400, { error: `Unknown action: ${action}` });
+
         const { rows } = await db.query(
-          "UPDATE access_requests SET status='denied', reviewed_at=NOW() WHERE id=$1 RETURNING *",
-          [denyMatch[1]]
+          "UPDATE access_requests SET status=$1, reviewed_at=NOW() WHERE id=$2 RETURNING *",
+          [newStatus, id]
         );
         if (rows.length === 0) return send(404, { error: "Request not found" });
         return send(200, rowToRequest(rows[0]));
       }
 
       return next();
-    } catch (err) {
+    };
+
+    handle().catch((err) => {
       console.error("[API]", err);
-      return send(500, { error: "Internal server error" });
-    }
+      send(500, { error: "Internal server error" });
+    });
   };
 }

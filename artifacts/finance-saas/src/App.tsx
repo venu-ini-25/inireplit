@@ -126,7 +126,7 @@ function AccessGate({ children }: { children: React.ReactNode }) {
     if (!email) return;
     if (email === MASTER_EMAIL) { setStatus("approved"); return; }
 
-    fetch(`${API_BASE}/api/access-requests/status/${encodeURIComponent(email)}`)
+    fetch(`${API_BASE}/api/access-requests/status?email=${encodeURIComponent(email)}`)
       .then((r) => r.json())
       .then((data: { status: string }) => {
         const s = data.status as AccessStatus;

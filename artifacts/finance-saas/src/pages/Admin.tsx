@@ -8,6 +8,7 @@ import {
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Status = "pending" | "approved" | "denied";
+type Action = "approve" | "deny" | "revoke";
 type Tab = "active" | "all" | Status;
 
 interface AccessRequest {
@@ -99,18 +100,20 @@ export default function Admin() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const act = async (id: string, action: "approve" | "deny") => {
-    setActing(id);
+  const act = async (id: string, action: Action) => {
+    setActing(id + action);
     try {
-      const res = await fetch(`${API_BASE}/api/access-requests/${id}/${action}`);
+      const res = await fetch(`${API_BASE}/api/admin?id=${encodeURIComponent(id)}&action=${action}`);
       const text = await res.text();
-      if (!text) throw new Error("Empty response — server may be restarting, try again");
-      if (!res.ok) throw new Error(`Server error ${res.status}: ${text}`);
+      if (!res.ok) throw new Error(text || `Server error ${res.status}`);
       const updated = JSON.parse(text) as AccessRequest;
       setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
       if (action === "approve") {
         showToast(`✓ ${updated.firstName} ${updated.lastName} approved`, true);
         setTab("active");
+      } else if (action === "revoke") {
+        showToast(`Access revoked for ${updated.firstName} ${updated.lastName}`, false);
+        setTab("pending");
       } else {
         showToast(`${updated.firstName} ${updated.lastName} denied`, false);
       }
@@ -247,9 +250,9 @@ export default function Admin() {
                         <span className="text-xs text-muted-foreground">
                           Approved {req.reviewedAt ? timeAgo(req.reviewedAt) : ""}
                         </span>
-                        <button onClick={() => act(req.id, "deny")} disabled={acting === req.id}
-                          className="text-xs text-slate-400 hover:text-red-500 transition-colors font-medium">
-                          Revoke
+                        <button onClick={() => act(req.id, "revoke")} disabled={acting === req.id + "revoke"}
+                          className="text-xs text-slate-400 hover:text-red-500 transition-colors font-medium disabled:opacity-50">
+                          {acting === req.id + "revoke" ? "Revoking…" : "Revoke"}
                         </button>
                       </div>
                     </div>
@@ -302,28 +305,28 @@ export default function Admin() {
                               <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                 {req.status === "pending" && (
                                   <>
-                                    <button onClick={() => act(req.id, "approve")} disabled={acting === req.id}
+                                    <button onClick={() => act(req.id, "approve")} disabled={!!acting}
                                       className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50">
                                       <CheckCircle2 className="w-3 h-3" />
-                                      {acting === req.id ? "…" : "Approve"}
+                                      {acting === req.id + "approve" ? "…" : "Approve"}
                                     </button>
-                                    <button onClick={() => act(req.id, "deny")} disabled={acting === req.id}
+                                    <button onClick={() => act(req.id, "deny")} disabled={!!acting}
                                       className="flex items-center gap-1 px-3 py-1.5 border border-red-200 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
                                       <XCircle className="w-3 h-3" />
-                                      {acting === req.id ? "…" : "Deny"}
+                                      {acting === req.id + "deny" ? "…" : "Deny"}
                                     </button>
                                   </>
                                 )}
                                 {req.status === "approved" && (
-                                  <button onClick={() => act(req.id, "deny")} disabled={acting === req.id}
-                                    className="text-xs text-slate-400 hover:text-red-500 transition-colors">
-                                    Revoke
+                                  <button onClick={() => act(req.id, "revoke")} disabled={!!acting}
+                                    className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors disabled:opacity-50">
+                                    {acting === req.id + "revoke" ? "Revoking…" : "Revoke"}
                                   </button>
                                 )}
                                 {req.status === "denied" && (
-                                  <button onClick={() => act(req.id, "approve")} disabled={acting === req.id}
-                                    className="text-xs text-slate-400 hover:text-green-600 transition-colors">
-                                    Re-approve
+                                  <button onClick={() => act(req.id, "approve")} disabled={!!acting}
+                                    className="text-xs text-green-500 hover:text-green-700 font-medium transition-colors disabled:opacity-50">
+                                    {acting === req.id + "approve" ? "…" : "Re-approve"}
                                   </button>
                                 )}
                                 <ChevronDown className={`w-4 h-4 text-slate-300 transition-transform ${expanded === req.id ? "rotate-180" : ""}`} />
