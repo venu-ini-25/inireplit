@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { initDb } from "./lib/db";
+import { startCron } from "./lib/cron";
 
 const rawPort = process.env["PORT"];
 
@@ -18,6 +19,7 @@ if (Number.isNaN(port) || port <= 0) {
 
 initDb()
   .then(() => {
+    startCron();
     app.listen(port, (err) => {
       if (err) {
         logger.error({ err }, "Error listening on port");

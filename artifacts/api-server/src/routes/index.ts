@@ -8,6 +8,7 @@ import metricsRouter from "./metrics";
 import accessRequestsRouter from "./accessRequests";
 import authRouter from "./auth";
 import dataRouter from "./data";
+import integrationsRouter from "./integrations";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(servicesRouter);
 router.use(metricsRouter);
 router.use(accessRequestsRouter);
 router.use(dataRouter);
+router.use(integrationsRouter);
 
 export default router;
