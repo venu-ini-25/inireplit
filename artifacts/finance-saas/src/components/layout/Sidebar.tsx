@@ -22,7 +22,7 @@ import { useUser, useClerk } from "@clerk/clerk-react";
 
 const logoImg = "/images/ini-logo-transparent.png";
 
-const ADMIN_EMAILS = ["venu.vegi@inventninvest.com"];
+const ADMIN_EMAILS = ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
 
 type NavSection = "finance" | "portfolio" | "settings" | null;
 
