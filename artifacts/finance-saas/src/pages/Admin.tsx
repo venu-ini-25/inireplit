@@ -13,6 +13,7 @@ const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 type Status = "pending" | "approved" | "denied";
 type Action = "approve" | "deny" | "revoke";
 type AccessTab = "active" | "all" | Status;
+type PlatformAccess = "app" | "demo" | "both";
 
 interface AccessRequest {
   id: string;
@@ -24,8 +25,22 @@ interface AccessRequest {
   aum: string;
   message: string;
   status: Status;
+  platformAccess: PlatformAccess;
   submittedAt: string;
   reviewedAt: string | null;
+}
+
+function PlatformBadge({ access }: { access: PlatformAccess | undefined }) {
+  const a = access ?? "demo";
+  if (a === "both") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">App + Demo</span>
+  );
+  if (a === "app") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-primary">App Only</span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">Demo</span>
+  );
 }
 
 // ===== DATA MANAGEMENT TYPES =====
@@ -513,6 +528,7 @@ export default function Admin() {
   const [acting, setActing] = useState<string | null>(null);
   const [accessTab, setAccessTab] = useState<AccessTab>("active");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [pendingAccessLevel, setPendingAccessLevel] = useState<Record<string, PlatformAccess>>({});
 
   const loadRequests = async () => {
     setLoading(true);
@@ -530,10 +546,12 @@ export default function Admin() {
 
   useEffect(() => { loadRequests(); }, []);
 
-  const act = async (id: string, action: Action) => {
+  const act = async (id: string, action: Action, platform?: PlatformAccess) => {
     setActing(id + action);
     try {
-      const res = await fetch(`${API_BASE}/api/admin?id=${encodeURIComponent(id)}&action=${action}`);
+      let url = `${API_BASE}/api/admin?id=${encodeURIComponent(id)}&action=${action}`;
+      if (platform) url += `&platform=${platform}`;
+      const res = await fetch(url);
       const text = await res.text();
       if (!res.ok) throw new Error(text || `Server error ${res.status}`);
       const updated = JSON.parse(text) as AccessRequest;
@@ -551,6 +569,19 @@ export default function Admin() {
       showToast(`Failed: ${(e as Error).message}`, false);
     } finally {
       setActing(null);
+    }
+  };
+
+  const updateAccess = async (id: string, platform: PlatformAccess) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin?id=${encodeURIComponent(id)}&action=set-access&platform=${platform}`);
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || `Server error ${res.status}`);
+      const updated = JSON.parse(text) as AccessRequest;
+      setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      showToast(`Platform access updated to "${platform}"`, true);
+    } catch (e) {
+      showToast(`Failed: ${(e as Error).message}`, false);
     }
   };
 
@@ -923,6 +954,18 @@ export default function Admin() {
                           <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-3">
                             <Users className="w-3 h-3 text-slate-400" /> {ROLE_LABELS[req.role] ?? req.role}
                           </div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <PlatformBadge access={req.platformAccess} />
+                            <select
+                              value={req.platformAccess ?? "demo"}
+                              onChange={(e) => updateAccess(req.id, e.target.value as PlatformAccess)}
+                              className="ml-auto text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 text-slate-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30"
+                            >
+                              <option value="demo">Demo only</option>
+                              <option value="app">App only</option>
+                              <option value="both">App + Demo</option>
+                            </select>
+                          </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">
                               Approved {req.reviewedAt ? timeAgo(req.reviewedAt) : ""}
@@ -981,7 +1024,16 @@ export default function Admin() {
                                   <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                     {req.status === "pending" && (
                                       <>
-                                        <button onClick={() => act(req.id, "approve")} disabled={!!acting}
+                                        <select
+                                          value={pendingAccessLevel[req.id] ?? "demo"}
+                                          onChange={(e) => setPendingAccessLevel((p) => ({ ...p, [req.id]: e.target.value as PlatformAccess }))}
+                                          className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                        >
+                                          <option value="demo">Demo</option>
+                                          <option value="app">App</option>
+                                          <option value="both">App + Demo</option>
+                                        </select>
+                                        <button onClick={() => act(req.id, "approve", pendingAccessLevel[req.id] ?? "demo")} disabled={!!acting}
                                           className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50">
                                           <CheckCircle2 className="w-3 h-3" />
                                           {acting === req.id + "approve" ? "…" : "Approve"}

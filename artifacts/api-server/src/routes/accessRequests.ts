@@ -15,6 +15,7 @@ export interface AccessRequest {
   aum: string;
   message: string;
   status: AccessStatus;
+  platformAccess: "app" | "demo" | "both";
   submittedAt: string;
   reviewedAt: string | null;
 }
@@ -30,6 +31,7 @@ function rowToRequest(row: Record<string, unknown>): AccessRequest {
     aum: (row.aum as string) ?? "",
     message: (row.message as string) ?? "",
     status: row.status as AccessStatus,
+    platformAccess: ((row.platform_access as string) ?? "demo") as "app" | "demo" | "both",
     submittedAt: (row.submitted_at as Date).toISOString(),
     reviewedAt: row.reviewed_at ? (row.reviewed_at as Date).toISOString() : null,
   };
@@ -44,13 +46,23 @@ router.post("/access-requests", async (req, res) => {
     return res.status(400).json({ error: "firstName, email and role are required" });
   }
 
-  // Prevent duplicate pending requests
+  // Prevent duplicate requests — one record per email
   const { rows: existing } = await pool.query(
-    "SELECT id, status FROM access_requests WHERE email = $1 AND status = 'pending'",
+    "SELECT id, status FROM access_requests WHERE email = $1 ORDER BY submitted_at DESC LIMIT 1",
     [email]
   );
   if (existing.length > 0) {
-    return res.status(200).json({ id: existing[0].id, status: existing[0].status, message: "Request already submitted" });
+    const ex = existing[0];
+    if (ex.status === "pending" || ex.status === "approved") {
+      return res.status(200).json({ id: ex.id, status: ex.status, message: "Request already submitted" });
+    }
+    // was denied — allow re-request by resetting the existing record
+    const { rows: updated } = await pool.query(
+      `UPDATE access_requests SET status='pending', first_name=$1, last_name=$2, company=$3, role=$4, aum=$5, message=$6, submitted_at=NOW(), reviewed_at=NULL
+       WHERE id=$7 RETURNING *`,
+      [firstName ?? "", lastName ?? "", company ?? "", role ?? "", aum ?? "", message ?? "", ex.id]
+    );
+    return res.status(200).json(rowToRequest(updated[0]));
   }
 
   const id = `req_${randomUUID().slice(0, 8)}`;

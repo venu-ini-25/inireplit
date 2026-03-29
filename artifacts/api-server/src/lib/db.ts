@@ -25,6 +25,7 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_access_requests_email ON access_requests(email);
     CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
   `);
+  await pool.query(`ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS platform_access TEXT NOT NULL DEFAULT 'demo';`);
 }
 
 export default pool;

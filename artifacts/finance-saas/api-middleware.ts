@@ -37,6 +37,7 @@ async function ensureTable() {
     CREATE INDEX IF NOT EXISTS idx_access_requests_email ON access_requests(email);
     CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
   `);
+  await db.query(`ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS platform_access TEXT NOT NULL DEFAULT 'demo';`);
   tableReady = true;
 }
 
@@ -51,6 +52,7 @@ function rowToRequest(row: Record<string, unknown>) {
     aum: (row.aum as string) ?? "",
     message: (row.message as string) ?? "",
     status: row.status,
+    platformAccess: (row.platform_access as string) ?? "demo",
     submittedAt: new Date(row.submitted_at as string).toISOString(),
     reviewedAt: row.reviewed_at
       ? new Date(row.reviewed_at as string).toISOString()
@@ -134,11 +136,21 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
           return send(400, { error: "firstName, email and role are required" });
 
         const { rows: existing } = await db.query(
-          "SELECT id, status FROM access_requests WHERE email = $1 AND status = 'pending'",
+          "SELECT id, status FROM access_requests WHERE email = $1 ORDER BY submitted_at DESC LIMIT 1",
           [email]
         );
-        if (existing.length > 0)
-          return send(200, { id: existing[0].id, status: existing[0].status, message: "Request already submitted" });
+        if (existing.length > 0) {
+          const ex = existing[0];
+          if (ex.status === "pending" || ex.status === "approved")
+            return send(200, { id: ex.id, status: ex.status, message: "Request already submitted" });
+          // was denied — allow re-request by resetting the existing record
+          const { rows: updated } = await db.query(
+            `UPDATE access_requests SET status='pending', first_name=$1, last_name=$2, company=$3, role=$4, aum=$5, message=$6, submitted_at=NOW(), reviewed_at=NULL
+             WHERE id=$7 RETURNING *`,
+            [firstName ?? "", lastName ?? "", company ?? "", role, aum ?? "", message ?? "", ex.id]
+          );
+          return send(200, rowToRequest(updated[0]));
+        }
 
         const id = `req_${randomUUID().slice(0, 8)}`;
         const { rows } = await db.query(
@@ -149,10 +161,22 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         return send(201, rowToRequest(rows[0]));
       }
 
-      // GET /api/admin?id=xxx&action=approve|deny|revoke — admin actions via flat URL
+      // GET /api/admin?id=xxx&action=approve|deny|revoke|set-access — admin actions via flat URL
       if (path === "/api/admin" && method === "GET") {
-        const { id, action } = qs;
+        const { id, action, platform } = qs;
         if (!id || !action) return send(400, { error: "id and action are required" });
+
+        const validPlatforms = ["app", "demo", "both"];
+        const safeplatform = validPlatforms.includes(platform as string) ? platform : "demo";
+
+        if (action === "set-access") {
+          const { rows } = await db.query(
+            "UPDATE access_requests SET platform_access=$1 WHERE id=$2 RETURNING *",
+            [safeplatform, id]
+          );
+          if (rows.length === 0) return send(404, { error: "Request not found" });
+          return send(200, rowToRequest(rows[0]));
+        }
 
         let newStatus: string;
         if (action === "approve") newStatus = "approved";
@@ -161,8 +185,10 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         else return send(400, { error: `Unknown action: ${action}` });
 
         const { rows } = await db.query(
-          "UPDATE access_requests SET status=$1, reviewed_at=NOW() WHERE id=$2 RETURNING *",
-          [newStatus, id]
+          action === "approve"
+            ? "UPDATE access_requests SET status=$1, platform_access=$2, reviewed_at=NOW() WHERE id=$3 RETURNING *"
+            : "UPDATE access_requests SET status=$1, reviewed_at=NOW() WHERE id=$2 RETURNING *",
+          action === "approve" ? [newStatus, safeplatform, id] : [newStatus, id]
         );
         if (rows.length === 0) return send(404, { error: "Request not found" });
         return send(200, rowToRequest(rows[0]));
