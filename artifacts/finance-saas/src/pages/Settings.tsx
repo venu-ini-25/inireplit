@@ -313,8 +313,8 @@ export default function Settings() {
         </div>
       )}
 
-      <div className="flex gap-6 items-start">
-        <div className="w-52 shrink-0">
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        <div className="w-full md:w-52 md:shrink-0">
           <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
             {tabs.map((tab) => (
               <button key={tab.id} onClick={() => navigate(`/settings/${tab.id}`)}

@@ -165,12 +165,12 @@ export default function MASupport() {
 
       {/* Kanban */}
       {view === "kanban" && (
-        <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: 420 }}>
+        <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory" style={{ minHeight: 420 }}>
           {STAGES.map((stage) => {
             const stageDeals = filteredDeals.filter((d) => d.stage === stage.id);
             const stageValue = stageDeals.reduce((sum, d) => sum + d.dealSize, 0);
             return (
-              <div key={stage.id} className="w-72 shrink-0 flex flex-col bg-slate-50/70 rounded-2xl border border-border p-3">
+              <div key={stage.id} className="w-[calc(100vw-2rem)] sm:w-72 shrink-0 snap-start flex flex-col bg-slate-50/70 rounded-2xl border border-border p-3">
                 <div className="flex items-center justify-between mb-3 px-1">
                   <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-sm">
                     <div className={`w-2 h-2 rounded-full ${stage.dot}`} />

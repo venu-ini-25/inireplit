@@ -9,6 +9,14 @@ import {
 } from "recharts";
 import { useGetPortfolioCompany } from "@workspace/api-client-react";
 
+function fmtArrValue(v: string | number | undefined | null): string {
+  if (v == null) return "—";
+  if (typeof v === "string" && v.startsWith("$")) return v;
+  const num = typeof v === "string" ? parseFloat(v.replace(/[$,]/g, "")) : v;
+  if (isNaN(num)) return String(v);
+  return num >= 1_000_000 ? `$${(num / 1_000_000).toFixed(1)}M` : `$${(num / 1000).toFixed(0)}K`;
+}
+
 const docTypeColor: Record<string, string> = {
   "Legal": "bg-purple-50 text-purple-700",
   "Financial": "bg-blue-50 text-primary",
@@ -102,7 +110,7 @@ export default function PortfolioDetail() {
       {tab === "KPIs" && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard title="ARR" value={company?.arr ?? "—"} change={company?.arrGrowthPct ?? 0} changeLabel="YoY growth" />
+            <KpiCard title="ARR" value={fmtArrValue(company?.arr)} change={company?.arrGrowthPct ?? 0} changeLabel="YoY growth" />
             <KpiCard title="IRR" value={company?.irr ?? "—"} change={3.1} changeLabel="vs target" />
             <KpiCard title="MOIC" value={company?.moic ?? "—"} subtitle="Multiple on invested capital" />
             <KpiCard title="Valuation" value={valuation} subtitle={`Last valued: ${company?.lastValDate ?? "—"}`} />

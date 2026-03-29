@@ -105,12 +105,38 @@ export default function Landing() {
   const [activeTab, setActiveTab] = useState<"investor" | "company">("investor");
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [progress, setProgress] = useState(0);
+
+  const CYCLE_MS = 4500;
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  useEffect(() => {
+    if (!autoPlay) return;
+    setProgress(0);
+    const startTime = Date.now();
+    const frame = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      setProgress(Math.min((elapsed / CYCLE_MS) * 100, 100));
+    }, 30);
+    const timer = setTimeout(() => {
+      setActiveTab((t) => (t === "investor" ? "company" : "investor"));
+      setProgress(0);
+    }, CYCLE_MS);
+    return () => { clearInterval(frame); clearTimeout(timer); };
+  }, [activeTab, autoPlay]);
+
+  const handleTabClick = (id: "investor" | "company") => {
+    setActiveTab(id);
+    setAutoPlay(false);
+    setProgress(0);
+    setTimeout(() => setAutoPlay(true), 8000);
+  };
 
   const goRequestAccess = () => { setMobileOpen(false); navigate("/request-access"); };
   const goSignIn = () => { setMobileOpen(false); navigate("/login"); };
@@ -445,23 +471,30 @@ export default function Landing() {
             </div>
           </Reveal>
           <Reveal delay={100}>
-            <div className="flex items-center justify-center gap-3 mb-10">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
               {[
                 { id: "investor", label: "Investor / Fund Manager", icon: Building2 },
                 { id: "company", label: "Portfolio Company / Operator", icon: Users },
               ].map(({ id, label, icon: Icon }) => (
-                <button key={id} onClick={() => setActiveTab(id as "investor" | "company")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
+                <button key={id} onClick={() => handleTabClick(id as "investor" | "company")}
+                  className={`relative overflow-hidden flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
                     activeTab === id ? "bg-primary text-white border-primary shadow-md" : "bg-white text-slate-600 border-slate-200 hover:border-primary/40"
                   }`}>
                   <Icon className="w-4 h-4" />{label}
+                  {activeTab === id && autoPlay && (
+                    <span
+                      className="absolute bottom-0 left-0 h-[3px] bg-white/40 transition-none rounded-full"
+                      style={{ width: `${progress}%` }}
+                    />
+                  )}
                 </button>
               ))}
+              {autoPlay && <span className="hidden sm:inline-flex items-center gap-1 text-xs text-slate-400 ml-1"><span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse" />auto</span>}
             </div>
           </Reveal>
 
           {activeTab === "investor" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div key="investor" className="tab-fade-in grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               <Reveal delay={50}>
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-100 text-purple-700 text-xs font-semibold mb-4">
@@ -527,7 +560,7 @@ export default function Landing() {
           )}
 
           {activeTab === "company" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div key="company" className="tab-fade-in grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               <Reveal delay={50}>
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold mb-4">
