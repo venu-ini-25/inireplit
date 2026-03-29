@@ -1,4 +1,4 @@
-import { db, integrationConnections, companies, financialSnapshots, deals, syncLogs } from "@workspace/db";
+import { db, integrationConnections, companies, financialSnapshots, deals, syncLogs, metricsSnapshots } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { google } from "googleapis";
@@ -74,7 +74,12 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
     const spreadsheetId = extractSpreadsheetId(spreadsheetUrl);
     const resp = await sheets.spreadsheets.values.get({ spreadsheetId, range: sheetName });
     const rows = resp.data.values ?? [];
-    if (rows.length < 2) return { recordsSynced: 0 };
+    if (rows.length < 2) {
+      const now = new Date();
+      await db.update(integrationConnections).set({ lastSyncAt: now, updatedAt: now }).where(eq(integrationConnections.id, connectionId));
+      await db.update(syncLogs).set({ status: "success", recordsSynced: 0, completedAt: now }).where(eq(syncLogs.id, logId));
+      return { recordsSynced: 0 };
+    }
 
     const rawHeaders = rows[0].map(String);
     const headers = rawHeaders.map((h) => applyMapping(h, columnMapping));
@@ -121,6 +126,27 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
         }).onConflictDoUpdate({
           target: companies.id,
           set: { revenue: Math.round(Number(r["revenue"] || 0)), valuation: Math.round(Number(r["valuation"] || 0)), updatedAt: new Date() },
+        });
+        recordsSynced++;
+      }
+    } else if (tableType === "metrics") {
+      for (const row of dataRows) {
+        const r = toRow(row);
+        const metricKey = r["metric_key"] ?? r["metric"] ?? r["metrickey"] ?? "";
+        const metricLabel = r["metric_label"] ?? r["metriclabel"] ?? r["label"] ?? metricKey;
+        const category = r["category"] ?? "sheets";
+        const periodLabel = r["period"] ?? r["period_label"] ?? "";
+        if (!metricKey) continue;
+        const val = Number(r["value"] ?? r["amount"] ?? 0);
+        const now = new Date();
+        const slug = `sh_metric_${spreadsheetId.slice(0, 12)}_${category}_${metricKey}_${periodLabel}`.replace(/[^a-z0-9_]/gi, "_").slice(0, 80);
+        await db.insert(metricsSnapshots).values({
+          id: slug, category, metricKey, metricLabel: String(metricLabel),
+          value: val, unit: r["unit"] ?? "USD", periodLabel: String(periodLabel),
+          source: "sheets", createdAt: now, updatedAt: now,
+        }).onConflictDoUpdate({
+          target: metricsSnapshots.id,
+          set: { value: val, updatedAt: now },
         });
         recordsSynced++;
       }

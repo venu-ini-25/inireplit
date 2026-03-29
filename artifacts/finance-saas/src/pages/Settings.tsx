@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useRoute } from "wouter";
 import {
   User, LogOut, Plug, Shield, Bell, RefreshCw, Mail,
@@ -80,6 +80,10 @@ export default function Settings() {
   const [sheetsPreviewLoading, setSheetsPreviewLoading] = useState(false);
   const [sheetsRowCount, setSheetsRowCount] = useState(0);
 
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [syncHistoryMap, setSyncHistoryMap] = useState<Record<string, { id: string; status: string; recordsSynced: number | null; startedAt: string; completedAt: string | null; errorMessage: string | null }[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
+
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: user?.fullName ?? "", email: user?.primaryEmailAddress?.emailAddress ?? "", company: "", role: "Investor / Fund Manager" });
   const [saved, setSaved] = useState(false);
@@ -126,6 +130,26 @@ export default function Settings() {
     if (token) return { Authorization: `Bearer ${token}` };
     return {};
   }, [adminToken, getToken]);
+
+  const toggleSyncHistory = useCallback(async (provider: string) => {
+    if (expandedProvider === provider) {
+      setExpandedProvider(null);
+      return;
+    }
+    setExpandedProvider(provider);
+    if (syncHistoryMap[provider]) return;
+    setLoadingHistory(provider);
+    try {
+      const headers = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/${provider}/sync-logs`, { headers });
+      if (resp.ok) {
+        const logs = await resp.json();
+        setSyncHistoryMap(prev => ({ ...prev, [provider]: logs.slice(0, 5) }));
+      }
+    } catch { /* ignore */ } finally {
+      setLoadingHistory(null);
+    }
+  }, [expandedProvider, syncHistoryMap, getAuthHeader]);
 
   const handleSync = async (provider: string) => {
     setSyncing(provider);
@@ -444,7 +468,8 @@ export default function Settings() {
                       const isConnecting = connecting === int.provider;
                       const isDisconnecting = disconnecting === int.provider;
                       return (
-                        <tr key={int.provider} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${i === integrations.length - 1 ? "border-0" : ""}`}>
+                        <React.Fragment key={int.provider}>
+                        <tr className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${i === integrations.length - 1 && expandedProvider !== int.provider ? "border-0" : ""}`}>
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-3">
                               <span className="text-xl">{meta?.icon ?? "🔌"}</span>
@@ -466,7 +491,13 @@ export default function Settings() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 hidden md:table-cell text-xs text-muted-foreground">{fmtDate(int.lastSyncAt)}</td>
+                          <td className="px-4 py-3.5 hidden md:table-cell">
+                            <button onClick={() => toggleSyncHistory(int.provider)}
+                              className="text-xs text-muted-foreground hover:text-primary hover:underline underline-offset-2 transition-colors text-left">
+                              {fmtDate(int.lastSyncAt)}
+                              {int.status === "connected" && <span className="ml-1 text-[10px] text-primary/60">{expandedProvider === int.provider ? "▲" : "▼"}</span>}
+                            </button>
+                          </td>
                           <td className="px-5 py-3.5 text-right">
                             {int.status === "connected" ? (
                               <div className="flex items-center gap-2 justify-end">
@@ -502,6 +533,55 @@ export default function Settings() {
                             ) : null}
                           </td>
                         </tr>
+                        {expandedProvider === int.provider && (
+                          <tr key={`${int.provider}-history`} className="bg-slate-50/60 border-b border-slate-100">
+                            <td colSpan={5} className="px-6 py-3">
+                              <div className="text-xs font-semibold text-slate-600 mb-2">Sync History (last 5 runs)</div>
+                              {loadingHistory === int.provider ? (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1">
+                                  <Loader2 className="w-3 h-3 animate-spin" /> Loading…
+                                </div>
+                              ) : !syncHistoryMap[int.provider] || syncHistoryMap[int.provider].length === 0 ? (
+                                <div className="text-xs text-muted-foreground py-1">No sync history found.</div>
+                              ) : (
+                                <table className="w-full text-xs border-collapse">
+                                  <thead>
+                                    <tr className="text-slate-400 text-left">
+                                      <th className="pb-1 pr-4 font-medium">Started</th>
+                                      <th className="pb-1 pr-4 font-medium">Duration</th>
+                                      <th className="pb-1 pr-4 font-medium">Status</th>
+                                      <th className="pb-1 font-medium">Records</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {syncHistoryMap[int.provider].map(log => {
+                                      const started = new Date(log.startedAt);
+                                      const completed = log.completedAt ? new Date(log.completedAt) : null;
+                                      const durSec = completed ? Math.round((completed.getTime() - started.getTime()) / 1000) : null;
+                                      return (
+                                        <tr key={log.id} className="border-t border-slate-100">
+                                          <td className="py-1 pr-4 text-slate-600">{fmtDate(log.startedAt)}</td>
+                                          <td className="py-1 pr-4 text-slate-500">{durSec !== null ? `${durSec}s` : "—"}</td>
+                                          <td className="py-1 pr-4">
+                                            {log.status === "success" ? (
+                                              <span className="text-success font-medium">Success</span>
+                                            ) : log.status === "running" ? (
+                                              <span className="text-amber-500 font-medium">Running</span>
+                                            ) : (
+                                              <span className="text-red-500 font-medium" title={log.errorMessage ?? ""}>Failed</span>
+                                            )}
+                                          </td>
+                                          <td className="py-1 text-slate-600">{log.recordsSynced ?? "—"}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>

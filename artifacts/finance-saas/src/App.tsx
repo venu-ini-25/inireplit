@@ -27,6 +27,7 @@ import PortfolioDetail from "@/pages/PortfolioDetail";
 import MASupport from "@/pages/MASupport";
 import Reports from "@/pages/Reports";
 import ProfessionalServices from "@/pages/ProfessionalServices";
+import BulkImport from "@/pages/BulkImport";
 import SSOCallback from "@/pages/SSOCallback";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
@@ -93,6 +94,7 @@ function Router() {
               <Route path="/ma" component={MASupport} />
               <Route path="/reports" component={Reports} />
               <Route path="/services" component={ProfessionalServices} />
+              <Route path="/import" component={BulkImport} />
               <Route path="/settings/:tab?" component={Settings} />
               <Route path="/settings" component={Settings} />
               <Route component={NotFound} />

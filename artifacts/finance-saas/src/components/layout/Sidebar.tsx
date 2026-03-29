@@ -15,6 +15,7 @@ import {
   User,
   Plug,
   ShieldCheck,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -177,6 +178,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           <Link href="/admin" className={linkCls("/admin")} onClick={navClick}>
             <ShieldCheck className="w-4 h-4 shrink-0" />
             Admin Panel
+          </Link>
+        )}
+
+        {isMaster && (
+          <Link href="/import" className={linkCls("/import")} onClick={navClick}>
+            <Upload className="w-4 h-4 shrink-0" />
+            Bulk Import
           </Link>
         )}
 
