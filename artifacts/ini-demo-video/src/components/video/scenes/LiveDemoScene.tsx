@@ -8,117 +8,104 @@ interface DemoStep {
   cursorY: number;
   callout?: string | null;
   isClick?: boolean;
-  narrate?: string;
+  audioId?: string;
 }
 
-// Sidebar x ≈ 5.1% | y positions based on 1080px finance app layout
+// Sidebar x ≈ 5.1% | y positions based on finance app nav layout
 const DEMO_STEPS: DemoStep[] = [
+  // ── Dashboard ──────────────────────────────────────────────
+  { time: 0,     cursorX: 50,  cursorY: 48, audioId: 'welcome' },
+  { time: 2000,  cursorX: 24,  cursorY: 22, callout: 'Live metrics — revenue, burn rate, runway, and headcount all in one view' },
+  { time: 5200,  cursorX: 40,  cursorY: 55, callout: null },
+
+  // ── P&L ────────────────────────────────────────────────────
+  { time: 7000,  cursorX: 5.1, cursorY: 12.4 },
   {
-    time: 0,
-    cursorX: 50, cursorY: 48,
-    narrate: 'Welcome to iNi — one platform connecting your finance, operations, portfolio, and M&A workflows. Here is your business dashboard with live, real-time data.',
+    time: 8000,  cursorX: 5.1, cursorY: 12.4,
+    navigateTo: '/finance/pl', isClick: true, callout: null, audioId: 'pl',
   },
-  { time: 2000,  cursorX: 24,   cursorY: 22,   callout: 'Real-time business performance — revenue, burn, runway, headcount' },
-  { time: 5200,  cursorX: 40,   cursorY: 55,   callout: null },
-  { time: 7000,  cursorX: 5.1,  cursorY: 12.4 },
+  { time: 10500, cursorX: 38,  cursorY: 42, callout: 'Quarterly revenue, cost breakdown, and margin trends — all in one view' },
+  { time: 13500, cursorX: 72,  cursorY: 42, callout: null },
+
+  // ── Cash Flow ──────────────────────────────────────────────
+  { time: 15500, cursorX: 5.1, cursorY: 15.1 },
   {
-    time: 8000,
-    cursorX: 5.1, cursorY: 12.4,
-    navigateTo: '/finance/pl',
-    isClick: true,
-    callout: null,
-    narrate: 'Drill into Profit and Loss — quarterly revenue, costs, and ARR growth in a single view.',
+    time: 16500, cursorX: 5.1, cursorY: 15.1,
+    navigateTo: '/finance/cashflow', isClick: true, audioId: 'cashflow',
   },
-  { time: 10500, cursorX: 38,   cursorY: 42,   callout: 'Full P&L — quarterly revenue, costs and ARR growth' },
-  { time: 13500, cursorX: 72,   cursorY: 42,   callout: null },
-  { time: 15500, cursorX: 5.1,  cursorY: 15.1 },
+  { time: 19000, cursorX: 38,  cursorY: 42, callout: 'Monthly cash trends, waterfall bridge, and a full quarterly statement' },
+  { time: 22000, cursorX: 72,  cursorY: 42, callout: null },
+
+  // ── Portfolio ──────────────────────────────────────────────
+  { time: 24000, cursorX: 5.1, cursorY: 35.1 },
   {
-    time: 16500,
-    cursorX: 5.1, cursorY: 15.1,
-    navigateTo: '/finance/cashflow',
-    isClick: true,
-    narrate: 'Cash flow with monthly trends, waterfall bridge analysis, and operating activities broken down by quarter.',
+    time: 25000, cursorX: 5.1, cursorY: 35.1,
+    navigateTo: '/portfolio', isClick: true, audioId: 'portfolio',
   },
-  { time: 19000, cursorX: 38,   cursorY: 42,   callout: 'Cash flow — trends, waterfall bridge, and operating activities' },
-  { time: 22000, cursorX: 72,   cursorY: 42,   callout: null },
-  { time: 24000, cursorX: 5.1,  cursorY: 35.1 },
+  { time: 27500, cursorX: 50,  cursorY: 21, callout: 'Fund-level metrics at a glance — then drill into any portfolio company' },
+  { time: 31000, cursorX: 32,  cursorY: 55, callout: null },
+  { time: 33000, cursorX: 65,  cursorY: 55 },
+
+  // ── M&A ────────────────────────────────────────────────────
+  { time: 35000, cursorX: 5.1, cursorY: 37.8 },
   {
-    time: 25000,
-    cursorX: 5.1, cursorY: 35.1,
-    navigateTo: '/portfolio',
-    isClick: true,
-    narrate: 'Your full portfolio at a glance. A-U-M of six eighty-eight million, I-R-R at twenty eight point six percent, M-O-I-C two point seven times across eight portfolio companies.',
+    time: 36000, cursorX: 5.1, cursorY: 37.8,
+    navigateTo: '/ma', isClick: true, audioId: 'ma',
   },
-  { time: 27500, cursorX: 50,   cursorY: 21,   callout: 'AUM $688.5M  ·  IRR 28.6%  ·  MOIC 2.7x  ·  8 portfolio companies' },
-  { time: 31000, cursorX: 32,   cursorY: 55,   callout: null },
-  { time: 33000, cursorX: 65,   cursorY: 55 },
-  { time: 35000, cursorX: 5.1,  cursorY: 37.8 },
+  { time: 38500, cursorX: 30,  cursorY: 42, callout: 'Kanban pipeline — every deal tracked from sourcing through to close' },
+  { time: 41500, cursorX: 62,  cursorY: 42, callout: null },
+
+  // ── Reports ────────────────────────────────────────────────
+  { time: 43500, cursorX: 5.1, cursorY: 40.5 },
   {
-    time: 36000,
-    cursorX: 5.1, cursorY: 37.8,
-    navigateTo: '/ma',
-    isClick: true,
-    narrate: 'Active deal pipeline with two hundred and seventy three million in total deal value tracked across five stages from sourcing to close.',
+    time: 44500, cursorX: 5.1, cursorY: 40.5,
+    navigateTo: '/reports', isClick: true, audioId: 'reports',
   },
-  { time: 38500, cursorX: 30,   cursorY: 42,   callout: 'Active M&A pipeline — $273M deal value across 5 stages' },
-  { time: 41500, cursorX: 62,   cursorY: 42,   callout: null },
-  { time: 43500, cursorX: 5.1,  cursorY: 40.5 },
+  { time: 47000, cursorX: 38,  cursorY: 38, callout: 'Peer benchmarking and investor-ready report exports in one click' },
+  { time: 50000, cursorX: 65,  cursorY: 60, callout: null },
+
+  // ── Back to Dashboard + outro ───────────────────────────────
+  { time: 52000, cursorX: 5.1, cursorY: 6.9 },
   {
-    time: 44500,
-    cursorX: 5.1, cursorY: 40.5,
-    navigateTo: '/reports',
-    isClick: true,
-    narrate: 'Generate investor-ready reports and benchmark your portfolio against industry peers on gross margin, ARR growth, burn multiple, and more.',
+    time: 53000, cursorX: 5.1, cursorY: 6.9,
+    navigateTo: '/app', isClick: true, audioId: 'outro',
   },
-  { time: 47000, cursorX: 38,   cursorY: 38,   callout: 'Investor-ready reports and industry benchmark analytics' },
-  { time: 50000, cursorX: 65,   cursorY: 60,   callout: null },
-  { time: 52000, cursorX: 5.1,  cursorY: 6.9 },
-  {
-    time: 53000,
-    cursorX: 5.1, cursorY: 6.9,
-    navigateTo: '/app',
-    isClick: true,
-    narrate: 'One platform. Every number. Total portfolio clarity.',
-  },
-  { time: 55500, cursorX: 50,   cursorY: 40,   callout: 'One platform. Every number. Total portfolio clarity.' },
+  { time: 55500, cursorX: 50,  cursorY: 40, callout: 'One platform. Every financial insight. Total portfolio clarity.' },
 ];
 
 const URL_LABELS: Record<string, string> = {
-  '/app': 'inventninvest.com/app',
-  '/finance/pl': 'inventninvest.com/finance/pl',
+  '/app':              'inventninvest.com/app',
+  '/finance/pl':       'inventninvest.com/finance/pl',
   '/finance/cashflow': 'inventninvest.com/finance/cashflow',
-  '/portfolio': 'inventninvest.com/portfolio',
-  '/ma': 'inventninvest.com/ma',
-  '/reports': 'inventninvest.com/reports',
+  '/portfolio':        'inventninvest.com/portfolio',
+  '/ma':               'inventninvest.com/ma',
+  '/reports':          'inventninvest.com/reports',
 };
 
 export function LiveDemoScene() {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [cursorX, setCursorX] = useState(50);
-  const [cursorY, setCursorY] = useState(48);
-  const [isClicking, setIsClicking] = useState(false);
-  const [callout, setCallout] = useState<string | null>(null);
-  const [urlLabel, setUrlLabel] = useState('inventninvest.com/app');
+  const iframeRef  = useRef<HTMLIFrameElement>(null);
+  const audioRef   = useRef<HTMLAudioElement | null>(null);
+  const [cursorX, setCursorX]           = useState(50);
+  const [cursorY, setCursorY]           = useState(48);
+  const [isClicking, setIsClicking]     = useState(false);
+  const [callout, setCallout]           = useState<string | null>(null);
+  const [urlLabel, setUrlLabel]         = useState('inventninvest.com/app');
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const narrate = useCallback((text: string) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.92;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    // Prefer a natural English voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v =>
-      v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Alex'))
-    );
-    if (preferred) utterance.voice = preferred;
-    window.speechSynthesis.speak(utterance);
+  // Play a pre-generated MP3 narration track
+  const playAudio = useCallback((id: string) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    const audio = new Audio(`/ini-demo-video/audio/${id}.mp3`);
+    audio.volume = 1.0;
+    audio.play().catch(() => {/* autoplay blocked — user must interact first */});
+    audioRef.current = audio;
   }, []);
 
   const navigate = useCallback((path: string) => {
-    // Instant crossfade overlay — hides any loading state
+    // Instant crossfade overlay to mask page loading state
     setIsTransitioning(true);
     setTimeout(() => setIsTransitioning(false), 650);
 
@@ -135,15 +122,7 @@ export function LiveDemoScene() {
     setUrlLabel(URL_LABELS[path] ?? path);
   }, []);
 
-  // Warm up voices on mount (browser loads them async)
-  useEffect(() => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.getVoices();
-      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-    }
-    return () => { window.speechSynthesis?.cancel(); };
-  }, []);
-
+  // Run the scripted demo timeline
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -158,16 +137,17 @@ export function LiveDemoScene() {
           setTimeout(() => setIsClicking(false), 400);
         }
         if (step.navigateTo) navigate(step.navigateTo);
-        if (step.narrate) narrate(step.narrate);
+        if (step.audioId)    playAudio(step.audioId);
       }, step.time);
       timers.push(t);
     });
 
     return () => {
       timers.forEach(clearTimeout);
-      window.speechSynthesis?.cancel();
+      audioRef.current?.pause();
+      audioRef.current = null;
     };
-  }, [navigate, narrate]);
+  }, [navigate, playAudio]);
 
   return (
     <motion.div
@@ -177,7 +157,7 @@ export function LiveDemoScene() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.7 }}
     >
-      {/* ── Browser chrome bar ───────────────────────────── */}
+      {/* ── Browser chrome bar ─────────────────────────────── */}
       <div className="absolute top-0 left-0 right-0 h-10 bg-[#1a2332] border-b border-white/10 flex items-center px-5 gap-3 z-30 select-none">
         <div className="flex gap-1.5 shrink-0">
           <div className="w-3 h-3 rounded-full bg-red-400/90" />
@@ -198,7 +178,7 @@ export function LiveDemoScene() {
         <div className="text-xs text-slate-500 font-semibold shrink-0">iNi Finance Platform</div>
       </div>
 
-      {/* ── Live app iframe ───────────────────────────────── */}
+      {/* ── Live app iframe ─────────────────────────────────── */}
       <iframe
         ref={iframeRef}
         src="/app"
@@ -207,7 +187,7 @@ export function LiveDemoScene() {
         title="iNi Platform"
       />
 
-      {/* ── Instant crossfade overlay on page navigation ──── */}
+      {/* ── Crossfade overlay on page navigation ────────────── */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div
@@ -222,7 +202,7 @@ export function LiveDemoScene() {
         )}
       </AnimatePresence>
 
-      {/* ── Animated cursor ───────────────────────────────── */}
+      {/* ── Animated cursor ─────────────────────────────────── */}
       <motion.div
         className="absolute z-40 pointer-events-none"
         animate={{
@@ -262,7 +242,7 @@ export function LiveDemoScene() {
         </AnimatePresence>
       </motion.div>
 
-      {/* ── Feature callout pill ──────────────────────────── */}
+      {/* ── Feature callout pill ────────────────────────────── */}
       <AnimatePresence mode="wait">
         {callout && (
           <motion.div
