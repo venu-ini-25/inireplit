@@ -422,51 +422,62 @@ export default function BulkImport() {
           </div>
 
           <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-            <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Column Mapping</span>
-              <span className="text-xs text-muted-foreground ml-2">Map your file columns to database fields</span>
-            </div>
-            <div className="p-4 space-y-2">
-              {preview.rawHeaders.map((raw) => {
-                const mapped = columnMapping[raw] ?? "";
-                const isRequired = effectiveType && effectiveType !== "unknown" && effectiveDbFields.required.some((req) => req === mapped);
-                const isMapped = Boolean(mapped);
-                const availableFields = effectiveType && effectiveType !== "unknown"
-                  ? (preview.allDbFields?.[effectiveType]?.all ?? [])
-                  : [];
-                return (
-                  <div key={raw} className="flex items-center gap-3 py-1.5">
-                    <div className={`flex-1 min-w-0 px-3 py-1.5 rounded-lg border text-xs font-mono truncate ${isMapped ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-100 bg-white text-slate-400"}`}>
-                      {raw}
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
-                    <div className="flex-1">
-                      <select
-                        value={mapped}
-                        onChange={(e) => setColumnMapping((prev) => ({ ...prev, [raw]: e.target.value }))}
-                        disabled={selectedType === "unknown" && (!preview.tableType || preview.tableType === "unknown")}
-                        className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white disabled:bg-slate-50 disabled:text-slate-400 ${isRequired ? "border-green-300 text-green-800" : isMapped ? "border-slate-200 text-slate-700" : "border-slate-100 text-slate-400"}`}
-                      >
-                        <option value="">— skip this column —</option>
-                        {availableFields.map((field) => (
-                          <option key={field} value={field}>
-                            {field}{effectiveDbFields.required.includes(field) ? " *" : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {isRequired && <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />}
-                  </div>
-                );
-              })}
-              {effectiveType && effectiveType !== "unknown" && (
-                <p className="text-xs text-muted-foreground pt-1">Fields marked with <span className="font-semibold text-slate-600">*</span> are required. <span className="text-green-600 font-semibold">{Object.values(columnMapping).filter(Boolean).length}</span> of {preview.rawHeaders.length} columns mapped.</p>
-              )}
-            </div>
-            <div className="border-t border-slate-50 px-4 py-2 flex justify-end">
+            <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Column Mapping</span>
+                <span className="text-xs text-muted-foreground ml-2">Connect your file columns to the correct database fields</span>
+              </div>
               <button onClick={reAnalyze} className="text-xs text-primary hover:underline flex items-center gap-1">
-                <RefreshCw className="w-3 h-3" /> Re-analyze with current mapping
+                <RefreshCw className="w-3 h-3" /> Re-analyze
               </button>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-[1fr_48px_1fr] gap-0">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2 px-1">Your file columns</div>
+                <div />
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2 px-1">Database fields</div>
+                {preview.rawHeaders.map((raw, idx) => {
+                  const mapped = columnMapping[raw] ?? "";
+                  const isRequired = effectiveType && effectiveType !== "unknown" && effectiveDbFields.required.some((req) => req === mapped);
+                  const isMapped = Boolean(mapped);
+                  const availableFields = effectiveType && effectiveType !== "unknown"
+                    ? (preview.allDbFields?.[effectiveType]?.all ?? [])
+                    : [];
+                  return (
+                    <React.Fragment key={`row-${idx}`}>
+                      <div className={`px-3 py-2 rounded-lg border text-xs font-mono truncate mr-2 mb-2 self-center ${isMapped ? "border-primary/30 bg-primary/5 text-slate-800 shadow-sm" : "border-slate-200 bg-slate-50 text-slate-400"}`}>
+                        {raw}
+                      </div>
+                      <div className="flex items-center justify-center mb-2 self-center">
+                        <div className={`h-0.5 w-full rounded-full transition-colors ${isMapped ? "bg-primary/50" : "bg-slate-200"}`} />
+                        <ArrowRight className={`w-3.5 h-3.5 shrink-0 transition-colors ${isMapped ? "text-primary" : "text-slate-300"}`} />
+                      </div>
+                      <div className="ml-2 mb-2 self-center">
+                        <select
+                          value={mapped}
+                          onChange={(e) => setColumnMapping((prev) => ({ ...prev, [raw]: e.target.value }))}
+                          disabled={selectedType === "unknown" && (!preview.tableType || preview.tableType === "unknown")}
+                          className={`w-full border rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white disabled:bg-slate-50 disabled:text-slate-400 font-mono transition-colors ${isRequired ? "border-green-400 text-green-800 bg-green-50" : isMapped ? "border-primary/30 text-slate-700" : "border-slate-200 text-slate-400"}`}
+                        >
+                          <option value="">— skip —</option>
+                          {availableFields.map((field) => (
+                            <option key={field} value={field}>
+                              {field}{effectiveDbFields.required.includes(field) ? " ★" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+              {effectiveType && effectiveType !== "unknown" && (
+                <div className="flex items-center gap-4 pt-2 border-t border-slate-50 mt-1 text-xs text-muted-foreground">
+                  <span>Fields marked <span className="font-bold text-amber-600">★</span> are required</span>
+                  <span className="text-green-600 font-semibold">{Object.values(columnMapping).filter(Boolean).length} of {preview.rawHeaders.length}</span>
+                  <span>columns connected</span>
+                </div>
+              )}
             </div>
           </div>
 

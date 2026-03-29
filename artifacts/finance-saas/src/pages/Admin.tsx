@@ -3,8 +3,9 @@ import { useLocation } from "wouter";
 import {
   CheckCircle2, XCircle, Clock, Users, RefreshCw,
   ArrowLeft, Building2, Mail, DollarSign, ChevronDown, ShieldCheck,
-  Database, TrendingUp, Briefcase, Plus, Trash2, Edit2, AlertCircle
+  Database, TrendingUp, Briefcase, Plus, Trash2, Edit2, AlertCircle, Upload
 } from "lucide-react";
+import BulkImport from "./BulkImport";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -28,7 +29,7 @@ interface AccessRequest {
 }
 
 // ===== DATA MANAGEMENT TYPES =====
-type DataTab = "status" | "companies" | "deals" | "snapshots";
+type DataTab = "status" | "companies" | "deals" | "snapshots" | "import";
 
 interface DBStatus {
   companies: number;
@@ -1158,6 +1159,7 @@ export default function Admin() {
                 { key: "companies" as DataTab, label: "Companies", icon: Building2 },
                 { key: "deals" as DataTab, label: "Deals", icon: Briefcase },
                 { key: "snapshots" as DataTab, label: "Financial Snapshots", icon: TrendingUp },
+                { key: "import" as DataTab, label: "Import Data", icon: Upload },
               ]).map(({ key, label, icon: Icon }) => (
                 <button key={key} onClick={() => setDataTab(key)}
                   className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
@@ -1423,6 +1425,12 @@ export default function Admin() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+            {/* ---- IMPORT DATA TAB ---- */}
+            {dataTab === "import" && (
+              <div className="bg-white rounded-b-xl rounded-tr-xl border border-slate-100 p-6">
+                <BulkImport />
               </div>
             )}
           </div>
