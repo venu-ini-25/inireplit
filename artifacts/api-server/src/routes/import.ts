@@ -247,11 +247,11 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
         validRows.push({ row: rows[i], rowNum: i + 2 });
       }
       if (validRows.length > 0) {
-        await db.transaction(async (tx) => {
-          for (const { row, rowNum } of validRows) {
-            const name = r(row, "company_name");
-            const id = `imp_co_${slugify(name)}`;
-            try {
+        try {
+          await db.transaction(async (tx) => {
+            for (const { row } of validRows) {
+              const name = r(row, "company_name");
+              const id = `imp_co_${slugify(name)}`;
               await tx.insert(companies).values({
                 id, name,
                 industry: r(row, "industry") || "",
@@ -270,18 +270,15 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
                 createdAt: now, updatedAt: now,
               }).onConflictDoUpdate({
                 target: companies.id,
-                set: {
-                  revenue: Math.round(parseNum(r(row, "revenue"))),
-                  valuation: Math.round(parseNum(r(row, "valuation"))),
-                  updatedAt: now,
-                },
+                set: { revenue: Math.round(parseNum(r(row, "revenue"))), valuation: Math.round(parseNum(r(row, "valuation"))), updatedAt: now },
               });
-              imported++;
-            } catch (e) {
-              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
-          }
-        });
+          });
+          imported = validRows.length;
+        } catch (e) {
+          rowErrors.push({ row: 0, field: "db", message: `Database error (batch rolled back): ${(e as Error).message}` });
+          skipped += validRows.length;
+        }
       }
     } else if (tableType === "financials") {
       const validRows: { row: RowMap; rowNum: number }[] = [];
@@ -291,11 +288,11 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
         validRows.push({ row: rows[i], rowNum: i + 2 });
       }
       if (validRows.length > 0) {
-        await db.transaction(async (tx) => {
-          for (const { row, rowNum } of validRows) {
-            const period = r(row, "period");
-            const id = `imp_fin_${slugify(period)}`;
-            try {
+        try {
+          await db.transaction(async (tx) => {
+            for (const { row } of validRows) {
+              const period = r(row, "period");
+              const id = `imp_fin_${slugify(period)}`;
               await tx.insert(financialSnapshots).values({
                 id, period,
                 revenue: Math.round(parseNum(r(row, "revenue"))),
@@ -306,17 +303,15 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
                 createdAt: now,
               }).onConflictDoUpdate({
                 target: financialSnapshots.id,
-                set: {
-                  revenue: Math.round(parseNum(r(row, "revenue"))),
-                  ebitda: Math.round(parseNum(r(row, "ebitda"))),
-                },
+                set: { revenue: Math.round(parseNum(r(row, "revenue"))), ebitda: Math.round(parseNum(r(row, "ebitda"))) },
               });
-              imported++;
-            } catch (e) {
-              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
-          }
-        });
+          });
+          imported = validRows.length;
+        } catch (e) {
+          rowErrors.push({ row: 0, field: "db", message: `Database error (batch rolled back): ${(e as Error).message}` });
+          skipped += validRows.length;
+        }
       }
     } else if (tableType === "deals") {
       const validRows: { row: RowMap; rowNum: number }[] = [];
@@ -326,11 +321,11 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
         validRows.push({ row: rows[i], rowNum: i + 2 });
       }
       if (validRows.length > 0) {
-        await db.transaction(async (tx) => {
-          for (const { row, rowNum } of validRows) {
-            const companyName = r(row, "company_name");
-            const id = `imp_deal_${slugify(companyName)}`;
-            try {
+        try {
+          await db.transaction(async (tx) => {
+            for (const { row } of validRows) {
+              const companyName = r(row, "company_name");
+              const id = `imp_deal_${slugify(companyName)}`;
               await tx.insert(deals).values({
                 id, companyName,
                 dealType: r(row, "deal_type") || "investment",
@@ -346,17 +341,15 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
                 createdAt: now,
               }).onConflictDoUpdate({
                 target: deals.id,
-                set: {
-                  dealSize: Math.round(parseNum(r(row, "deal_size"))),
-                  updatedAt: now,
-                },
+                set: { dealSize: Math.round(parseNum(r(row, "deal_size"))), updatedAt: now },
               });
-              imported++;
-            } catch (e) {
-              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
-          }
-        });
+          });
+          imported = validRows.length;
+        } catch (e) {
+          rowErrors.push({ row: 0, field: "db", message: `Database error (batch rolled back): ${(e as Error).message}` });
+          skipped += validRows.length;
+        }
       }
     } else if (tableType === "metrics") {
       const validRows: { row: RowMap; rowNum: number }[] = [];
@@ -366,13 +359,13 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
         validRows.push({ row: rows[i], rowNum: i + 2 });
       }
       if (validRows.length > 0) {
-        await db.transaction(async (tx) => {
-          for (const { row, rowNum } of validRows) {
-            const metricKey = r(row, "metric_key");
-            const periodLabel = r(row, "period") || "";
-            const category = r(row, "category") || "import";
-            const id = `imp_metric_${slugify(category)}_${slugify(metricKey)}_${slugify(periodLabel)}`;
-            try {
+        try {
+          await db.transaction(async (tx) => {
+            for (const { row } of validRows) {
+              const metricKey = r(row, "metric_key");
+              const periodLabel = r(row, "period") || "";
+              const category = r(row, "category") || "import";
+              const id = `imp_metric_${slugify(category)}_${slugify(metricKey)}_${slugify(periodLabel)}`;
               await tx.insert(metricsSnapshots).values({
                 id, category, metricKey,
                 metricLabel: r(row, "metric_label") || metricKey,
@@ -385,12 +378,13 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
                 target: metricsSnapshots.id,
                 set: { value: parseNum(r(row, "value")), updatedAt: now },
               });
-              imported++;
-            } catch (e) {
-              rowErrors.push({ row: rowNum, field: "db", message: (e as Error).message });
             }
-          }
-        });
+          });
+          imported = validRows.length;
+        } catch (e) {
+          rowErrors.push({ row: 0, field: "db", message: `Database error (batch rolled back): ${(e as Error).message}` });
+          skipped += validRows.length;
+        }
       }
     }
 
