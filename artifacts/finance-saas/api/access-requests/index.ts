@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { randomUUID } from "crypto";
-import { getPool, ensureTable, rowToRequest } from "../_db";
+import { getPool, ensureTable, rowToRequest } from "../_db.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
