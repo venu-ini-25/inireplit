@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useLocation } from "wouter";
 import {
   CheckCircle2, XCircle, Clock, Users, RefreshCw,
@@ -96,11 +96,12 @@ export default function Admin() {
   const act = async (id: string, action: "approve" | "deny") => {
     setActing(id);
     try {
-      const res = await fetch(`${API_BASE}/api/access-requests/${id}/${action}`, { method: "PATCH" });
+      const res = await fetch(`${API_BASE}/api/access-requests/${id}/${action}`, { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json() as AccessRequest;
       setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
     } catch (e) {
-      console.error(e);
+      console.error("Action failed:", e);
     } finally {
       setActing(null);
     }
@@ -256,8 +257,8 @@ export default function Admin() {
                     </thead>
                     <tbody>
                       {filtered.map((req) => (
-                        <>
-                          <tr key={req.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                        <Fragment key={req.id}>
+                          <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer"
                             onClick={() => setExpanded((e) => (e === req.id ? null : req.id))}>
                             <td className="px-5 py-3.5">
                               <div className="flex items-center gap-3">
@@ -307,7 +308,7 @@ export default function Admin() {
                             </td>
                           </tr>
                           {expanded === req.id && (
-                            <tr key={`${req.id}-detail`} className="border-b border-slate-100 bg-blue-50/30">
+                            <tr className="border-b border-slate-100 bg-blue-50/30">
                               <td colSpan={5} className="px-5 py-4">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                                   <div>
@@ -336,7 +337,7 @@ export default function Admin() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>

@@ -79,20 +79,42 @@ router.get("/access-requests/status/:email", async (req, res) => {
   return res.json({ status: rows[0].status, id: rows[0].id });
 });
 
-router.patch("/access-requests/:id/approve", async (req, res) => {
+async function approveRequest(id: string) {
   const { rows } = await pool.query(
     "UPDATE access_requests SET status = 'approved', reviewed_at = NOW() WHERE id = $1 RETURNING *",
-    [req.params.id]
+    [id]
   );
+  return rows;
+}
+
+async function denyRequest(id: string) {
+  const { rows } = await pool.query(
+    "UPDATE access_requests SET status = 'denied', reviewed_at = NOW() WHERE id = $1 RETURNING *",
+    [id]
+  );
+  return rows;
+}
+
+router.patch("/access-requests/:id/approve", async (req, res) => {
+  const rows = await approveRequest(req.params.id);
+  if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+  return res.json(rowToRequest(rows[0]));
+});
+
+router.post("/access-requests/:id/approve", async (req, res) => {
+  const rows = await approveRequest(req.params.id);
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
 
 router.patch("/access-requests/:id/deny", async (req, res) => {
-  const { rows } = await pool.query(
-    "UPDATE access_requests SET status = 'denied', reviewed_at = NOW() WHERE id = $1 RETURNING *",
-    [req.params.id]
-  );
+  const rows = await denyRequest(req.params.id);
+  if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+  return res.json(rowToRequest(rows[0]));
+});
+
+router.post("/access-requests/:id/deny", async (req, res) => {
+  const rows = await denyRequest(req.params.id);
   if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
   return res.json(rowToRequest(rows[0]));
 });
