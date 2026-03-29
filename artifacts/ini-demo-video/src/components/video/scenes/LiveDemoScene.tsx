@@ -41,73 +41,73 @@ const DEMO_STEPS: DemoStep[] = [
 
   // ── P&L ──────────────────────────────────────────────────────
   { time: 5200,  cursorX: NAV_X, cursorY: 12.4 },
-  { time: 5800,  cursorX: NAV_X, cursorY: 12.4, navigateTo: '/finance/pl',       isClick: true, callout: null },
+  { time: 5800,  cursorX: NAV_X, cursorY: 12.4, navigateTo: '/finance/pl',       isClick: true, callout: null, audioId: 'pl' },
   { time: 7800,  cursorX: 38,    cursorY: 40,   callout: 'Quarterly revenue, costs, and margin trends — across every line item' },
   { time: 10500, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Cash Flow ─────────────────────────────────────────────────
   { time: 11200, cursorX: NAV_X, cursorY: 15.1 },
-  { time: 11800, cursorX: NAV_X, cursorY: 15.1, navigateTo: '/finance/cashflow', isClick: true },
+  { time: 11800, cursorX: NAV_X, cursorY: 15.1, navigateTo: '/finance/cashflow', isClick: true, audioId: 'cashflow' },
   { time: 13800, cursorX: 38,    cursorY: 40,   callout: 'Monthly inflows vs outflows — with a full waterfall breakdown' },
   { time: 16200, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Expenses ─────────────────────────────────────────────────
   { time: 16800, cursorX: NAV_X, cursorY: 17.8 },
-  { time: 17400, cursorX: NAV_X, cursorY: 17.8, navigateTo: '/finance/expenses', isClick: true },
+  { time: 17400, cursorX: NAV_X, cursorY: 17.8, navigateTo: '/finance/expenses', isClick: true, audioId: 'expenses' },
   { time: 19400, cursorX: 38,    cursorY: 40,   callout: 'Spending by category and vendor — spot anomalies instantly' },
   { time: 21800, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Operations ───────────────────────────────────────────────
   { time: 22400, cursorX: NAV_X, cursorY: 20.5 },
-  { time: 23000, cursorX: NAV_X, cursorY: 20.5, navigateTo: '/operations',       isClick: true },
+  { time: 23000, cursorX: NAV_X, cursorY: 20.5, navigateTo: '/operations',       isClick: true, audioId: 'operations' },
   { time: 25000, cursorX: 38,    cursorY: 40,   callout: 'Delivery, efficiency, and quality KPIs — tracked against targets in real time' },
   { time: 27500, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Product ──────────────────────────────────────────────────
   { time: 28000, cursorX: NAV_X, cursorY: 23.2 },
-  { time: 28600, cursorX: NAV_X, cursorY: 23.2, navigateTo: '/product',          isClick: true },
+  { time: 28600, cursorX: NAV_X, cursorY: 23.2, navigateTo: '/product',          isClick: true, audioId: 'product' },
   { time: 30600, cursorX: 38,    cursorY: 40,   callout: 'Feature adoption, usage trends, and release velocity — all in one view' },
   { time: 33200, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Marketing ────────────────────────────────────────────────
   { time: 33600, cursorX: NAV_X, cursorY: 25.9 },
-  { time: 34200, cursorX: NAV_X, cursorY: 25.9, navigateTo: '/marketing',        isClick: true },
+  { time: 34200, cursorX: NAV_X, cursorY: 25.9, navigateTo: '/marketing',        isClick: true, audioId: 'marketing' },
   { time: 36200, cursorX: 38,    cursorY: 40,   callout: 'Lead gen, campaign performance, and cost per acquisition by channel' },
   { time: 38600, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Sales ────────────────────────────────────────────────────
   { time: 39200, cursorX: NAV_X, cursorY: 28.6 },
-  { time: 39800, cursorX: NAV_X, cursorY: 28.6, navigateTo: '/sales',            isClick: true },
+  { time: 39800, cursorX: NAV_X, cursorY: 28.6, navigateTo: '/sales',            isClick: true, audioId: 'sales' },
   { time: 41800, cursorX: 38,    cursorY: 40,   callout: 'Pipeline, win rates, deal size, and revenue by stage and rep' },
   { time: 44200, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── People ───────────────────────────────────────────────────
   { time: 44800, cursorX: NAV_X, cursorY: 31.3 },
-  { time: 45400, cursorX: NAV_X, cursorY: 31.3, navigateTo: '/people',           isClick: true },
+  { time: 45400, cursorX: NAV_X, cursorY: 31.3, navigateTo: '/people',           isClick: true, audioId: 'people' },
   { time: 47400, cursorX: 38,    cursorY: 40,   callout: 'Headcount by department, hiring velocity, and team growth trends' },
   { time: 49800, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Portfolio ────────────────────────────────────────────────
   { time: 50400, cursorX: NAV_X, cursorY: 35.1 },
-  { time: 51000, cursorX: NAV_X, cursorY: 35.1, navigateTo: '/portfolio',        isClick: true },
+  { time: 51000, cursorX: NAV_X, cursorY: 35.1, navigateTo: '/portfolio',        isClick: true, audioId: 'portfolio' },
   { time: 53000, cursorX: 50,    cursorY: 22,   callout: 'Fund-level metrics at a glance — then drill into any portfolio company' },
   { time: 55500, cursorX: 65,    cursorY: 55,   callout: null },
 
   // ── M&A ──────────────────────────────────────────────────────
   { time: 56200, cursorX: NAV_X, cursorY: 37.8 },
-  { time: 56800, cursorX: NAV_X, cursorY: 37.8, navigateTo: '/ma',               isClick: true },
+  { time: 56800, cursorX: NAV_X, cursorY: 37.8, navigateTo: '/ma',               isClick: true, audioId: 'ma' },
   { time: 58800, cursorX: 30,    cursorY: 42,   callout: 'Kanban pipeline — every deal tracked from sourcing through to close' },
   { time: 61200, cursorX: 65,    cursorY: 42,   callout: null },
 
   // ── Reports ──────────────────────────────────────────────────
   { time: 61800, cursorX: NAV_X, cursorY: 40.5 },
-  { time: 62400, cursorX: NAV_X, cursorY: 40.5, navigateTo: '/reports',          isClick: true },
+  { time: 62400, cursorX: NAV_X, cursorY: 40.5, navigateTo: '/reports',          isClick: true, audioId: 'reports' },
   { time: 64400, cursorX: 38,    cursorY: 40,   callout: 'Peer benchmarks and investor-ready report exports in one click' },
   { time: 66600, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Professional Services ────────────────────────────────────
   { time: 67200, cursorX: NAV_X, cursorY: 43.2 },
-  { time: 67800, cursorX: NAV_X, cursorY: 43.2, navigateTo: '/services',         isClick: true },
+  { time: 67800, cursorX: NAV_X, cursorY: 43.2, navigateTo: '/services',         isClick: true, audioId: 'services' },
   { time: 69800, cursorX: 38,    cursorY: 40,   callout: 'Active client engagements, project milestones, and revenue per engagement' },
   { time: 72200, cursorX: 65,    cursorY: 40,   callout: null },
 
@@ -145,35 +145,43 @@ export function LiveDemoScene() {
   const [urlLabel, setUrlLabel]               = useState('inventninvest.com/app');
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  /** Play a narration MP3 with smooth 700ms crossfade. Silently ignores autoplay blocks. */
+  /**
+   * Play a narration clip. If a previous clip is playing, fade it out over
+   * 400ms first, then start the new clip at full volume — no simultaneous
+   * overlap so there's never two voices at once.
+   */
   const playAudio = useCallback((id: string) => {
-    const FADE_MS  = 700;
-    const STEPS    = 14;
-    const INTERVAL = FADE_MS / STEPS;
+    const FADE_OUT_MS = 400;
+    const STEPS       = 8;
+    const INTERVAL    = FADE_OUT_MS / STEPS;
 
     if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
 
     const prev = audioRef.current;
-    const next = new Audio(`/ini-demo-video/audio/${id}.mp3`);
-    next.volume = 0;
-    audioRef.current = next;
 
-    next.play()
-      .then(() => {
-        let step = 0;
-        fadeTimerRef.current = setInterval(() => {
-          step++;
-          const t = step / STEPS;
-          if (prev && !prev.ended && !prev.paused) prev.volume = Math.max(0, 1 - t);
-          next.volume = Math.min(1, t);
-          if (step >= STEPS) {
-            if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-            if (prev) { prev.pause(); prev.src = ''; }
-            next.volume = 1;
-          }
-        }, INTERVAL);
-      })
-      .catch(() => { /* autoplay blocked — demo visuals still run */ });
+    const startClip = () => {
+      const next = new Audio(`/ini-demo-video/audio/${id}.mp3`);
+      next.volume = 1;
+      audioRef.current = next;
+      next.play().catch(() => { /* autoplay blocked — visuals still run */ });
+    };
+
+    if (prev && !prev.ended && !prev.paused) {
+      // Fade the previous clip out, then start the next one
+      let step = 0;
+      fadeTimerRef.current = setInterval(() => {
+        step++;
+        prev.volume = Math.max(0, 1 - step / STEPS);
+        if (step >= STEPS) {
+          if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
+          prev.pause();
+          prev.src = '';
+          startClip();
+        }
+      }, INTERVAL);
+    } else {
+      startClip();
+    }
   }, []);
 
   const navigate = useCallback((path: string) => {
