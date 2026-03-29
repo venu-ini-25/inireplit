@@ -138,7 +138,7 @@ export const importLogs = pgTable("import_logs", {
   importedRows: integer("imported_rows").notNull().default(0),
   skippedRows: integer("skipped_rows").notNull().default(0),
   errorRows: integer("error_rows").notNull().default(0),
-  errors: jsonb("errors").$type<{ row: number; message: string }[]>().default([]),
+  errors: jsonb("errors").$type<{ row: number; field?: string; message: string }[]>().default([]),
   columnMapping: jsonb("column_mapping").$type<Record<string, string>>().default({}),
   importedAt: timestamp("imported_at").defaultNow(),
 });

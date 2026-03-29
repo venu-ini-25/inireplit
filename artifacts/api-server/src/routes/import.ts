@@ -394,6 +394,7 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
       }
     }
 
+    const errored = rowErrors.length;
     const logId = `imp_${randomUUID()}`;
     await db.insert(importLogs).values({
       id: logId,
@@ -402,13 +403,13 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
       totalRows: rows.length,
       importedRows: imported,
       skippedRows: skipped,
-      errorRows: rowErrors.length,
-      errors: rowErrors.slice(0, 100) as object[],
+      errorRows: errored,
+      errors: rowErrors.slice(0, 100),
       columnMapping: mapping,
       importedAt: now,
     });
 
-    res.json({ tableType, imported, skipped, errors: rowErrors, total: rows.length, logId });
+    res.json({ tableType, imported, skipped, errored, errors: rowErrors, total: rows.length, logId });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }

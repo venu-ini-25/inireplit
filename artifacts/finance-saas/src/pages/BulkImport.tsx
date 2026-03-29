@@ -36,6 +36,7 @@ interface ImportResult {
   tableType: TableType;
   imported: number;
   skipped: number;
+  errored: number;
   errors: RowError[];
   total: number;
 }
@@ -539,7 +540,7 @@ export default function BulkImport() {
                 Data stored in: <span className="font-semibold text-slate-700">{TABLE_LABELS[result.tableType]}</span>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
+            <div className="grid grid-cols-4 gap-4 max-w-sm mx-auto">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">{result.imported}</div>
                 <div className="text-xs text-muted-foreground">Imported</div>
@@ -549,8 +550,12 @@ export default function BulkImport() {
                 <div className="text-xs text-muted-foreground">Skipped</div>
               </div>
               <div className="text-center">
+                <div className={`text-2xl font-bold ${result.errored > 0 ? "text-red-500" : "text-slate-300"}`}>{result.errored}</div>
+                <div className="text-xs text-muted-foreground">Errors</div>
+              </div>
+              <div className="text-center">
                 <div className="text-2xl font-bold text-slate-700">{result.total}</div>
-                <div className="text-xs text-muted-foreground">Total rows</div>
+                <div className="text-xs text-muted-foreground">Total</div>
               </div>
             </div>
           </div>
