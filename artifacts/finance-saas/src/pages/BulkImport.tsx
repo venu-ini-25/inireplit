@@ -3,7 +3,7 @@ import { useAuth } from "@clerk/clerk-react";
 import {
   Upload, FileText, CheckCircle2, XCircle, AlertCircle,
   Loader2, Download, RefreshCw, ChevronRight, ArrowRight,
-  History, Trash2, Info,
+  History, Info,
 } from "lucide-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -11,16 +11,23 @@ const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 type TableType = "companies" | "deals" | "financials" | "metrics" | "unknown";
 type ImportStep = "upload" | "mapping" | "result";
 
-interface DbFields { required: string[]; all: string[] }
+interface DbFieldsMap {
+  companies: { required: string[]; all: string[] };
+  deals: { required: string[]; all: string[] };
+  financials: { required: string[]; all: string[] };
+  metrics: { required: string[]; all: string[] };
+}
 
 interface PreviewResult {
   rawHeaders: string[];
   headers: string[];
   tableType: TableType;
+  detectedType: TableType;
   rowCount: number;
   preview: Record<string, string>[];
   suggestedMapping: Record<string, string>;
-  dbFields: DbFields;
+  dbFields: { required: string[]; all: string[] };
+  allDbFields: DbFieldsMap;
 }
 
 interface RowError { row: number; message: string }
@@ -44,21 +51,23 @@ interface ImportLogEntry {
   importedAt: string;
 }
 
-const TABLE_LABELS: Record<TableType, string> = {
+const TABLE_LABELS: Record<string, string> = {
   companies: "Portfolio Companies",
   deals: "Deals / M&A Pipeline",
   financials: "Financial Snapshots",
   metrics: "KPI Metrics",
-  unknown: "Unknown — map columns below",
+  unknown: "— Select a type —",
 };
 
-const TABLE_COLORS: Record<TableType, string> = {
+const TABLE_COLORS: Record<string, string> = {
   companies: "text-blue-700 bg-blue-50 border-blue-200",
   deals: "text-violet-700 bg-violet-50 border-violet-200",
   financials: "text-green-700 bg-green-50 border-green-200",
   metrics: "text-amber-700 bg-amber-50 border-amber-200",
-  unknown: "text-slate-600 bg-slate-50 border-slate-200",
+  unknown: "text-slate-500 bg-slate-50 border-slate-200",
 };
+
+const KNOWN_TYPES: Exclude<TableType, "unknown">[] = ["companies", "deals", "financials", "metrics"];
 
 const TEMPLATE_HEADERS: Record<Exclude<TableType, "unknown">, string[]> = {
   companies: ["company_name", "industry", "stage", "revenue", "valuation", "arr", "moic", "irr", "ownership", "location", "status", "founded"],
@@ -108,6 +117,7 @@ export default function BulkImport() {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [selectedType, setSelectedType] = useState<TableType>("unknown");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [history, setHistory] = useState<ImportLogEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -134,7 +144,11 @@ export default function BulkImport() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
-  const runPreview = useCallback(async (f: File, mapping: Record<string, string> = {}) => {
+  const runPreview = useCallback(async (
+    f: File,
+    mapping: Record<string, string> = {},
+    tableType: TableType = "unknown"
+  ) => {
     setAnalyzing(true);
     setError(null);
     try {
@@ -142,11 +156,18 @@ export default function BulkImport() {
       const fd = new FormData();
       fd.append("file", f);
       if (Object.keys(mapping).length) fd.append("columnMapping", JSON.stringify(mapping));
+      if (tableType !== "unknown") fd.append("tableType", tableType);
       const resp = await fetch(`${API_BASE}/api/import/preview`, { method: "POST", headers, body: fd });
       const data = await resp.json();
       if (!resp.ok) { setError(data.error ?? "Preview failed"); return; }
-      setPreview(data as PreviewResult);
-      setColumnMapping(data.suggestedMapping ?? {});
+      const result = data as PreviewResult;
+      setPreview(result);
+      if (!Object.keys(mapping).length) {
+        setColumnMapping(result.suggestedMapping ?? {});
+      }
+      if (result.tableType !== "unknown") {
+        setSelectedType(result.tableType);
+      }
       setStep("mapping");
     } catch (err) {
       setError((err as Error).message);
@@ -161,6 +182,7 @@ export default function BulkImport() {
     setPreview(null);
     setResult(null);
     setColumnMapping({});
+    setSelectedType("unknown");
     runPreview(f);
   }, [runPreview]);
 
@@ -171,9 +193,17 @@ export default function BulkImport() {
     if (f) handleFile(f);
   }, [handleFile]);
 
+  const handleTypeChange = useCallback((newType: TableType) => {
+    setSelectedType(newType);
+    if (file && newType !== "unknown") {
+      setColumnMapping({});
+      runPreview(file, {}, newType);
+    }
+  }, [file, runPreview]);
+
   const reAnalyze = useCallback(() => {
-    if (file) runPreview(file, columnMapping);
-  }, [file, columnMapping, runPreview]);
+    if (file) runPreview(file, columnMapping, selectedType);
+  }, [file, columnMapping, selectedType, runPreview]);
 
   const runImport = useCallback(async () => {
     if (!file) return;
@@ -184,6 +214,7 @@ export default function BulkImport() {
       const fd = new FormData();
       fd.append("file", file);
       if (Object.keys(columnMapping).length) fd.append("columnMapping", JSON.stringify(columnMapping));
+      if (selectedType !== "unknown") fd.append("tableType", selectedType);
       const resp = await fetch(`${API_BASE}/api/import/commit`, { method: "POST", headers, body: fd });
       const data = await resp.json();
       if (!resp.ok) { setError(data.error ?? "Import failed"); return; }
@@ -195,7 +226,7 @@ export default function BulkImport() {
     } finally {
       setImporting(false);
     }
-  }, [file, columnMapping, getAuthHeader, loadHistory]);
+  }, [file, columnMapping, selectedType, getAuthHeader, loadHistory]);
 
   const reset = () => {
     setStep("upload");
@@ -204,22 +235,28 @@ export default function BulkImport() {
     setResult(null);
     setError(null);
     setColumnMapping({});
+    setSelectedType("unknown");
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const effectiveType = selectedType !== "unknown" ? selectedType : preview?.tableType;
+  const effectiveDbFields = effectiveType && effectiveType !== "unknown"
+    ? (preview?.allDbFields?.[effectiveType] ?? { required: [], all: [] })
+    : { required: [], all: [] };
+
+  const allRequiredMapped = effectiveType && effectiveType !== "unknown"
+    ? effectiveDbFields.required.every((req) => Object.values(columnMapping).includes(req))
+    : false;
+
   const stepIdx = step === "upload" ? 0 : step === "mapping" ? 1 : 2;
   const STEPS = ["Upload File", "Review & Map", "Complete"];
-
-  const allRequiredMapped = preview && preview.tableType !== "unknown"
-    ? preview.dbFields.required.every((req) => Object.values(columnMapping).includes(req))
-    : preview?.tableType !== "unknown";
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Bulk Import</h1>
-          <p className="text-sm text-muted-foreground mt-1">Upload CSV or Excel files to bulk-load portfolio companies, deals, financials, or KPI metrics.</p>
+          <p className="text-sm text-muted-foreground mt-1">Upload CSV or Excel files to bulk-load portfolio companies, deals, financials, or KPI metrics. Max 10,000 rows per file.</p>
         </div>
         <button
           onClick={() => { setShowHistory(!showHistory); loadHistory(); }}
@@ -258,19 +295,19 @@ export default function BulkImport() {
                   <tr key={log.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
                     <td className="px-4 py-2.5 text-slate-700 font-medium max-w-[180px] truncate">{log.fileName}</td>
                     <td className="px-4 py-2.5 hidden sm:table-cell">
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${TABLE_COLORS[log.tableType as TableType] ?? "text-slate-600 bg-slate-50 border-slate-200"}`}>
-                        {TABLE_LABELS[log.tableType as TableType] ?? log.tableType}
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${TABLE_COLORS[log.tableType] ?? "text-slate-600 bg-slate-50 border-slate-200"}`}>
+                        {TABLE_LABELS[log.tableType] ?? log.tableType}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-slate-700">
-                      <span className="text-success font-semibold">{log.importedRows}</span>
+                      <span className="text-green-600 font-semibold">{log.importedRows}</span>
                       <span className="text-muted-foreground"> / {log.totalRows}</span>
                     </td>
                     <td className="px-4 py-2.5 hidden md:table-cell">
                       {log.errorRows > 0 ? (
                         <span className="text-red-500 font-semibold">{log.errorRows}</span>
                       ) : (
-                        <span className="text-success">—</span>
+                        <span className="text-green-600">—</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{fmtDate(log.importedAt)}</td>
@@ -326,7 +363,7 @@ export default function BulkImport() {
             <div className="text-sm font-semibold text-slate-700 mb-1">Download CSV Templates</div>
             <p className="text-xs text-muted-foreground mb-3">Each template includes a sample row to show the expected format.</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {(["companies", "deals", "financials", "metrics"] as const).map((type) => (
+              {KNOWN_TYPES.map((type) => (
                 <button key={type} onClick={(e) => { e.stopPropagation(); downloadTemplate(type); }}
                   className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-colors text-center group">
                   <Download className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
@@ -337,8 +374,8 @@ export default function BulkImport() {
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
-            <div className="font-semibold mb-1 flex items-center gap-1.5"><Info className="w-4 h-4" /> Auto-detection</div>
-            Column headers are matched automatically based on name similarity. After upload you can review and adjust the mapping before committing. Required fields must be mapped to proceed.
+            <div className="font-semibold mb-1 flex items-center gap-1.5"><Info className="w-4 h-4" /> How it works</div>
+            Upload a file and the system auto-detects the data type from your column headers. You can then review and adjust the column mapping before committing the import. Required fields must be mapped to proceed.
           </div>
         </div>
       )}
@@ -355,19 +392,30 @@ export default function BulkImport() {
           </div>
 
           <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold text-slate-800 text-sm">Detected Data Type</div>
+            <div className="font-semibold text-slate-800 text-sm">Data Type</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {KNOWN_TYPES.map((type) => (
+                <button
+                  key={type}
+                  onClick={() => handleTypeChange(type)}
+                  className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${selectedType === type
+                    ? "border-primary bg-primary/5 text-primary ring-1 ring-primary/30"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"}`}
+                >
+                  {TABLE_LABELS[type]}
+                </button>
+              ))}
             </div>
-            <div className="flex flex-wrap gap-3 items-center">
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${TABLE_COLORS[preview.tableType]}`}>
-                {TABLE_LABELS[preview.tableType]}
-              </span>
-              <span className="text-xs text-muted-foreground">{preview.rowCount.toLocaleString()} rows · {preview.rawHeaders.length} columns</span>
-            </div>
-            {preview.tableType === "unknown" && (
+            {preview.detectedType !== "unknown" && preview.detectedType !== selectedType && (
+              <p className="text-xs text-amber-600 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                Auto-detected as <span className="font-semibold">{TABLE_LABELS[preview.detectedType]}</span>. You've changed it — mapping options updated.
+              </p>
+            )}
+            {selectedType === "unknown" && (
               <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
                 <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                Table type could not be auto-detected. Map your columns to known fields below so the system can route your data correctly.
+                Please select a data type above so the import knows where to store your data.
               </div>
             )}
           </div>
@@ -380,8 +428,11 @@ export default function BulkImport() {
             <div className="p-4 space-y-2">
               {preview.rawHeaders.map((raw) => {
                 const mapped = columnMapping[raw] ?? "";
-                const isRequired = preview.tableType !== "unknown" && preview.dbFields.required.some((req) => req === mapped);
+                const isRequired = effectiveType && effectiveType !== "unknown" && effectiveDbFields.required.some((req) => req === mapped);
                 const isMapped = Boolean(mapped);
+                const availableFields = effectiveType && effectiveType !== "unknown"
+                  ? (preview.allDbFields?.[effectiveType]?.all ?? [])
+                  : [];
                 return (
                   <div key={raw} className="flex items-center gap-3 py-1.5">
                     <div className={`flex-1 min-w-0 px-3 py-1.5 rounded-lg border text-xs font-mono truncate ${isMapped ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-100 bg-white text-slate-400"}`}>
@@ -392,22 +443,23 @@ export default function BulkImport() {
                       <select
                         value={mapped}
                         onChange={(e) => setColumnMapping((prev) => ({ ...prev, [raw]: e.target.value }))}
-                        className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white ${isRequired ? "border-green-300 text-green-800" : isMapped ? "border-slate-200 text-slate-700" : "border-slate-100 text-slate-400"}`}
+                        disabled={selectedType === "unknown" && (!preview.tableType || preview.tableType === "unknown")}
+                        className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white disabled:bg-slate-50 disabled:text-slate-400 ${isRequired ? "border-green-300 text-green-800" : isMapped ? "border-slate-200 text-slate-700" : "border-slate-100 text-slate-400"}`}
                       >
                         <option value="">— skip this column —</option>
-                        {preview.tableType !== "unknown" && preview.dbFields.all.map((field) => (
+                        {availableFields.map((field) => (
                           <option key={field} value={field}>
-                            {field}{preview.dbFields.required.includes(field) ? " *" : ""}
+                            {field}{effectiveDbFields.required.includes(field) ? " *" : ""}
                           </option>
                         ))}
                       </select>
                     </div>
-                    {isRequired && <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />}
+                    {isRequired && <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />}
                   </div>
                 );
               })}
-              {preview.tableType !== "unknown" && (
-                <p className="text-xs text-muted-foreground pt-1">Fields marked with <span className="font-semibold text-slate-600">*</span> are required. <span className="text-success font-medium">{Object.values(columnMapping).filter(Boolean).length}</span> of {preview.rawHeaders.length} columns mapped.</p>
+              {effectiveType && effectiveType !== "unknown" && (
+                <p className="text-xs text-muted-foreground pt-1">Fields marked with <span className="font-semibold text-slate-600">*</span> are required. <span className="text-green-600 font-semibold">{Object.values(columnMapping).filter(Boolean).length}</span> of {preview.rawHeaders.length} columns mapped.</p>
               )}
             </div>
             <div className="border-t border-slate-50 px-4 py-2 flex justify-end">
@@ -450,10 +502,10 @@ export default function BulkImport() {
             </div>
           )}
 
-          {!allRequiredMapped && preview.tableType !== "unknown" && (
+          {effectiveType && effectiveType !== "unknown" && !allRequiredMapped && (
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800">
               <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-              Required field(s) not yet mapped: <span className="font-semibold ml-1">{preview.dbFields.required.filter(req => !Object.values(columnMapping).includes(req)).join(", ")}</span>
+              Required field(s) not yet mapped: <span className="font-semibold ml-1">{effectiveDbFields.required.filter(req => !Object.values(columnMapping).includes(req)).join(", ")}</span>
             </div>
           )}
 
@@ -461,7 +513,7 @@ export default function BulkImport() {
             <button onClick={reset} className="text-sm text-slate-500 hover:text-slate-700 transition-colors">← Change file</button>
             <button
               onClick={runImport}
-              disabled={importing || preview.tableType === "unknown" || !allRequiredMapped}
+              disabled={importing || selectedType === "unknown" || !allRequiredMapped}
               className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -474,23 +526,22 @@ export default function BulkImport() {
       {step === "result" && result && (
         <div className="space-y-5">
           <div className="bg-white rounded-xl border border-slate-100 p-6 text-center space-y-4">
-            {result.errors.length > 0 && result.imported === 0 ? (
+            {result.imported === 0 ? (
               <XCircle className="w-12 h-12 text-red-400 mx-auto" />
             ) : (
-              <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
+              <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto" />
             )}
             <div>
               <div className="text-xl font-bold text-slate-900">
                 {result.imported === 0 ? "Import Failed" : "Import Complete"}
               </div>
               <div className="text-sm text-muted-foreground mt-1">
-                Data target: <span className="font-semibold text-slate-700">{TABLE_LABELS[result.tableType]}</span>
+                Data stored in: <span className="font-semibold text-slate-700">{TABLE_LABELS[result.tableType]}</span>
               </div>
             </div>
-
             <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
               <div className="text-center">
-                <div className="text-2xl font-bold text-success">{result.imported}</div>
+                <div className="text-2xl font-bold text-green-600">{result.imported}</div>
                 <div className="text-xs text-muted-foreground">Imported</div>
               </div>
               <div className="text-center">
@@ -509,7 +560,7 @@ export default function BulkImport() {
               <div className="border-b border-red-100 bg-red-50 px-4 py-3 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500" />
                 <span className="text-xs font-bold text-red-700 uppercase tracking-wide">Row Errors ({result.errors.length})</span>
-                <span className="text-xs text-red-500 ml-1">Fix and re-import to capture these rows</span>
+                <span className="text-xs text-red-500 ml-1">Fix these rows and re-import to capture them</span>
               </div>
               <div className="max-h-48 overflow-y-auto">
                 <table className="w-full text-xs">
