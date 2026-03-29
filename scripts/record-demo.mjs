@@ -33,27 +33,27 @@ fs.mkdirSync(TEMP_DIR, { recursive: true });
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // ── Full video duration ───────────────────────────────────────────────────────
-// Intro 5s + Demo 78s + Outro 6s = 89s
-const VIDEO_DURATION_MS = 89_000;
+// Intro 5s + Demo 196s + Outro 6s = 207s
+const VIDEO_DURATION_MS = 207_000;
 
 // ── Audio timeline ────────────────────────────────────────────────────────────
-// Each clip's start time in ms from the VERY BEGINNING of the video.
-// Intro = 5000ms; LiveDemoScene adds each step's "time" on top of that.
+// Absolute start times = DEMO_STEPS[step].time + 5000ms (intro offset)
+// All timestamps verified against LiveDemoScene.tsx DEMO_STEPS.
 const AUDIO_CLIPS = [
-  { id: 'welcome',    startMs: 5_000  },
-  { id: 'pl',         startMs: 10_800 },
-  { id: 'cashflow',   startMs: 16_800 },
-  { id: 'expenses',   startMs: 22_400 },
-  { id: 'operations', startMs: 28_000 },
-  { id: 'product',    startMs: 33_600 },
-  { id: 'marketing',  startMs: 39_200 },
-  { id: 'sales',      startMs: 44_800 },
-  { id: 'people',     startMs: 50_400 },
-  { id: 'portfolio',  startMs: 56_000 },
-  { id: 'ma',         startMs: 61_800 },
-  { id: 'reports',    startMs: 67_400 },
-  { id: 'services',   startMs: 72_800 },
-  { id: 'outro',      startMs: 78_400 },
+  { id: 'welcome',    startMs:   5_000 },  // demo t=0      + 5000
+  { id: 'pl',         startMs:  23_856 },  // demo t=18856  + 5000
+  { id: 'cashflow',   startMs:  37_072 },  // demo t=32072  + 5000
+  { id: 'expenses',   startMs:  53_432 },  // demo t=48432  + 5000
+  { id: 'operations', startMs:  66_096 },  // demo t=61096  + 5000
+  { id: 'product',    startMs:  78_904 },  // demo t=73904  + 5000
+  { id: 'marketing',  startMs:  91_904 },  // demo t=86904  + 5000
+  { id: 'sales',      startMs: 104_208 },  // demo t=99208  + 5000
+  { id: 'people',     startMs: 117_472 },  // demo t=112472 + 5000
+  { id: 'portfolio',  startMs: 129_320 },  // demo t=124320 + 5000
+  { id: 'ma',         startMs: 145_440 },  // demo t=140440 + 5000
+  { id: 'reports',    startMs: 160_792 },  // demo t=155792 + 5000
+  { id: 'services',   startMs: 175_952 },  // demo t=170952 + 5000
+  { id: 'outro',      startMs: 187_272 },  // demo t=182272 + 5000
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,11 +78,32 @@ async function main() {
   const context = await browser.newContext({
     viewport:     { width: 1920, height: 1080 },
     recordVideo:  { dir: TEMP_DIR, size: { width: 1920, height: 1080 } },
+    // Pass screenshot/mock mode so finance-saas iframe shows data without auth
+    extraHTTPHeaders: {
+      'X-Screenshot-Mode': 'true',
+    },
   });
 
+  // Set VITE_USE_MOCK cookie so the finance-saas iframe uses mock data
+  await context.addCookies([
+    { name: 'use_mock', value: 'true', domain: 'localhost', path: '/' },
+  ]);
+
   const page = await context.newPage();
+
+  // Inject mock-mode flag into every page/iframe that loads
+  await context.addInitScript(() => {
+    window.__USE_MOCK__ = true;
+    // Also set localStorage so Vite env checks pick it up
+    try { localStorage.setItem('use_mock', 'true'); } catch {}
+  });
+
   console.log(`📺  Navigating to ${VIDEO_URL}`);
   await page.goto(VIDEO_URL, { waitUntil: 'networkidle' });
+
+  // Give the finance-saas iframe time to fully load before recording starts
+  console.log('⏳  Waiting 4s for iframe to load...');
+  await page.waitForTimeout(4_000);
 
   const durationSec = VIDEO_DURATION_MS / 1000;
   console.log(`⏳  Recording ${durationSec}s of video... (this takes real time)`);
