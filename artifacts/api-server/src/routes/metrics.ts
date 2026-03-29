@@ -29,12 +29,12 @@ async function getMetricValues(category: string): Promise<Map<string, number>> {
 }
 
 router.get("/metrics/operations", async (_req, res) => {
-  const dbMetrics = await getMetricValues("operations");
+  const m = await getMetricValues("operations");
   const data = GetOperationsMetricsResponse.parse({
-    totalHeadcount: dbMetrics.get("totalHeadcount") ?? 89,
-    monthlyBurnM: dbMetrics.get("monthlyBurnM") ?? 3.5,
-    cashRunwayMonths: dbMetrics.get("cashRunwayMonths") ?? 14,
-    grossMarginPct: dbMetrics.get("grossMarginPct") ?? 81.4,
+    totalHeadcount: m.get("totalHeadcount") ?? 89,
+    monthlyBurnM: m.get("monthlyBurnM") ?? 3.5,
+    cashRunwayMonths: m.get("cashRunwayMonths") ?? 14,
+    grossMarginPct: m.get("grossMarginPct") ?? 81.4,
     headcountTrend: [
       { month: "Jan", hc: 48 }, { month: "Feb", hc: 52 }, { month: "Mar", hc: 55 },
       { month: "Apr", hc: 58 }, { month: "May", hc: 62 }, { month: "Jun", hc: 67 },
@@ -63,12 +63,13 @@ router.get("/metrics/operations", async (_req, res) => {
   res.json(data);
 });
 
-router.get("/metrics/product", (_req, res) => {
+router.get("/metrics/product", async (_req, res) => {
+  const m = await getMetricValues("product");
   const data = GetProductMetricsResponse.parse({
-    dauCount: 9800,
-    mauCount: 33400,
-    dauMauRatio: 29.3,
-    churnRatePct: 2.1,
+    dauCount: m.get("dauCount") ?? 9800,
+    mauCount: m.get("mauCount") ?? 33400,
+    dauMauRatio: m.get("dauMauRatio") ?? 29.3,
+    churnRatePct: m.get("churnRatePct") ?? 2.1,
     engagementTrend: [
       { month: "Jan", dau: 4200, mau: 18400 }, { month: "Feb", dau: 4800, mau: 19200 },
       { month: "Mar", dau: 5100, mau: 20100 }, { month: "Apr", dau: 5600, mau: 21400 },
@@ -98,11 +99,12 @@ router.get("/metrics/product", (_req, res) => {
   res.json(data);
 });
 
-router.get("/metrics/marketing", (_req, res) => {
+router.get("/metrics/marketing", async (_req, res) => {
+  const m = await getMetricValues("marketing");
   const data = GetMarketingMetricsResponse.parse({
-    totalMQLs: 1600,
-    blendedCAC: 740,
-    marketingPipelineM: 3.1,
+    totalMQLs: m.get("totalMQLs") ?? 1600,
+    blendedCAC: m.get("blendedCAC") ?? 740,
+    marketingPipelineM: m.get("marketingPipelineM") ?? 3.1,
     avgCampaignROI: "4.4x",
     cacByChannel: [
       { channel: "Organic / SEO", cac: 420, leads: 340, color: "#22C55E" },
@@ -114,7 +116,7 @@ router.get("/metrics/marketing", (_req, res) => {
     ],
     leadFunnel: [
       { stage: "Website Visits", value: 48200 },
-      { stage: "MQL", value: 1600 },
+      { stage: "MQL", value: m.get("totalMQLs") ?? 1600 },
       { stage: "SQL", value: 480 },
       { stage: "Opportunity", value: 192 },
       { stage: "Closed Won", value: 64 },
@@ -139,19 +141,21 @@ router.get("/metrics/marketing", (_req, res) => {
   res.json(data);
 });
 
-router.get("/metrics/sales", (_req, res) => {
+router.get("/metrics/sales", async (_req, res) => {
+  const m = await getMetricValues("sales");
+  const totalBookingsK = m.get("totalBookingsK") ?? 10100;
   const data = GetSalesMetricsResponse.parse({
-    totalBookingsK: 10100,
-    avgDealSizeK: 48,
-    winRatePct: 28.4,
-    quotaAttainmentPct: 108,
+    totalBookingsK,
+    avgDealSizeK: m.get("avgDealSizeK") ?? 48,
+    winRatePct: m.get("winRatePct") ?? 28.4,
+    quotaAttainmentPct: m.get("quotaAttainmentPct") ?? 108,
     arrBridge: [
       { name: "Open ARR", value: 8200, type: "base" },
       { name: "New Logos", value: 1840, type: "pos" },
       { name: "Expansion", value: 920, type: "pos" },
       { name: "Contraction", value: -380, type: "neg" },
       { name: "Churn", value: -480, type: "neg" },
-      { name: "Close ARR", value: 10100, type: "base" },
+      { name: "Close ARR", value: totalBookingsK, type: "base" },
     ],
     pipeline: [
       { stage: "Prospecting", count: 124, value: 4800 },
@@ -162,18 +166,12 @@ router.get("/metrics/sales", (_req, res) => {
       { stage: "Closed Won", count: 8, value: 960 },
     ],
     bookings: [
-      { month: "Jan", quota: 600, actual: 520 },
-      { month: "Feb", quota: 650, actual: 640 },
-      { month: "Mar", quota: 700, actual: 760 },
-      { month: "Apr", quota: 750, actual: 710 },
-      { month: "May", quota: 800, actual: 840 },
-      { month: "Jun", quota: 850, actual: 900 },
-      { month: "Jul", quota: 900, actual: 870 },
-      { month: "Aug", quota: 950, actual: 980 },
-      { month: "Sep", quota: 1000, actual: 1080 },
-      { month: "Oct", quota: 1050, actual: 1020 },
-      { month: "Nov", quota: 1100, actual: 1180 },
-      { month: "Dec", quota: 1150, actual: 1240 },
+      { month: "Jan", quota: 600, actual: 520 }, { month: "Feb", quota: 650, actual: 640 },
+      { month: "Mar", quota: 700, actual: 760 }, { month: "Apr", quota: 750, actual: 710 },
+      { month: "May", quota: 800, actual: 840 }, { month: "Jun", quota: 850, actual: 900 },
+      { month: "Jul", quota: 900, actual: 870 }, { month: "Aug", quota: 950, actual: 980 },
+      { month: "Sep", quota: 1000, actual: 1080 }, { month: "Oct", quota: 1050, actual: 1020 },
+      { month: "Nov", quota: 1100, actual: 1180 }, { month: "Dec", quota: 1150, actual: 1240 },
     ],
     acvBySegment: [
       { segment: "Enterprise", acv: 148000, deals: 12 },
@@ -185,19 +183,20 @@ router.get("/metrics/sales", (_req, res) => {
   res.json(data);
 });
 
-router.get("/metrics/people", (_req, res) => {
+router.get("/metrics/people", async (_req, res) => {
+  const m = await getMetricValues("people");
   const data = GetPeopleMetricsResponse.parse({
-    totalHeadcount: 89,
-    openRoles: 14,
-    attritionRatePct: 10.8,
-    avgTenureMonths: 22.4,
+    totalHeadcount: m.get("totalHeadcount") ?? 89,
+    openRoles: m.get("openRoles") ?? 14,
+    attritionRatePct: m.get("attritionRatePct") ?? 10.8,
+    avgTenureMonths: m.get("avgTenureMonths") ?? 22.4,
     headcountByDept: [
-      { dept: "Engineering", hc: 34, color: "#2563EB" },
-      { dept: "Sales", hc: 18, color: "#22C55E" },
-      { dept: "Marketing", hc: 10, color: "#7C3AED" },
-      { dept: "G&A", hc: 12, color: "#D97706" },
-      { dept: "Product", hc: 11, color: "#0891B2" },
-      { dept: "Support", hc: 4, color: "#64748B" },
+      { dept: "Engineering", hc: m.get("hc_engineering") ?? 34, color: "#2563EB" },
+      { dept: "Sales", hc: m.get("hc_sales") ?? 18, color: "#22C55E" },
+      { dept: "Marketing", hc: m.get("hc_marketing") ?? 10, color: "#7C3AED" },
+      { dept: "G&A", hc: m.get("hc_ga") ?? 12, color: "#D97706" },
+      { dept: "Product", hc: m.get("hc_product") ?? 11, color: "#0891B2" },
+      { dept: "Support", hc: m.get("hc_support") ?? 4, color: "#64748B" },
     ],
     hiringPlan: [
       { month: "Jan", actual: 3, plan: 4 }, { month: "Feb", actual: 4, plan: 4 },
@@ -208,9 +207,12 @@ router.get("/metrics/people", (_req, res) => {
       { month: "Nov", actual: 6, plan: 6 }, { month: "Dec", actual: 7, plan: 6 },
     ],
     attrition: [
-      { dept: "Engineering", rate: 8.2 }, { dept: "Sales", rate: 14.6 },
-      { dept: "Marketing", rate: 10.1 }, { dept: "G&A", rate: 6.4 },
-      { dept: "Product", rate: 7.8 }, { dept: "Support", rate: 16.2 },
+      { dept: "Engineering", rate: m.get("attrition_engineering") ?? 8.2 },
+      { dept: "Sales", rate: m.get("attrition_sales") ?? 14.6 },
+      { dept: "Marketing", rate: m.get("attrition_marketing") ?? 10.1 },
+      { dept: "G&A", rate: m.get("attrition_ga") ?? 6.4 },
+      { dept: "Product", rate: m.get("attrition_product") ?? 7.8 },
+      { dept: "Support", rate: m.get("attrition_support") ?? 16.2 },
     ],
     compensation: [
       { dept: "Engineering", salary: 148000, bonus: 18000, equity: 42000 },
@@ -224,15 +226,15 @@ router.get("/metrics/people", (_req, res) => {
   res.json(data);
 });
 
-router.get("/metrics/cashflow", (req, res) => {
+router.get("/metrics/cashflow", async (req, res) => {
   const query = GetCashFlowMetricsQueryParams.parse(req.query);
   const _period = query.period || "Monthly";
-
+  const m = await getMetricValues("cashflow");
   const data = GetCashFlowMetricsResponse.parse({
-    totalInflowsM: 56.8,
-    totalOutflowsM: 44.1,
-    netCashFlowM: 12.7,
-    cashOnHandM: 18.4,
+    totalInflowsM: m.get("totalInflowsM") ?? 56.8,
+    totalOutflowsM: m.get("totalOutflowsM") ?? 44.1,
+    netCashFlowM: m.get("netCashFlowM") ?? 12.7,
+    cashOnHandM: m.get("cashOnHandM") ?? 18.4,
     monthly: [
       { month: "Jan", inflows: 3200, outflows: 2800, net: 400 },
       { month: "Feb", inflows: 3600, outflows: 3100, net: 500 },
@@ -267,20 +269,22 @@ router.get("/metrics/cashflow", (req, res) => {
   res.json(data);
 });
 
-router.get("/analytics/spending", (req, res) => {
+router.get("/analytics/spending", async (req, res) => {
   const query = GetSpendingAnalyticsQueryParams.parse(req.query);
   const period = query.period ?? "30d";
   const multiplier =
     period === "7d" ? 0.25 : period === "90d" ? 3 : period === "1y" ? 12 : 1;
 
+  const m = await getMetricValues("spending");
+
   const categories = [
-    { name: "Payroll & Benefits", amount: Math.floor(18400 * multiplier), percentage: 51.1, color: "#2563EB", change: 5.2 },
-    { name: "Software & SaaS", amount: Math.floor(5200 * multiplier), percentage: 14.4, color: "#7C3AED", change: -2.1 },
-    { name: "Marketing & Ads", amount: Math.floor(4100 * multiplier), percentage: 11.4, color: "#0891B2", change: 12.8 },
-    { name: "Office & Facilities", amount: Math.floor(2800 * multiplier), percentage: 7.8, color: "#D97706", change: -1.4 },
-    { name: "Travel & Entertainment", amount: Math.floor(1600 * multiplier), percentage: 4.4, color: "#DC2626", change: -8.3 },
-    { name: "Professional Services", amount: Math.floor(2100 * multiplier), percentage: 5.8, color: "#059669", change: 0.7 },
-    { name: "Other", amount: Math.floor(1800 * multiplier), percentage: 5.0, color: "#64748B", change: 1.2 },
+    { name: "Payroll & Benefits", amount: Math.floor((m.get("payroll") ?? 18400) * multiplier), percentage: 51.1, color: "#2563EB", change: 5.2 },
+    { name: "Software & SaaS", amount: Math.floor((m.get("software") ?? 5200) * multiplier), percentage: 14.4, color: "#7C3AED", change: -2.1 },
+    { name: "Marketing & Ads", amount: Math.floor((m.get("marketing") ?? 4100) * multiplier), percentage: 11.4, color: "#0891B2", change: 12.8 },
+    { name: "Office & Facilities", amount: Math.floor((m.get("office") ?? 2800) * multiplier), percentage: 7.8, color: "#D97706", change: -1.4 },
+    { name: "Travel & Entertainment", amount: Math.floor((m.get("travel") ?? 1600) * multiplier), percentage: 4.4, color: "#DC2626", change: -8.3 },
+    { name: "Professional Services", amount: Math.floor((m.get("professional") ?? 2100) * multiplier), percentage: 5.8, color: "#059669", change: 0.7 },
+    { name: "Other", amount: Math.floor((m.get("other") ?? 1800) * multiplier), percentage: 5.0, color: "#64748B", change: 1.2 },
   ];
   const totalSpending = categories.reduce((s, c) => s + c.amount, 0);
   const daysInPeriod = period === "7d" ? 7 : period === "90d" ? 90 : period === "1y" ? 365 : 30;
