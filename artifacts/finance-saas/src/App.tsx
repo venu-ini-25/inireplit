@@ -50,13 +50,14 @@ function Spinner() {
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
   const [, navigate] = useLocation();
+  const screenshotMode = import.meta.env.VITE_SCREENSHOT_MODE === "true";
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) navigate("/login");
-  }, [isLoaded, isSignedIn, navigate]);
+    if (!screenshotMode && isLoaded && !isSignedIn) navigate("/login");
+  }, [isLoaded, isSignedIn, navigate, screenshotMode]);
 
-  if (!isLoaded) return <Spinner />;
-  if (!isSignedIn) return null;
+  if (!screenshotMode && !isLoaded) return <Spinner />;
+  if (!screenshotMode && !isSignedIn) return null;
   return <>{children}</>;
 }
 
