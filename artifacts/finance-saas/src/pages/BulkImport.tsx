@@ -443,6 +443,11 @@ export default function BulkImport() {
                   const availableFields = effectiveType && effectiveType !== "unknown"
                     ? (preview.allDbFields?.[effectiveType]?.all ?? [])
                     : [];
+                  const usedByOther = new Set(
+                    Object.entries(columnMapping)
+                      .filter(([k, v]) => k !== raw && Boolean(v))
+                      .map(([, v]) => v)
+                  );
                   return (
                     <React.Fragment key={`row-${idx}`}>
                       <div className={`px-3 py-2 rounded-lg border text-xs font-mono truncate mr-2 mb-2 self-center ${isMapped ? "border-primary/30 bg-primary/5 text-slate-800 shadow-sm" : "border-slate-200 bg-slate-50 text-slate-400"}`}>
@@ -455,14 +460,26 @@ export default function BulkImport() {
                       <div className="ml-2 mb-2 self-center">
                         <select
                           value={mapped}
-                          onChange={(e) => setColumnMapping((prev) => ({ ...prev, [raw]: e.target.value }))}
+                          onChange={(e) => {
+                            const newVal = e.target.value;
+                            setColumnMapping((prev) => {
+                              const next = { ...prev };
+                              if (newVal) {
+                                for (const [k, v] of Object.entries(next)) {
+                                  if (k !== raw && v === newVal) next[k] = "";
+                                }
+                              }
+                              next[raw] = newVal;
+                              return next;
+                            });
+                          }}
                           disabled={selectedType === "unknown" && (!preview.tableType || preview.tableType === "unknown")}
                           className={`w-full border rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white disabled:bg-slate-50 disabled:text-slate-400 font-mono transition-colors ${isRequired ? "border-green-400 text-green-800 bg-green-50" : isMapped ? "border-primary/30 text-slate-700" : "border-slate-200 text-slate-400"}`}
                         >
                           <option value="">— skip —</option>
                           {availableFields.map((field) => (
-                            <option key={field} value={field}>
-                              {field}{effectiveDbFields.required.includes(field) ? " ★" : ""}
+                            <option key={field} value={field} disabled={usedByOther.has(field)}>
+                              {field}{effectiveDbFields.required.includes(field) ? " ★" : ""}{usedByOther.has(field) ? " (used)" : ""}
                             </option>
                           ))}
                         </select>
