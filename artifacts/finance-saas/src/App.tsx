@@ -70,7 +70,7 @@ function Router() {
       <Route path="/signup" component={SignUp} />
       <Route path="/sso-callback" component={SSOCallback} />
       <Route path="/request-access" component={RequestAccess} />
-      <Route path="/demo"><Redirect to="/app" /></Route>
+      <Route path="/demo"><Redirect to="/request-access" /></Route>
 
       <Route path="/admin">
         <RequireAuth>
