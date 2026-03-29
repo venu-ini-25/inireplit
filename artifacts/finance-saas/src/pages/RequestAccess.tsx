@@ -262,7 +262,7 @@ export default function RequestAccess() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-4">
-            Questions? Email <a href="mailto:venu.vegi@inventninvest.com" className="text-primary hover:underline">venu.vegi@inventninvest.com</a>
+            Questions? Email <a href="mailto:info@inventninvest.com" className="text-primary hover:underline">info@inventninvest.com</a>
           </p>
         </div>
       </div>

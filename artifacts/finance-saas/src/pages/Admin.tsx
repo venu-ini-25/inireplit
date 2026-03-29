@@ -1142,7 +1142,7 @@ export default function Admin() {
                         type="email"
                         value={tokenEmail}
                         onChange={(e) => setTokenEmail(e.target.value)}
-                        placeholder="venu.vegi@inventninvest.com"
+                        placeholder="pitch@inventninvest.com"
                         className="w-full mt-0.5 px-3 py-1.5 text-sm border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                       />
                     </div>
