@@ -6,7 +6,7 @@ import { Scene7Outro } from './scenes/Scene7Outro';
 
 const SCENE_DURATIONS = {
   intro: 5000,
-  demo: 58000,
+  demo: 78000,
   outro: 6000,
 };
 

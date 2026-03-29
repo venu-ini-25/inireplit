@@ -8,34 +8,35 @@ if (!BASE_URL || !API_KEY) {
   process.exit(1);
 }
 
+// Only generate the NEW segments not already created
 const segments = [
   {
-    id: 'welcome',
-    text: `Welcome to iNi — your command center for finance, operations, portfolio, and M&A. Everything you see here updates automatically from your connected data sources, giving you a live picture of your entire business in one place.`,
+    id: 'expenses',
+    text: `The Expenses view breaks down every cost by category and vendor — so you can see exactly where money is going, spot anomalies, and track spending trends over time.`,
   },
   {
-    id: 'pl',
-    text: `The Profit and Loss view breaks down your revenue and costs by quarter — so you can see exactly where money is coming in, where it's going, and how your margins are trending over time.`,
+    id: 'operations',
+    text: `Operations gives you a live view of business health — key performance indicators across delivery, efficiency, and quality, all tracked in real time against your targets.`,
   },
   {
-    id: 'cashflow',
-    text: `Cash Flow gives you a complete picture of your liquidity. Monthly inflows and outflows are visualized side by side, with a waterfall breakdown showing where cash is being generated and spent across every part of the business.`,
+    id: 'product',
+    text: `The Product dashboard surfaces your most important metrics — feature adoption, active usage, and release velocity — all in one clear view for your engineering and product teams.`,
   },
   {
-    id: 'portfolio',
-    text: `The Portfolio view shows every company you're invested in. Fund-level performance metrics sit at the top, with individual company cards below showing each one's growth trajectory, valuation multiple, and current health status.`,
+    id: 'marketing',
+    text: `Marketing shows your full acquisition funnel — from lead generation and campaign performance, all the way down to cost per acquisition and conversion rates by channel.`,
   },
   {
-    id: 'ma',
-    text: `The M&A pipeline tracks every active deal from initial sourcing all the way through to close. Your whole team always knows what's moving, what's stalled, and what needs attention — no spreadsheets required.`,
+    id: 'sales',
+    text: `Sales gives you a real-time view of your pipeline, win rates, average deal size, and exactly where your revenue is coming from — broken down by rep and by stage.`,
   },
   {
-    id: 'reports',
-    text: `Reports and Analytics lets you benchmark your portfolio against industry peers. See how you compare on growth, margins, and efficiency — and generate investor-ready reports with a single click.`,
+    id: 'people',
+    text: `People tracks your headcount by department, hiring velocity, and team growth — so leadership always has a clear picture of where the team stands and where it's heading.`,
   },
   {
-    id: 'outro',
-    text: `That's iNi. One platform for every financial insight, every portfolio signal, and every deal in motion — built for modern venture and private equity teams.`,
+    id: 'services',
+    text: `Professional Services tracks active client engagements, project milestones, and revenue per engagement — keeping delivery on track and clients in the loop.`,
   },
 ];
 
@@ -58,7 +59,7 @@ for (const seg of segments) {
           {
             role: 'system',
             content:
-              'You are a professional narrator for a product demo video. Speak warmly, clearly, and confidently at a natural pace. Speak exactly the text the user provides — no extra words or commentary.',
+              'You are a professional narrator for a product demo video. Speak warmly, clearly, and confidently at a natural pace. Speak exactly the text the user provides — no extra words, no commentary.',
           },
           { role: 'user', content: seg.text },
         ],
@@ -80,7 +81,6 @@ for (const seg of segments) {
       console.log(`✓ ${buffer.length} bytes`);
     } else {
       console.log(`✗ no audio data`);
-      console.log('  msg keys:', Object.keys(data.choices?.[0]?.message || {}));
       if (data.error) console.log('  error:', JSON.stringify(data.error));
     }
   } catch (err) {
