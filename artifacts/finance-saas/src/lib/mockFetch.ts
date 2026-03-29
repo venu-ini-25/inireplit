@@ -18,7 +18,7 @@ function mockResponse(data: unknown): Response {
 
 const _nativeFetch = window.fetch.bind(window);
 
-const IS_DEV = import.meta.env.DEV;
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const url = typeof input === "string" ? input
@@ -29,7 +29,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
 
   const apiPath = url.split("/api/")[1]?.split("?")[0] ?? "";
 
-  if (IS_DEV) {
+  if (!USE_MOCK) {
     return _nativeFetch(input, init);
   }
 

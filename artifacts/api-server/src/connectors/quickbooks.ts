@@ -89,6 +89,20 @@ function getRowValues(row: Record<string, unknown> | undefined, monthCount: numb
   return colData.slice(1).map((c) => Number(String(c["value"] ?? "0").replace(/,/g, "")) || 0).slice(0, monthCount);
 }
 
+function getExpenseCategories(expenseSection: Record<string, unknown> | undefined, monthCount: number): { name: string; values: number[] }[] {
+  if (!expenseSection) return [];
+  const rows = ((expenseSection["Rows"] as Record<string, unknown>)?.["Row"] as Record<string, unknown>[]) ?? [];
+  const categories: { name: string; values: number[] }[] = [];
+  for (const row of rows) {
+    const header = (row["Header"] as Record<string, unknown>)?.["ColData"] as Record<string, unknown>[];
+    const name = String(header?.[0]?.["value"] ?? "").trim();
+    if (!name) continue;
+    const values = getSummaryValues(row, monthCount);
+    if (values.some((v) => v > 0)) categories.push({ name, values });
+  }
+  return categories;
+}
+
 export async function sync(connectionId: string): Promise<{ recordsSynced: number }> {
   const logId = `sl_${randomUUID().slice(0, 8)}`;
   await db.insert(syncLogs).values({ id: logId, integrationId: connectionId, provider: "quickbooks", status: "running", startedAt: new Date() });
@@ -114,7 +128,9 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
     const plRows = ((plData["Rows"] as Record<string, unknown>)?.["Row"] as Record<string, unknown>[]) ?? [];
 
     const revenues = getSummaryValues(findRowByName(plRows, "Income"), monthLabels.length);
-    const expenses = getSummaryValues(findRowByName(plRows, "Expenses"), monthLabels.length);
+    const expenseSection = findRowByName(plRows, "Expenses");
+    const expenses = getSummaryValues(expenseSection, monthLabels.length);
+    const expenseCategories = getExpenseCategories(expenseSection, monthLabels.length);
 
     let recordsSynced = 0;
 
@@ -128,6 +144,19 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
         .values({ id, period, revenue: Math.round(rev), expenses: Math.round(exp), ebitda: Math.round(rev - exp), arr: Math.round(rev * 12), sortOrder: i, createdAt: new Date() })
         .onConflictDoUpdate({ target: financialSnapshots.id, set: { revenue: Math.round(rev), expenses: Math.round(exp), ebitda: Math.round(rev - exp), arr: Math.round(rev * 12) } });
       recordsSynced++;
+
+      const now = new Date();
+      for (const cat of expenseCategories) {
+        const catSlug = cat.name.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 30);
+        const catId = `qb_exp_${realmId}_${catSlug}_${period.replace(/\s/g, "_")}`;
+        const val = cat.values[i] ?? 0;
+        await db.insert(metricsSnapshots).values({
+          id: catId, category: "expense_category", metricKey: catSlug,
+          metricLabel: cat.name, value: Math.round(val), unit: "USD",
+          periodLabel: period, source: "quickbooks", createdAt: now, updatedAt: now,
+        }).onConflictDoUpdate({ target: metricsSnapshots.id, set: { value: Math.round(val), updatedAt: now } });
+        recordsSynced++;
+      }
     }
 
     if (bsData) {

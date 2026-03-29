@@ -129,9 +129,11 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
         const r = toRow(row);
         const companyName = r["deal"] ?? r["company_name"] ?? r["deal_name"] ?? r["company"] ?? "";
         if (!companyName) continue;
-        const id = `sh_deal_${companyName.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 20)}_${randomUUID().slice(0, 4)}`;
-        await db.insert(deals).values({
-          id, companyName, industry: r["industry"] ?? "", dealType: r["deal_type"] ?? "investment",
+        const slug = companyName.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 40);
+        const id = `sh_deal_${slug}`;
+        const now = new Date();
+        const dealValues = {
+          companyName, industry: r["industry"] ?? "", dealType: r["deal_type"] ?? "investment",
           stage: r["stage"] ?? "sourcing",
           dealSize: Math.round(Number(r["dealsize"] ?? r["deal_size"] ?? r["size"] ?? 0)),
           valuation: Math.round(Number(r["valuation"] ?? 0)),
@@ -143,8 +145,13 @@ export async function sync(connectionId: string): Promise<{ recordsSynced: numbe
           dataRoomAccess: false,
           overview: r["overview"] ?? r["notes"] ?? r["description"] ?? "",
           thesis: r["thesis"] ?? "",
-          createdAt: new Date(), updatedAt: new Date(),
-        }).onConflictDoNothing();
+          updatedAt: now,
+        };
+        await db.insert(deals).values({ id, ...dealValues, createdAt: now })
+          .onConflictDoUpdate({
+            target: deals.id,
+            set: { ...dealValues },
+          });
         recordsSynced++;
       }
     }
