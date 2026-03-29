@@ -87,7 +87,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           <img
             src={logoImg}
             alt="INVENT N INVEST"
-            className="h-9 w-auto object-contain"
+            className="h-12 w-auto object-contain"
             style={{ mixBlendMode: "multiply" }}
           />
         </Link>
