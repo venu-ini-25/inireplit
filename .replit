@@ -30,3 +30,4 @@ timeoutMs = 20000
 [userenv.shared]
 JWT_SECRET = "ini-platform-tawczzuh9mdvo5nupi4zu"
 NEON_DATABASE_URL = "postgresql://neondb_owner:npg_EIZvWpB8S5Nt@ep-long-bread-amcnc1zx-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+VITE_PITCH_EMAIL = "pitch@inventninvest.com"
