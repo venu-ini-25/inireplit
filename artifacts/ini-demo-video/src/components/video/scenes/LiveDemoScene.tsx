@@ -41,73 +41,73 @@ const DEMO_STEPS: DemoStep[] = [
 
   // ── P&L ──────────────────────────────────────────────────────
   { time: 5200,  cursorX: NAV_X, cursorY: 12.4 },
-  { time: 5800,  cursorX: NAV_X, cursorY: 12.4, navigateTo: '/finance/pl',       isClick: true, callout: null, audioId: 'pl' },
+  { time: 5800,  cursorX: NAV_X, cursorY: 12.4, navigateTo: '/finance/pl',       isClick: true, callout: null },
   { time: 7800,  cursorX: 38,    cursorY: 40,   callout: 'Quarterly revenue, costs, and margin trends — across every line item' },
   { time: 10500, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Cash Flow ─────────────────────────────────────────────────
   { time: 11200, cursorX: NAV_X, cursorY: 15.1 },
-  { time: 11800, cursorX: NAV_X, cursorY: 15.1, navigateTo: '/finance/cashflow', isClick: true, audioId: 'cashflow' },
+  { time: 11800, cursorX: NAV_X, cursorY: 15.1, navigateTo: '/finance/cashflow', isClick: true },
   { time: 13800, cursorX: 38,    cursorY: 40,   callout: 'Monthly inflows vs outflows — with a full waterfall breakdown' },
   { time: 16200, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Expenses ─────────────────────────────────────────────────
   { time: 16800, cursorX: NAV_X, cursorY: 17.8 },
-  { time: 17400, cursorX: NAV_X, cursorY: 17.8, navigateTo: '/finance/expenses', isClick: true, audioId: 'expenses' },
+  { time: 17400, cursorX: NAV_X, cursorY: 17.8, navigateTo: '/finance/expenses', isClick: true },
   { time: 19400, cursorX: 38,    cursorY: 40,   callout: 'Spending by category and vendor — spot anomalies instantly' },
   { time: 21800, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Operations ───────────────────────────────────────────────
   { time: 22400, cursorX: NAV_X, cursorY: 20.5 },
-  { time: 23000, cursorX: NAV_X, cursorY: 20.5, navigateTo: '/operations',       isClick: true, audioId: 'operations' },
+  { time: 23000, cursorX: NAV_X, cursorY: 20.5, navigateTo: '/operations',       isClick: true },
   { time: 25000, cursorX: 38,    cursorY: 40,   callout: 'Delivery, efficiency, and quality KPIs — tracked against targets in real time' },
   { time: 27500, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Product ──────────────────────────────────────────────────
   { time: 28000, cursorX: NAV_X, cursorY: 23.2 },
-  { time: 28600, cursorX: NAV_X, cursorY: 23.2, navigateTo: '/product',          isClick: true, audioId: 'product' },
+  { time: 28600, cursorX: NAV_X, cursorY: 23.2, navigateTo: '/product',          isClick: true },
   { time: 30600, cursorX: 38,    cursorY: 40,   callout: 'Feature adoption, usage trends, and release velocity — all in one view' },
   { time: 33200, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Marketing ────────────────────────────────────────────────
   { time: 33600, cursorX: NAV_X, cursorY: 25.9 },
-  { time: 34200, cursorX: NAV_X, cursorY: 25.9, navigateTo: '/marketing',        isClick: true, audioId: 'marketing' },
+  { time: 34200, cursorX: NAV_X, cursorY: 25.9, navigateTo: '/marketing',        isClick: true },
   { time: 36200, cursorX: 38,    cursorY: 40,   callout: 'Lead gen, campaign performance, and cost per acquisition by channel' },
   { time: 38600, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Sales ────────────────────────────────────────────────────
   { time: 39200, cursorX: NAV_X, cursorY: 28.6 },
-  { time: 39800, cursorX: NAV_X, cursorY: 28.6, navigateTo: '/sales',            isClick: true, audioId: 'sales' },
+  { time: 39800, cursorX: NAV_X, cursorY: 28.6, navigateTo: '/sales',            isClick: true },
   { time: 41800, cursorX: 38,    cursorY: 40,   callout: 'Pipeline, win rates, deal size, and revenue by stage and rep' },
   { time: 44200, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── People ───────────────────────────────────────────────────
   { time: 44800, cursorX: NAV_X, cursorY: 31.3 },
-  { time: 45400, cursorX: NAV_X, cursorY: 31.3, navigateTo: '/people',           isClick: true, audioId: 'people' },
+  { time: 45400, cursorX: NAV_X, cursorY: 31.3, navigateTo: '/people',           isClick: true },
   { time: 47400, cursorX: 38,    cursorY: 40,   callout: 'Headcount by department, hiring velocity, and team growth trends' },
   { time: 49800, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Portfolio ────────────────────────────────────────────────
   { time: 50400, cursorX: NAV_X, cursorY: 35.1 },
-  { time: 51000, cursorX: NAV_X, cursorY: 35.1, navigateTo: '/portfolio',        isClick: true, audioId: 'portfolio' },
+  { time: 51000, cursorX: NAV_X, cursorY: 35.1, navigateTo: '/portfolio',        isClick: true },
   { time: 53000, cursorX: 50,    cursorY: 22,   callout: 'Fund-level metrics at a glance — then drill into any portfolio company' },
   { time: 55500, cursorX: 65,    cursorY: 55,   callout: null },
 
   // ── M&A ──────────────────────────────────────────────────────
   { time: 56200, cursorX: NAV_X, cursorY: 37.8 },
-  { time: 56800, cursorX: NAV_X, cursorY: 37.8, navigateTo: '/ma',               isClick: true, audioId: 'ma' },
+  { time: 56800, cursorX: NAV_X, cursorY: 37.8, navigateTo: '/ma',               isClick: true },
   { time: 58800, cursorX: 30,    cursorY: 42,   callout: 'Kanban pipeline — every deal tracked from sourcing through to close' },
   { time: 61200, cursorX: 65,    cursorY: 42,   callout: null },
 
   // ── Reports ──────────────────────────────────────────────────
   { time: 61800, cursorX: NAV_X, cursorY: 40.5 },
-  { time: 62400, cursorX: NAV_X, cursorY: 40.5, navigateTo: '/reports',          isClick: true, audioId: 'reports' },
+  { time: 62400, cursorX: NAV_X, cursorY: 40.5, navigateTo: '/reports',          isClick: true },
   { time: 64400, cursorX: 38,    cursorY: 40,   callout: 'Peer benchmarks and investor-ready report exports in one click' },
   { time: 66600, cursorX: 65,    cursorY: 40,   callout: null },
 
   // ── Professional Services ────────────────────────────────────
   { time: 67200, cursorX: NAV_X, cursorY: 43.2 },
-  { time: 67800, cursorX: NAV_X, cursorY: 43.2, navigateTo: '/services',         isClick: true, audioId: 'services' },
+  { time: 67800, cursorX: NAV_X, cursorY: 43.2, navigateTo: '/services',         isClick: true },
   { time: 69800, cursorX: 38,    cursorY: 40,   callout: 'Active client engagements, project milestones, and revenue per engagement' },
   { time: 72200, cursorX: 65,    cursorY: 40,   callout: null },
 
@@ -134,11 +134,9 @@ const URL_LABELS: Record<string, string> = {
 };
 
 export function LiveDemoScene() {
-  const iframeRef      = useRef<HTMLIFrameElement>(null);
-  const audioRef       = useRef<HTMLAudioElement | null>(null);
-  const fadeTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pendingAudioId = useRef<string | null>(null);   // audio blocked by autoplay policy
-  const audioUnlocked  = useRef(false);
+  const iframeRef    = useRef<HTMLIFrameElement>(null);
+  const audioRef     = useRef<HTMLAudioElement | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [cursorX, setCursorX]                 = useState(50);
   const [cursorY, setCursorY]                 = useState(48);
@@ -146,12 +144,9 @@ export function LiveDemoScene() {
   const [callout, setCallout]                 = useState<string | null>(null);
   const [urlLabel, setUrlLabel]               = useState('inventninvest.com/app');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showAudioBadge, setShowAudioBadge]   = useState(false);
 
-  /** Play a narration MP3 with smooth 700ms crossfade */
+  /** Play a narration MP3 with smooth 700ms crossfade. Silently ignores autoplay blocks. */
   const playAudio = useCallback((id: string) => {
-    pendingAudioId.current = id;
-
     const FADE_MS  = 700;
     const STEPS    = 14;
     const INTERVAL = FADE_MS / STEPS;
@@ -161,12 +156,10 @@ export function LiveDemoScene() {
     const prev = audioRef.current;
     const next = new Audio(`/ini-demo-video/audio/${id}.mp3`);
     next.volume = 0;
+    audioRef.current = next;
 
     next.play()
       .then(() => {
-        audioUnlocked.current  = true;
-        pendingAudioId.current = null;
-        setShowAudioBadge(false);
         let step = 0;
         fadeTimerRef.current = setInterval(() => {
           step++;
@@ -180,34 +173,8 @@ export function LiveDemoScene() {
           }
         }, INTERVAL);
       })
-      .catch(() => {
-        // Autoplay was blocked — show badge and wait for any interaction
-        setShowAudioBadge(true);
-      });
-
-    audioRef.current = next;
+      .catch(() => { /* autoplay blocked — demo visuals still run */ });
   }, []);
-
-  /** Called by the first user interaction anywhere — replays the pending clip */
-  const unlockAndPlay = useCallback(() => {
-    if (audioUnlocked.current) return;
-    audioUnlocked.current = true;
-    setShowAudioBadge(false);
-    if (pendingAudioId.current) {
-      playAudio(pendingAudioId.current);
-    }
-  }, [playAudio]);
-
-  // Listen for the very first interaction anywhere on the page
-  useEffect(() => {
-    const events = ['click', 'keydown', 'touchstart', 'pointerdown'] as const;
-    const handler = () => {
-      unlockAndPlay();
-      events.forEach(e => document.removeEventListener(e, handler));
-    };
-    events.forEach(e => document.addEventListener(e, handler, { once: true }));
-    return () => events.forEach(e => document.removeEventListener(e, handler));
-  }, [unlockAndPlay]);
 
   const navigate = useCallback((path: string) => {
     setIsTransitioning(true);
@@ -365,32 +332,6 @@ export function LiveDemoScene() {
         )}
       </AnimatePresence>
 
-      {/* ── Audio unlock badge (appears only if browser blocked autoplay) ── */}
-      <AnimatePresence>
-        {showAudioBadge && (
-          <motion.button
-            key="audio-badge"
-            onClick={unlockAndPlay}
-            className="absolute top-14 right-5 z-50 flex items-center gap-2 cursor-pointer"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: [0.6, 1, 0.6], y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ opacity: { duration: 2, repeat: Infinity }, y: { duration: 0.4 } }}
-            style={{
-              background: 'rgba(15,23,42,0.85)',
-              border: '1px solid rgba(96,165,250,0.3)',
-              borderRadius: 999,
-              padding: '6px 14px',
-              color: '#94a3b8',
-              fontSize: '0.72rem',
-              fontFamily: 'Space Grotesk, sans-serif',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            🔊 <span>Click anywhere to enable audio</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
