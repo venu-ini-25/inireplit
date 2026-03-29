@@ -102,7 +102,7 @@ export default function Admin() {
   const act = async (id: string, action: "approve" | "deny") => {
     setActing(id);
     try {
-      const res = await fetch(`${API_BASE}/api/access-requests/${id}/${action}`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/api/access-requests/${id}/${action}`);
       const text = await res.text();
       if (!text) throw new Error("Empty response — server may be restarting, try again");
       if (!res.ok) throw new Error(`Server error ${res.status}: ${text}`);
