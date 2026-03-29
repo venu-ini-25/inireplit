@@ -22,7 +22,7 @@ import { useUser, useClerk } from "@clerk/clerk-react";
 
 const logoImg = "/images/ini-logo-transparent.png";
 
-const MASTER_EMAIL = "venu.vegi@inventninvest.com";
+const ADMIN_EMAILS = ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
 
 type NavSection = "finance" | "portfolio" | "settings" | null;
 
@@ -78,7 +78,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? "";
   const userName = user?.fullName || user?.firstName || userEmail;
   const initials = (user?.firstName || userEmail || "U").charAt(0).toUpperCase();
-  const isMaster = userEmail === MASTER_EMAIL;
+  const isMaster = ADMIN_EMAILS.includes(userEmail);
 
   return (
     <aside className="w-64 h-screen flex flex-col bg-white border-r border-border z-40">

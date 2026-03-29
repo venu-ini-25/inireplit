@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/clerk-react";
 
-const MASTER_EMAIL = "venu.vegi@inventninvest.com";
+const ADMIN_EMAILS = ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
 
 export function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,7 +14,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? "";
   const displayName = user?.fullName || user?.firstName || userEmail;
   const initials = (user?.firstName || userEmail || "U").charAt(0).toUpperCase();
-  const isMaster = userEmail === MASTER_EMAIL;
+  const isMaster = ADMIN_EMAILS.includes(userEmail);
 
   return (
     <div className="flex min-h-screen w-full bg-background">

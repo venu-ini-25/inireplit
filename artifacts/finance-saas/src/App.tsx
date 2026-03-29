@@ -31,7 +31,7 @@ import SSOCallback from "@/pages/SSOCallback";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-const MASTER_EMAIL = "venu.vegi@inventninvest.com";
+const ADMIN_EMAILS = ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -124,7 +124,7 @@ function AccessGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!email) return;
-    if (email === MASTER_EMAIL) { setStatus("approved"); return; }
+    if (ADMIN_EMAILS.includes(email)) { setStatus("approved"); return; }
 
     fetch(`${API_BASE}/api/access-requests/status?email=${encodeURIComponent(email)}`)
       .then((r) => r.json())
