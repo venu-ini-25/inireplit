@@ -1,0 +1,160 @@
+Build a guided product demo flow inside the iNi application. This is not just navigation between pages. The app should demonstrate a clear story of how data flows through the platform and how users use it to make decisions.
+
+The demo should be 2–3 minutes if a user clicks through it naturally.
+
+DEMO OBJECTIVE
+Show how iNi connects data from multiple systems, transforms it into insights, and enables decision-making across finance, operations, portfolio management, and M&A.
+
+DEMO FLOW (must follow this sequence)
+
+1. Integrations (starting point)
+Start the demo on the Integrations page.
+
+Show connected systems:
+- NetSuite (ERP)
+- Salesforce (CRM)
+- Gusto (Payroll)
+- Stripe (Billing)
+- Google Sheets
+
+Each integration should display:
+- Connected status
+- Last sync timestamp
+- Data health indicator
+
+This screen should make it clear that data is coming from multiple systems into iNi.
+
+2. Home Dashboard
+Navigate to the Home Dashboard.
+
+Show:
+- Revenue
+- Burn
+- Runway
+- Headcount
+- Pipeline
+
+Include:
+- Last updated timestamp
+- Verified data indicator
+
+This page should clearly show real-time insights generated from connected systems.
+
+3. Finance Deep Dive
+Navigate to Finance pages.
+
+Show:
+- P&L page (already exists)
+- Cash Flow page
+- Expenses page
+
+Cash Flow page must include:
+- Monthly trend chart
+- Operating, investing, financing breakdown
+- Waterfall chart
+- Table view
+
+Expenses page must include:
+- Expense breakdown by category
+- Expense breakdown by department
+- Line-item table with filters
+
+Ensure drill-down and filtering interactions work.
+
+4. Business Performance Pages
+Quickly navigate across:
+- Operations
+- Sales
+- Marketing
+- Product
+- People
+
+Each page must include:
+- KPI cards
+- 2–3 charts
+- 1 table
+
+Example data:
+Operations: burn, runway, headcount
+Sales: ARR bridge, pipeline
+Marketing: CAC, funnel
+Product: DAU/MAU, churn
+People: headcount, hiring
+
+5. Portfolio
+Navigate to Portfolio page.
+
+Show:
+- multiple companies
+- fund-level metrics:
+  - total AUM
+  - portfolio count
+  - IRR
+  - MOIC
+
+Click a company card and navigate to /portfolio/:id
+
+Company detail page must include tabs:
+- KPIs (ARR, headcount, burn charts)
+- Cap Table (ownership table)
+- Documents (list)
+- Notes
+
+6. M&A Workflow
+Navigate to M&A page.
+
+Click a deal card.
+
+Open a slide-over panel that includes:
+- deal overview
+- due diligence checklist with completion status
+- key contacts
+- documents list
+
+7. Reports & Analytics
+Navigate to Reports page.
+
+Show:
+- reports library
+- search functionality
+- filter functionality
+
+Show benchmark charts:
+- revenue growth vs peers
+- margin vs peers
+- burn multiple vs peers
+
+Include report cards with visible download/export buttons.
+
+8. End on Dashboard
+Return to Dashboard to complete the flow.
+
+UI REQUIREMENTS FOR DEMO
+
+- No empty states
+- No placeholder content
+- All charts must be populated with realistic mock data
+- All pages must load correctly
+- Navigation must be smooth
+
+IMPORTANT VISUAL DETAILS
+
+- Show "Connected" status on integrations
+- Show "Last synced" timestamps
+- Show "Last updated" timestamps
+- Show "Verified" data badges where possible
+
+INTERACTIONS
+
+- Clicking portfolio companies should open detail page
+- Clicking deal cards should open slide-over panel
+- Tabs should switch correctly
+- Tables should support basic sorting/filtering if already implemented
+
+OPTIONAL
+
+If possible, add a "Demo Mode" button that guides users through this flow step by step.
+
+FINAL REQUIREMENT
+
+The demo must feel like a real product walkthrough, not a collection of pages. A user should be able to click through the entire flow and understand how iNi works end-to-end.
