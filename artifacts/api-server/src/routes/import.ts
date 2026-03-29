@@ -123,13 +123,27 @@ function r(row: RowMap, ...keys: string[]): string {
   return "";
 }
 
+const KNOWN_TABLE_TYPES: Exclude<TableType, "unknown">[] = ["companies", "deals", "financials", "metrics"];
+
+function isKnownTableType(t: string | undefined): t is Exclude<TableType, "unknown"> {
+  return KNOWN_TABLE_TYPES.includes(t as Exclude<TableType, "unknown">);
+}
+
+function sanitizeNumStr(value: string): string {
+  return value
+    .trim()
+    .replace(/[$%\s]/g, "")
+    .replace(/,(?=\d{3})/g, "")
+    .replace(/^\((.+)\)$/, "-$1");
+}
+
 function isNumeric(value: string): boolean {
-  const cleaned = value.replace(/[$,%\s]/g, "");
+  const cleaned = sanitizeNumStr(value);
   return cleaned !== "" && !isNaN(Number(cleaned)) && isFinite(Number(cleaned));
 }
 
 function parseNum(value: string): number {
-  return Number(value.replace(/[$,%\s]/g, "")) || 0;
+  return Number(sanitizeNumStr(value)) || 0;
 }
 
 interface ValidatedRow<T> { data: T; errors: RowError[] }
@@ -180,10 +194,11 @@ router.post("/import/preview", requireAdmin, upload.single("file"), async (req, 
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const mapping: Record<string, string> = req.body["columnMapping"] ? JSON.parse(req.body["columnMapping"]) : {};
-    const forcedType = req.body["tableType"] as TableType | undefined;
+    const rawForcedType: string | undefined = req.body["tableType"];
+    const forcedType = isKnownTableType(rawForcedType) ? rawForcedType : undefined;
 
     const { rawHeaders, mappedHeaders, rows, detectedType } = parseFile(req.file.buffer, mapping);
-    const tableType: TableType = (forcedType && forcedType !== "unknown") ? forcedType : detectedType;
+    const tableType: TableType = forcedType ?? detectedType;
 
     const autoMapping = tableType !== "unknown" ? autoMatchHeaders(rawHeaders, tableType) : {};
     const dbFields = tableType !== "unknown" ? DB_FIELDS[tableType] : { required: [], all: [], numeric: [] };
@@ -209,10 +224,11 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
 
     let mapping: Record<string, string>;
-    let forcedType: TableType | undefined;
+    let forcedType: Exclude<TableType, "unknown"> | undefined;
     try {
       mapping = req.body["columnMapping"] ? JSON.parse(req.body["columnMapping"]) : {};
-      forcedType = req.body["tableType"] as TableType | undefined;
+      const rawForcedType: string | undefined = req.body["tableType"];
+      forcedType = isKnownTableType(rawForcedType) ? rawForcedType : undefined;
     } catch {
       res.status(400).json({ error: "Invalid columnMapping JSON in request body" });
       return;
@@ -227,7 +243,7 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
     }
 
     const { rows, detectedType } = parsed;
-    const tableType: TableType = (forcedType && forcedType !== "unknown") ? forcedType : detectedType;
+    const tableType: TableType = forcedType ?? detectedType;
 
     if (tableType === "unknown") {
       res.status(400).json({ error: "Could not determine data type. Please select a data type (Portfolio Companies, Deals, etc.) before importing." });
@@ -388,7 +404,8 @@ router.post("/import/commit", requireAdmin, upload.single("file"), async (req, r
       }
     }
 
-    const errored = rowErrors.length;
+    const distinctErroredRows = new Set(rowErrors.map((e) => e.row)).size;
+    const errored = distinctErroredRows;
     const logId = `imp_${randomUUID()}`;
     await db.insert(importLogs).values({
       id: logId,
