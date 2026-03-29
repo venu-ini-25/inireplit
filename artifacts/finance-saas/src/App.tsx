@@ -27,6 +27,7 @@ import PortfolioDetail from "@/pages/PortfolioDetail";
 import MASupport from "@/pages/MASupport";
 import Reports from "@/pages/Reports";
 import ProfessionalServices from "@/pages/ProfessionalServices";
+import SSOCallback from "@/pages/SSOCallback";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -150,6 +151,7 @@ function Router() {
       <Route path="/landing"><Redirect to="/" /></Route>
       <Route path="/login" component={SignIn} />
       <Route path="/signup" component={SignUp} />
+      <Route path="/sso-callback" component={SSOCallback} />
       <Route path="/request-access" component={RequestAccess} />
 
       <Route path="/admin">
