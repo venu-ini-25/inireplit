@@ -71,8 +71,13 @@ async function parseBody(req: Connect.IncomingMessage): Promise<Record<string, u
 
 export function createApiMiddleware(): Connect.NextHandleFunction {
   return async (req, res, next) => {
-    const url = (req.url ?? "").split("?")[0];
+    const rawUrl = req.url ?? "";
+    const url = rawUrl.split("?")[0];
     const method = req.method ?? "GET";
+
+    if (url.startsWith("/api/")) {
+      console.log(`[API] ${method} ${rawUrl}`);
+    }
 
     if (!url.startsWith("/api/")) return next();
 
@@ -135,7 +140,6 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
 
       const approveMatch = url.match(/^\/api\/access-requests\/([^/]+)\/approve$/);
       if (approveMatch && (method === "POST" || method === "PATCH" || method === "GET")) {
-        await parseBody(req);
         const { rows } = await db.query(
           "UPDATE access_requests SET status='approved', reviewed_at=NOW() WHERE id=$1 RETURNING *",
           [approveMatch[1]]
@@ -146,7 +150,6 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
 
       const denyMatch = url.match(/^\/api\/access-requests\/([^/]+)\/deny$/);
       if (denyMatch && (method === "POST" || method === "PATCH" || method === "GET")) {
-        await parseBody(req);
         const { rows } = await db.query(
           "UPDATE access_requests SET status='denied', reviewed_at=NOW() WHERE id=$1 RETURNING *",
           [denyMatch[1]]
