@@ -130,6 +130,21 @@ export const syncLogs = pgTable("sync_logs", {
   completedAt: timestamp("completed_at"),
 });
 
+export const importLogs = pgTable("import_logs", {
+  id: text("id").primaryKey(),
+  fileName: text("file_name").notNull(),
+  tableType: text("table_type").notNull(),
+  totalRows: integer("total_rows").notNull().default(0),
+  importedRows: integer("imported_rows").notNull().default(0),
+  skippedRows: integer("skipped_rows").notNull().default(0),
+  errorRows: integer("error_rows").notNull().default(0),
+  errors: jsonb("errors").$type<{ row: number; message: string }[]>().default([]),
+  columnMapping: jsonb("column_mapping").$type<Record<string, string>>().default({}),
+  importedAt: timestamp("imported_at").defaultNow(),
+});
+export type ImportLog = typeof importLogs.$inferSelect;
+export type InsertImportLog = typeof importLogs.$inferInsert;
+
 export type Engagement = typeof engagements.$inferSelect;
 export type InsertEngagement = typeof engagements.$inferInsert;
 export type Company = typeof companies.$inferSelect;

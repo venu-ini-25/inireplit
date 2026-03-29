@@ -1,24 +1,47 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { Upload, FileText, CheckCircle2, XCircle, AlertCircle, Loader2, Download, RefreshCw, ChevronRight } from "lucide-react";
+import {
+  Upload, FileText, CheckCircle2, XCircle, AlertCircle,
+  Loader2, Download, RefreshCw, ChevronRight, ArrowRight,
+  History, Trash2, Info,
+} from "lucide-react";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type TableType = "companies" | "deals" | "financials" | "metrics" | "unknown";
-type ImportStep = "upload" | "preview" | "mapping" | "result";
+type ImportStep = "upload" | "mapping" | "result";
+
+interface DbFields { required: string[]; all: string[] }
 
 interface PreviewResult {
+  rawHeaders: string[];
   headers: string[];
   tableType: TableType;
   rowCount: number;
   preview: Record<string, string>[];
+  suggestedMapping: Record<string, string>;
+  dbFields: DbFields;
 }
+
+interface RowError { row: number; message: string }
 
 interface ImportResult {
   tableType: TableType;
   imported: number;
   skipped: number;
+  errors: RowError[];
   total: number;
+}
+
+interface ImportLogEntry {
+  id: string;
+  fileName: string;
+  tableType: string;
+  totalRows: number;
+  importedRows: number;
+  skippedRows: number;
+  errorRows: number;
+  importedAt: string;
 }
 
 const TABLE_LABELS: Record<TableType, string> = {
@@ -26,7 +49,7 @@ const TABLE_LABELS: Record<TableType, string> = {
   deals: "Deals / M&A Pipeline",
   financials: "Financial Snapshots",
   metrics: "KPI Metrics",
-  unknown: "Unknown",
+  unknown: "Unknown — map columns below",
 };
 
 const TABLE_COLORS: Record<TableType, string> = {
@@ -38,15 +61,23 @@ const TABLE_COLORS: Record<TableType, string> = {
 };
 
 const TEMPLATE_HEADERS: Record<Exclude<TableType, "unknown">, string[]> = {
-  companies: ["company_name", "industry", "stage", "revenue", "valuation", "arr", "moic", "irr", "ownership", "location", "status"],
-  deals: ["deal_name", "deal_type", "deal_size", "stage", "closing_date", "valuation", "industry", "assigned_to", "overview"],
+  companies: ["company_name", "industry", "stage", "revenue", "valuation", "arr", "moic", "irr", "ownership", "location", "status", "founded"],
+  deals: ["company_name", "deal_type", "deal_size", "stage", "closing_date", "valuation", "industry", "assigned_to", "priority", "overview"],
   financials: ["period", "revenue", "expenses", "ebitda", "arr"],
   metrics: ["metric_key", "metric_label", "category", "value", "unit", "period"],
 };
 
+const SAMPLE_DATA: Record<Exclude<TableType, "unknown">, string[]> = {
+  companies: ["Acme Corp", "Fintech", "series_a", "5000000", "25000000", "$8.4M", "2.4x", "31.2%", "18.5%", "San Francisco, CA", "active", "2020"],
+  deals: ["Meridian Analytics", "acquisition", "15000000", "due_diligence", "2025-06-30", "75000000", "Data & Analytics", "Sarah Chen", "high", "Strategic acquisition target"],
+  financials: ["Jan '25", "2500000", "1800000", "700000", "8400000"],
+  metrics: ["nrr", "Net Revenue Retention", "saas", "118", "%", "Q1 2025"],
+};
+
 function downloadTemplate(type: Exclude<TableType, "unknown">) {
   const headers = TEMPLATE_HEADERS[type];
-  const csvContent = headers.join(",") + "\n" + headers.map(() => "").join(",");
+  const sample = SAMPLE_DATA[type];
+  const csvContent = headers.join(",") + "\n" + sample.join(",") + "\n" + headers.map(() => "").join(",");
   const blob = new Blob([csvContent], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -56,66 +87,97 @@ function downloadTemplate(type: Exclude<TableType, "unknown">) {
   URL.revokeObjectURL(url);
 }
 
+function fmtDate(iso: string) {
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.round(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.round(diff / 3_600_000)}h ago`;
+  return d.toLocaleDateString();
+}
+
 export default function BulkImport() {
   const { getToken } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
+
   const [step, setStep] = useState<ImportStep>("upload");
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [history, setHistory] = useState<ImportLogEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const adminToken = sessionStorage.getItem("ini_admin_token");
 
-  const getAuthHeader = useCallback(async () => {
+  const getAuthHeader = useCallback(async (): Promise<Record<string, string>> => {
     if (adminToken) return { Authorization: `Bearer ${adminToken}` };
     const token = await getToken();
     if (token) return { Authorization: `Bearer ${token}` };
     return {};
   }, [adminToken, getToken]);
 
-  const handleFile = (f: File) => {
+  const loadHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    try {
+      const headers = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/import/logs`, { headers });
+      if (resp.ok) setHistory(await resp.json());
+    } catch { /* ignore */ }
+    finally { setLoadingHistory(false); }
+  }, [getAuthHeader]);
+
+  useEffect(() => { loadHistory(); }, [loadHistory]);
+
+  const runPreview = useCallback(async (f: File, mapping: Record<string, string> = {}) => {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const headers = await getAuthHeader();
+      const fd = new FormData();
+      fd.append("file", f);
+      if (Object.keys(mapping).length) fd.append("columnMapping", JSON.stringify(mapping));
+      const resp = await fetch(`${API_BASE}/api/import/preview`, { method: "POST", headers, body: fd });
+      const data = await resp.json();
+      if (!resp.ok) { setError(data.error ?? "Preview failed"); return; }
+      setPreview(data as PreviewResult);
+      setColumnMapping(data.suggestedMapping ?? {});
+      setStep("mapping");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [getAuthHeader]);
+
+  const handleFile = useCallback((f: File) => {
     setFile(f);
     setError(null);
     setPreview(null);
     setResult(null);
     setColumnMapping({});
-    setStep("preview");
-  };
+    runPreview(f);
+  }, [runPreview]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const f = e.dataTransfer.files[0];
     if (f) handleFile(f);
-  }, []);
+  }, [handleFile]);
 
-  const runPreview = useCallback(async () => {
-    if (!file) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const headers = await getAuthHeader();
-      const fd = new FormData();
-      fd.append("file", file);
-      if (Object.keys(columnMapping).length) fd.append("columnMapping", JSON.stringify(columnMapping));
-      const resp = await fetch(`${API_BASE}/api/import/preview`, { method: "POST", headers, body: fd });
-      const data = await resp.json();
-      if (!resp.ok) { setError(data.error ?? "Preview failed"); return; }
-      setPreview(data as PreviewResult);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [file, columnMapping, getAuthHeader]);
+  const reAnalyze = useCallback(() => {
+    if (file) runPreview(file, columnMapping);
+  }, [file, columnMapping, runPreview]);
 
   const runImport = useCallback(async () => {
     if (!file) return;
-    setLoading(true);
+    setImporting(true);
     setError(null);
     try {
       const headers = await getAuthHeader();
@@ -127,12 +189,13 @@ export default function BulkImport() {
       if (!resp.ok) { setError(data.error ?? "Import failed"); return; }
       setResult(data as ImportResult);
       setStep("result");
+      loadHistory();
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setLoading(false);
+      setImporting(false);
     }
-  }, [file, columnMapping, getAuthHeader]);
+  }, [file, columnMapping, getAuthHeader, loadHistory]);
 
   const reset = () => {
     setStep("upload");
@@ -144,77 +207,111 @@ export default function BulkImport() {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const stepIdx = step === "upload" ? 0 : step === "mapping" ? 1 : 2;
+  const STEPS = ["Upload File", "Review & Map", "Complete"];
+
+  const allRequiredMapped = preview && preview.tableType !== "unknown"
+    ? preview.dbFields.required.every((req) => Object.values(columnMapping).includes(req))
+    : preview?.tableType !== "unknown";
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Bulk Import</h1>
-        <p className="text-sm text-muted-foreground mt-1">Upload CSV or Excel files to import companies, deals, financial data, and KPI metrics into the platform.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Bulk Import</h1>
+          <p className="text-sm text-muted-foreground mt-1">Upload CSV or Excel files to bulk-load portfolio companies, deals, financials, or KPI metrics.</p>
+        </div>
+        <button
+          onClick={() => { setShowHistory(!showHistory); loadHistory(); }}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+        >
+          <History className="w-3.5 h-3.5" />
+          Import History
+        </button>
       </div>
 
+      {showHistory && (
+        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Recent Imports</span>
+            <button onClick={loadHistory} className="text-xs text-primary hover:underline">Refresh</button>
+          </div>
+          {loadingHistory ? (
+            <div className="flex items-center gap-2 px-4 py-6 text-xs text-muted-foreground">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+            </div>
+          ) : history.length === 0 ? (
+            <div className="px-4 py-6 text-xs text-muted-foreground text-center">No import history yet.</div>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="text-left font-medium text-slate-500 px-4 py-2">File</th>
+                  <th className="text-left font-medium text-slate-500 px-4 py-2 hidden sm:table-cell">Type</th>
+                  <th className="text-left font-medium text-slate-500 px-4 py-2">Rows</th>
+                  <th className="text-left font-medium text-slate-500 px-4 py-2 hidden md:table-cell">Errors</th>
+                  <th className="text-left font-medium text-slate-500 px-4 py-2">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((log) => (
+                  <tr key={log.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                    <td className="px-4 py-2.5 text-slate-700 font-medium max-w-[180px] truncate">{log.fileName}</td>
+                    <td className="px-4 py-2.5 hidden sm:table-cell">
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${TABLE_COLORS[log.tableType as TableType] ?? "text-slate-600 bg-slate-50 border-slate-200"}`}>
+                        {TABLE_LABELS[log.tableType as TableType] ?? log.tableType}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-700">
+                      <span className="text-success font-semibold">{log.importedRows}</span>
+                      <span className="text-muted-foreground"> / {log.totalRows}</span>
+                    </td>
+                    <td className="px-4 py-2.5 hidden md:table-cell">
+                      {log.errorRows > 0 ? (
+                        <span className="text-red-500 font-semibold">{log.errorRows}</span>
+                      ) : (
+                        <span className="text-success">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{fmtDate(log.importedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 text-xs">
-        {(["upload", "preview", "result"] as ImportStep[]).map((s, i, arr) => (
-          <React.Fragment key={s}>
-            <span className={`px-3 py-1.5 rounded-full font-semibold transition-colors ${step === s ? "bg-primary text-white" : i < arr.indexOf(step) ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400"}`}>
-              {i + 1}. {s === "upload" ? "Upload File" : s === "preview" ? "Review & Map" : "Complete"}
+        {STEPS.map((label, i) => (
+          <React.Fragment key={label}>
+            <span className={`px-3 py-1.5 rounded-full font-semibold transition-colors ${i === stepIdx ? "bg-primary text-white" : i < stepIdx ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400"}`}>
+              {i + 1}. {label}
             </span>
-            {i < arr.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-slate-300" />}
+            {i < STEPS.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-slate-300" />}
           </React.Fragment>
         ))}
       </div>
 
       {step === "upload" && (
         <div className="space-y-5">
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${dragging ? "border-primary bg-primary/5 scale-[1.01]" : "border-slate-200 hover:border-primary/50 hover:bg-slate-50"}`}
-          >
-            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-            <Upload className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-            <div className="font-semibold text-slate-700 text-base">Drop your file here or click to browse</div>
-            <div className="text-sm text-muted-foreground mt-1">Supports CSV, XLS, XLSX — up to 20 MB</div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-100 p-5">
-            <div className="text-sm font-semibold text-slate-700 mb-3">Download CSV Templates</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {(["companies", "deals", "financials", "metrics"] as const).map((type) => (
-                <button key={type} onClick={() => downloadTemplate(type)}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-colors text-center group">
-                  <Download className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-medium text-slate-700">{TABLE_LABELS[type]}</span>
-                </button>
-              ))}
+          {analyzing ? (
+            <div className="border-2 border-dashed border-primary/40 rounded-xl p-12 text-center bg-primary/5">
+              <Loader2 className="w-10 h-10 mx-auto text-primary animate-spin mb-3" />
+              <div className="font-semibold text-slate-700">Analyzing {file?.name}…</div>
             </div>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
-            <div className="font-semibold mb-1">Column auto-detection</div>
-            Headers are matched automatically. The system detects the table type from your column names. Download a template above to get started quickly.
-          </div>
-        </div>
-      )}
-
-      {step === "preview" && file && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
-            <FileText className="w-5 h-5 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-slate-800 text-sm truncate">{file.name}</div>
-              <div className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</div>
-            </div>
-            <button onClick={reset} className="text-xs text-slate-400 hover:text-red-500 transition-colors">Change file</button>
-          </div>
-
-          {!preview && (
-            <div className="flex justify-center">
-              <button onClick={runPreview} disabled={loading}
-                className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                {loading ? "Analyzing…" : "Analyze File"}
-              </button>
+          ) : (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => fileRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${dragging ? "border-primary bg-primary/5 scale-[1.01]" : "border-slate-200 hover:border-primary/50 hover:bg-slate-50"}`}
+            >
+              <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              <Upload className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+              <div className="font-semibold text-slate-700 text-base">Drop your file here or click to browse</div>
+              <div className="text-sm text-muted-foreground mt-1">Supports CSV, XLS, XLSX — up to 10,000 rows, 20 MB</div>
             </div>
           )}
 
@@ -225,91 +322,170 @@ export default function BulkImport() {
             </div>
           )}
 
-          {preview && (
-            <>
-              <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-slate-800 text-sm">Analysis Results</div>
-                  <button onClick={runPreview} className="text-xs text-primary hover:underline">Re-analyze</button>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Detected type:</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TABLE_COLORS[preview.tableType]}`}>
-                      {TABLE_LABELS[preview.tableType]}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Rows:</span>
-                    <span className="text-xs font-semibold text-slate-700">{preview.rowCount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Columns:</span>
-                    <span className="text-xs font-semibold text-slate-700">{preview.headers.length}</span>
-                  </div>
-                </div>
-
-                {preview.tableType === "unknown" && (
-                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
-                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <div>Table type could not be detected automatically. Please map your columns below or use a template.</div>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-                <div className="border-b border-slate-100 px-4 py-3 bg-slate-50">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Data Preview (first 5 rows)</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-100">
-                        {preview.headers.map((h) => (
-                          <th key={h} className="text-left text-slate-500 font-medium px-4 py-2 whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preview.preview.map((row, i) => (
-                        <tr key={i} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                          {preview.headers.map((h) => (
-                            <td key={h} className="px-4 py-2 text-slate-700 whitespace-nowrap max-w-[200px] truncate">{row[h] ?? ""}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <button onClick={reset} className="text-sm text-slate-500 hover:text-slate-700 transition-colors">← Change file</button>
-                <button onClick={runImport} disabled={loading || preview.tableType === "unknown"}
-                  className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {loading ? "Importing…" : `Import ${preview.rowCount.toLocaleString()} rows`}
+          <div className="bg-white rounded-xl border border-slate-100 p-5">
+            <div className="text-sm font-semibold text-slate-700 mb-1">Download CSV Templates</div>
+            <p className="text-xs text-muted-foreground mb-3">Each template includes a sample row to show the expected format.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(["companies", "deals", "financials", "metrics"] as const).map((type) => (
+                <button key={type} onClick={(e) => { e.stopPropagation(); downloadTemplate(type); }}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-colors text-center group">
+                  <Download className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-medium text-slate-700">{TABLE_LABELS[type]}</span>
                 </button>
-              </div>
+              ))}
+            </div>
+          </div>
 
-              {error && (
-                <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
-                  <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <div><span className="font-semibold">Import error: </span>{error}</div>
-                </div>
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+            <div className="font-semibold mb-1 flex items-center gap-1.5"><Info className="w-4 h-4" /> Auto-detection</div>
+            Column headers are matched automatically based on name similarity. After upload you can review and adjust the mapping before committing. Required fields must be mapped to proceed.
+          </div>
+        </div>
+      )}
+
+      {step === "mapping" && file && preview && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
+            <FileText className="w-5 h-5 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-slate-800 text-sm truncate">{file.name}</div>
+              <div className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB · {preview.rowCount.toLocaleString()} data rows</div>
+            </div>
+            <button onClick={reset} className="text-xs text-slate-400 hover:text-red-500 transition-colors shrink-0">Change file</button>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-slate-800 text-sm">Detected Data Type</div>
+            </div>
+            <div className="flex flex-wrap gap-3 items-center">
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${TABLE_COLORS[preview.tableType]}`}>
+                {TABLE_LABELS[preview.tableType]}
+              </span>
+              <span className="text-xs text-muted-foreground">{preview.rowCount.toLocaleString()} rows · {preview.rawHeaders.length} columns</span>
+            </div>
+            {preview.tableType === "unknown" && (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
+                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                Table type could not be auto-detected. Map your columns to known fields below so the system can route your data correctly.
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+            <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Column Mapping</span>
+              <span className="text-xs text-muted-foreground ml-2">Map your file columns to database fields</span>
+            </div>
+            <div className="p-4 space-y-2">
+              {preview.rawHeaders.map((raw) => {
+                const mapped = columnMapping[raw] ?? "";
+                const isRequired = preview.tableType !== "unknown" && preview.dbFields.required.some((req) => req === mapped);
+                const isMapped = Boolean(mapped);
+                return (
+                  <div key={raw} className="flex items-center gap-3 py-1.5">
+                    <div className={`flex-1 min-w-0 px-3 py-1.5 rounded-lg border text-xs font-mono truncate ${isMapped ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-100 bg-white text-slate-400"}`}>
+                      {raw}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
+                    <div className="flex-1">
+                      <select
+                        value={mapped}
+                        onChange={(e) => setColumnMapping((prev) => ({ ...prev, [raw]: e.target.value }))}
+                        className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white ${isRequired ? "border-green-300 text-green-800" : isMapped ? "border-slate-200 text-slate-700" : "border-slate-100 text-slate-400"}`}
+                      >
+                        <option value="">— skip this column —</option>
+                        {preview.tableType !== "unknown" && preview.dbFields.all.map((field) => (
+                          <option key={field} value={field}>
+                            {field}{preview.dbFields.required.includes(field) ? " *" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {isRequired && <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />}
+                  </div>
+                );
+              })}
+              {preview.tableType !== "unknown" && (
+                <p className="text-xs text-muted-foreground pt-1">Fields marked with <span className="font-semibold text-slate-600">*</span> are required. <span className="text-success font-medium">{Object.values(columnMapping).filter(Boolean).length}</span> of {preview.rawHeaders.length} columns mapped.</p>
               )}
-            </>
+            </div>
+            <div className="border-t border-slate-50 px-4 py-2 flex justify-end">
+              <button onClick={reAnalyze} className="text-xs text-primary hover:underline flex items-center gap-1">
+                <RefreshCw className="w-3 h-3" /> Re-analyze with current mapping
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+            <div className="border-b border-slate-100 px-4 py-3 bg-slate-50 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Data Preview (first 5 rows)</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    {preview.headers.map((h) => (
+                      <th key={h} className="text-left text-slate-500 font-medium px-4 py-2 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.preview.map((row, i) => (
+                    <tr key={i} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                      {preview.headers.map((h) => (
+                        <td key={h} className="px-4 py-2 text-slate-700 whitespace-nowrap max-w-[200px] truncate">{row[h] ?? ""}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
+              <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div><span className="font-semibold">Error: </span>{error}</div>
+            </div>
           )}
+
+          {!allRequiredMapped && preview.tableType !== "unknown" && (
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800">
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              Required field(s) not yet mapped: <span className="font-semibold ml-1">{preview.dbFields.required.filter(req => !Object.values(columnMapping).includes(req)).join(", ")}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <button onClick={reset} className="text-sm text-slate-500 hover:text-slate-700 transition-colors">← Change file</button>
+            <button
+              onClick={runImport}
+              disabled={importing || preview.tableType === "unknown" || !allRequiredMapped}
+              className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {importing ? "Importing…" : `Import ${preview.rowCount.toLocaleString()} rows`}
+            </button>
+          </div>
         </div>
       )}
 
       {step === "result" && result && (
         <div className="space-y-5">
           <div className="bg-white rounded-xl border border-slate-100 p-6 text-center space-y-4">
-            <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
+            {result.errors.length > 0 && result.imported === 0 ? (
+              <XCircle className="w-12 h-12 text-red-400 mx-auto" />
+            ) : (
+              <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
+            )}
             <div>
-              <div className="text-xl font-bold text-slate-900">Import Complete</div>
-              <div className="text-sm text-muted-foreground mt-1">Your data has been imported into <span className="font-semibold text-slate-700">{TABLE_LABELS[result.tableType]}</span></div>
+              <div className="text-xl font-bold text-slate-900">
+                {result.imported === 0 ? "Import Failed" : "Import Complete"}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Data target: <span className="font-semibold text-slate-700">{TABLE_LABELS[result.tableType]}</span>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
@@ -326,13 +502,35 @@ export default function BulkImport() {
                 <div className="text-xs text-muted-foreground">Total rows</div>
               </div>
             </div>
-
-            {result.skipped > 0 && (
-              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-4 py-2 inline-block">
-                {result.skipped} rows were skipped (missing required key field)
-              </div>
-            )}
           </div>
+
+          {result.errors.length > 0 && (
+            <div className="bg-white rounded-xl border border-red-100 overflow-hidden">
+              <div className="border-b border-red-100 bg-red-50 px-4 py-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-xs font-bold text-red-700 uppercase tracking-wide">Row Errors ({result.errors.length})</span>
+                <span className="text-xs text-red-500 ml-1">Fix and re-import to capture these rows</span>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-white border-b border-slate-100">
+                    <tr>
+                      <th className="text-left text-slate-500 font-medium px-4 py-2 w-20">Row #</th>
+                      <th className="text-left text-slate-500 font-medium px-4 py-2">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.errors.map((e, i) => (
+                      <tr key={i} className="border-b border-slate-50 last:border-0">
+                        <td className="px-4 py-2 text-slate-500 font-mono">{e.row}</td>
+                        <td className="px-4 py-2 text-red-600">{e.message}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-center gap-3">
             <button onClick={reset}
@@ -342,7 +540,7 @@ export default function BulkImport() {
             </button>
             <a href={result.tableType === "companies" ? "/portfolio" : result.tableType === "deals" ? "/ma" : "/app"}
               className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
-              View data
+              View imported data
               <ChevronRight className="w-4 h-4" />
             </a>
           </div>
