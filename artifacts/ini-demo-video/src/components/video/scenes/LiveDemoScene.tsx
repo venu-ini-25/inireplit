@@ -33,88 +33,111 @@ interface DemoStep {
 
 const NAV_X = 5.1;
 
+// ─── Audio durations (ms) used to pace the timeline ───────────────────────
+// welcome=17256  pl=11616  cashflow=14760  expenses=11064  operations=11208
+// product=11400  marketing=10704  sales=11664  people=10248  portfolio=14520
+// ma=13752  reports=13560  services=9720  outro=11760
+//
+// Each page dwell = full clip duration + 1000ms buffer before cursor moves.
+// Navigation hover = 600ms before click.  No clip is ever interrupted.
+// ──────────────────────────────────────────────────────────────────────────
+
 const DEMO_STEPS: DemoStep[] = [
-  // ── Dashboard ────────────────────────────────────────────────
-  { time: 0,     cursorX: 50,    cursorY: 48,   audioId: 'welcome' },
-  { time: 2000,  cursorX: 24,    cursorY: 22,   callout: 'Executive dashboard — revenue, burn rate, runway, and headcount in real time' },
-  { time: 4500,  cursorX: 40,    cursorY: 55,   callout: null },
+  // ── Dashboard (welcome = 17 256 ms) ──────────────────────────
+  { time: 0,       cursorX: 50,    cursorY: 48,  audioId: 'welcome' },
+  { time: 2000,    cursorX: 24,    cursorY: 22,  callout: 'Executive dashboard — revenue, burn rate, runway, and headcount in real time' },
+  { time: 4500,    cursorX: 40,    cursorY: 55,  callout: null },
+  // clip ends at 17 256 → move cursor at 18 256
+  { time: 18256,   cursorX: NAV_X, cursorY: 12.4 },
 
-  // ── P&L ──────────────────────────────────────────────────────
-  { time: 5200,  cursorX: NAV_X, cursorY: 12.4 },
-  { time: 5800,  cursorX: NAV_X, cursorY: 12.4, navigateTo: '/finance/pl',       isClick: true, callout: null, audioId: 'pl' },
-  { time: 7800,  cursorX: 38,    cursorY: 40,   callout: 'Quarterly revenue, costs, and margin trends — across every line item' },
-  { time: 10500, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── P&L (pl = 11 616 ms) ─────────────────────────────────────
+  // click at 18 856; clip ends at 18 856 + 11 616 = 30 472 → next at 31 472
+  { time: 18856,   cursorX: NAV_X, cursorY: 12.4, navigateTo: '/finance/pl',       isClick: true, callout: null, audioId: 'pl' },
+  { time: 20856,   cursorX: 38,    cursorY: 40,   callout: 'Quarterly revenue, costs, and margin trends — across every line item' },
+  { time: 25000,   cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 31472,   cursorX: NAV_X, cursorY: 15.1 },
 
-  // ── Cash Flow ─────────────────────────────────────────────────
-  { time: 11200, cursorX: NAV_X, cursorY: 15.1 },
-  { time: 11800, cursorX: NAV_X, cursorY: 15.1, navigateTo: '/finance/cashflow', isClick: true, audioId: 'cashflow' },
-  { time: 13800, cursorX: 38,    cursorY: 40,   callout: 'Monthly inflows vs outflows — with a full waterfall breakdown' },
-  { time: 16200, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Cash Flow (cashflow = 14 760 ms) ─────────────────────────
+  // click at 32 072; ends at 46 832 → next at 47 832
+  { time: 32072,   cursorX: NAV_X, cursorY: 15.1, navigateTo: '/finance/cashflow', isClick: true, audioId: 'cashflow' },
+  { time: 34072,   cursorX: 38,    cursorY: 40,   callout: 'Monthly inflows vs outflows — with a full waterfall breakdown' },
+  { time: 39000,   cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 47832,   cursorX: NAV_X, cursorY: 17.8 },
 
-  // ── Expenses ─────────────────────────────────────────────────
-  { time: 16800, cursorX: NAV_X, cursorY: 17.8 },
-  { time: 17400, cursorX: NAV_X, cursorY: 17.8, navigateTo: '/finance/expenses', isClick: true, audioId: 'expenses' },
-  { time: 19400, cursorX: 38,    cursorY: 40,   callout: 'Spending by category and vendor — spot anomalies instantly' },
-  { time: 21800, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Expenses (expenses = 11 064 ms) ──────────────────────────
+  // click at 48 432; ends at 59 496 → next at 60 496
+  { time: 48432,   cursorX: NAV_X, cursorY: 17.8, navigateTo: '/finance/expenses', isClick: true, audioId: 'expenses' },
+  { time: 50432,   cursorX: 38,    cursorY: 40,   callout: 'Spending by category and vendor — spot anomalies instantly' },
+  { time: 54500,   cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 60496,   cursorX: NAV_X, cursorY: 20.5 },
 
-  // ── Operations ───────────────────────────────────────────────
-  { time: 22400, cursorX: NAV_X, cursorY: 20.5 },
-  { time: 23000, cursorX: NAV_X, cursorY: 20.5, navigateTo: '/operations',       isClick: true, audioId: 'operations' },
-  { time: 25000, cursorX: 38,    cursorY: 40,   callout: 'Delivery, efficiency, and quality KPIs — tracked against targets in real time' },
-  { time: 27500, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Operations (operations = 11 208 ms) ──────────────────────
+  // click at 61 096; ends at 72 304 → next at 73 304
+  { time: 61096,   cursorX: NAV_X, cursorY: 20.5, navigateTo: '/operations',       isClick: true, audioId: 'operations' },
+  { time: 63096,   cursorX: 38,    cursorY: 40,   callout: 'Delivery, efficiency, and quality KPIs — tracked against targets in real time' },
+  { time: 67500,   cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 73304,   cursorX: NAV_X, cursorY: 23.2 },
 
-  // ── Product ──────────────────────────────────────────────────
-  { time: 28000, cursorX: NAV_X, cursorY: 23.2 },
-  { time: 28600, cursorX: NAV_X, cursorY: 23.2, navigateTo: '/product',          isClick: true, audioId: 'product' },
-  { time: 30600, cursorX: 38,    cursorY: 40,   callout: 'Feature adoption, usage trends, and release velocity — all in one view' },
-  { time: 33200, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Product (product = 11 400 ms) ────────────────────────────
+  // click at 73 904; ends at 85 304 → next at 86 304
+  { time: 73904,   cursorX: NAV_X, cursorY: 23.2, navigateTo: '/product',          isClick: true, audioId: 'product' },
+  { time: 75904,   cursorX: 38,    cursorY: 40,   callout: 'Feature adoption, usage trends, and release velocity — all in one view' },
+  { time: 80000,   cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 86304,   cursorX: NAV_X, cursorY: 25.9 },
 
-  // ── Marketing ────────────────────────────────────────────────
-  { time: 33600, cursorX: NAV_X, cursorY: 25.9 },
-  { time: 34200, cursorX: NAV_X, cursorY: 25.9, navigateTo: '/marketing',        isClick: true, audioId: 'marketing' },
-  { time: 36200, cursorX: 38,    cursorY: 40,   callout: 'Lead gen, campaign performance, and cost per acquisition by channel' },
-  { time: 38600, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Marketing (marketing = 10 704 ms) ────────────────────────
+  // click at 86 904; ends at 97 608 → next at 98 608
+  { time: 86904,   cursorX: NAV_X, cursorY: 25.9, navigateTo: '/marketing',        isClick: true, audioId: 'marketing' },
+  { time: 88904,   cursorX: 38,    cursorY: 40,   callout: 'Lead gen, campaign performance, and cost per acquisition by channel' },
+  { time: 93000,   cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 98608,   cursorX: NAV_X, cursorY: 28.6 },
 
-  // ── Sales ────────────────────────────────────────────────────
-  { time: 39200, cursorX: NAV_X, cursorY: 28.6 },
-  { time: 39800, cursorX: NAV_X, cursorY: 28.6, navigateTo: '/sales',            isClick: true, audioId: 'sales' },
-  { time: 41800, cursorX: 38,    cursorY: 40,   callout: 'Pipeline, win rates, deal size, and revenue by stage and rep' },
-  { time: 44200, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Sales (sales = 11 664 ms) ────────────────────────────────
+  // click at 99 208; ends at 110 872 → next at 111 872
+  { time: 99208,   cursorX: NAV_X, cursorY: 28.6, navigateTo: '/sales',            isClick: true, audioId: 'sales' },
+  { time: 101208,  cursorX: 38,    cursorY: 40,   callout: 'Pipeline, win rates, deal size, and revenue by stage and rep' },
+  { time: 105500,  cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 111872,  cursorX: NAV_X, cursorY: 31.3 },
 
-  // ── People ───────────────────────────────────────────────────
-  { time: 44800, cursorX: NAV_X, cursorY: 31.3 },
-  { time: 45400, cursorX: NAV_X, cursorY: 31.3, navigateTo: '/people',           isClick: true, audioId: 'people' },
-  { time: 47400, cursorX: 38,    cursorY: 40,   callout: 'Headcount by department, hiring velocity, and team growth trends' },
-  { time: 49800, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── People (people = 10 248 ms) ──────────────────────────────
+  // click at 112 472; ends at 122 720 → next at 123 720
+  { time: 112472,  cursorX: NAV_X, cursorY: 31.3, navigateTo: '/people',           isClick: true, audioId: 'people' },
+  { time: 114472,  cursorX: 38,    cursorY: 40,   callout: 'Headcount by department, hiring velocity, and team growth trends' },
+  { time: 118500,  cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 123720,  cursorX: NAV_X, cursorY: 35.1 },
 
-  // ── Portfolio ────────────────────────────────────────────────
-  { time: 50400, cursorX: NAV_X, cursorY: 35.1 },
-  { time: 51000, cursorX: NAV_X, cursorY: 35.1, navigateTo: '/portfolio',        isClick: true, audioId: 'portfolio' },
-  { time: 53000, cursorX: 50,    cursorY: 22,   callout: 'Fund-level metrics at a glance — then drill into any portfolio company' },
-  { time: 55500, cursorX: 65,    cursorY: 55,   callout: null },
+  // ── Portfolio (portfolio = 14 520 ms) ────────────────────────
+  // click at 124 320; ends at 138 840 → next at 139 840
+  { time: 124320,  cursorX: NAV_X, cursorY: 35.1, navigateTo: '/portfolio',        isClick: true, audioId: 'portfolio' },
+  { time: 126320,  cursorX: 50,    cursorY: 22,   callout: 'Fund-level metrics at a glance — then drill into any portfolio company' },
+  { time: 132000,  cursorX: 65,    cursorY: 55,   callout: null },
+  { time: 139840,  cursorX: NAV_X, cursorY: 37.8 },
 
-  // ── M&A ──────────────────────────────────────────────────────
-  { time: 56200, cursorX: NAV_X, cursorY: 37.8 },
-  { time: 56800, cursorX: NAV_X, cursorY: 37.8, navigateTo: '/ma',               isClick: true, audioId: 'ma' },
-  { time: 58800, cursorX: 30,    cursorY: 42,   callout: 'Kanban pipeline — every deal tracked from sourcing through to close' },
-  { time: 61200, cursorX: 65,    cursorY: 42,   callout: null },
+  // ── M&A (ma = 13 752 ms) ─────────────────────────────────────
+  // click at 140 440; ends at 154 192 → next at 155 192
+  { time: 140440,  cursorX: NAV_X, cursorY: 37.8, navigateTo: '/ma',               isClick: true, audioId: 'ma' },
+  { time: 142440,  cursorX: 30,    cursorY: 42,   callout: 'Kanban pipeline — every deal tracked from sourcing through to close' },
+  { time: 148000,  cursorX: 65,    cursorY: 42,   callout: null },
+  { time: 155192,  cursorX: NAV_X, cursorY: 40.5 },
 
-  // ── Reports ──────────────────────────────────────────────────
-  { time: 61800, cursorX: NAV_X, cursorY: 40.5 },
-  { time: 62400, cursorX: NAV_X, cursorY: 40.5, navigateTo: '/reports',          isClick: true, audioId: 'reports' },
-  { time: 64400, cursorX: 38,    cursorY: 40,   callout: 'Peer benchmarks and investor-ready report exports in one click' },
-  { time: 66600, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Reports (reports = 13 560 ms) ────────────────────────────
+  // click at 155 792; ends at 169 352 → next at 170 352
+  { time: 155792,  cursorX: NAV_X, cursorY: 40.5, navigateTo: '/reports',          isClick: true, audioId: 'reports' },
+  { time: 157792,  cursorX: 38,    cursorY: 40,   callout: 'Peer benchmarks and investor-ready report exports in one click' },
+  { time: 163500,  cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 170352,  cursorX: NAV_X, cursorY: 43.2 },
 
-  // ── Professional Services ────────────────────────────────────
-  { time: 67200, cursorX: NAV_X, cursorY: 43.2 },
-  { time: 67800, cursorX: NAV_X, cursorY: 43.2, navigateTo: '/services',         isClick: true, audioId: 'services' },
-  { time: 69800, cursorX: 38,    cursorY: 40,   callout: 'Active client engagements, project milestones, and revenue per engagement' },
-  { time: 72200, cursorX: 65,    cursorY: 40,   callout: null },
+  // ── Professional Services (services = 9 720 ms) ───────────────
+  // click at 170 952; ends at 180 672 → next at 181 672
+  { time: 170952,  cursorX: NAV_X, cursorY: 43.2, navigateTo: '/services',         isClick: true, audioId: 'services' },
+  { time: 172952,  cursorX: 38,    cursorY: 40,   callout: 'Active client engagements, project milestones, and revenue per engagement' },
+  { time: 177000,  cursorX: 65,    cursorY: 40,   callout: null },
+  { time: 181672,  cursorX: NAV_X, cursorY: 6.9 },
 
-  // ── Back to Dashboard + outro ────────────────────────────────
-  { time: 72800, cursorX: NAV_X, cursorY: 6.9 },
-  { time: 73400, cursorX: NAV_X, cursorY: 6.9,  navigateTo: '/app',              isClick: true, audioId: 'outro' },
-  { time: 75400, cursorX: 50,    cursorY: 40,   callout: 'One platform. Every financial insight. Total portfolio clarity.' },
+  // ── Back to Dashboard + outro (outro = 11 760 ms) ────────────
+  // click at 182 272; outro ends at 182 272 + 11 760 = 194 032
+  { time: 182272,  cursorX: NAV_X, cursorY: 6.9,  navigateTo: '/app',              isClick: true, audioId: 'outro' },
+  { time: 184272,  cursorX: 50,    cursorY: 40,   callout: 'One platform. Every financial insight. Total portfolio clarity.' },
 ];
 
 const URL_LABELS: Record<string, string> = {

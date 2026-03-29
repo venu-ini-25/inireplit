@@ -5,9 +5,9 @@ import { LiveDemoScene } from './scenes/LiveDemoScene';
 import { Scene7Outro } from './scenes/Scene7Outro';
 
 const SCENE_DURATIONS = {
-  intro: 5000,
-  demo: 78000,
-  outro: 6000,
+  intro:  5000,
+  demo:  196000,   // 14 narration clips, each plays fully before next page loads
+  outro:   6000,
 };
 
 export default function VideoTemplate() {
