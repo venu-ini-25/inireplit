@@ -76,6 +76,7 @@ export default function Admin() {
   const [acting, setActing] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("active");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -93,15 +94,29 @@ export default function Admin() {
 
   useEffect(() => { load(); }, []);
 
+  const showToast = (msg: string, ok: boolean) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   const act = async (id: string, action: "approve" | "deny") => {
     setActing(id);
     try {
       const res = await fetch(`${API_BASE}/api/access-requests/${id}/${action}`, { method: "POST" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const updated = await res.json() as AccessRequest;
+      const text = await res.text();
+      if (!text) throw new Error("Empty response — server may be restarting, try again");
+      if (!res.ok) throw new Error(`Server error ${res.status}: ${text}`);
+      const updated = JSON.parse(text) as AccessRequest;
       setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      if (action === "approve") {
+        showToast(`✓ ${updated.firstName} ${updated.lastName} approved`, true);
+        setTab("active");
+      } else {
+        showToast(`${updated.firstName} ${updated.lastName} denied`, false);
+      }
     } catch (e) {
       console.error("Action failed:", e);
+      showToast(`Failed: ${(e as Error).message}`, false);
     } finally {
       setActing(null);
     }
@@ -126,6 +141,14 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] px-4 py-8">
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold transition-all ${
+          toast.ok ? "bg-green-600 text-white" : "bg-red-600 text-white"
+        }`}>
+          {toast.ok ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
+          {toast.msg}
+        </div>
+      )}
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}

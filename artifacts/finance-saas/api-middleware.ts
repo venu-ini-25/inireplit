@@ -134,7 +134,8 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
       }
 
       const approveMatch = url.match(/^\/api\/access-requests\/([^/]+)\/approve$/);
-      if (approveMatch && (method === "POST" || method === "PATCH")) {
+      if (approveMatch && (method === "POST" || method === "PATCH" || method === "GET")) {
+        await parseBody(req);
         const { rows } = await db.query(
           "UPDATE access_requests SET status='approved', reviewed_at=NOW() WHERE id=$1 RETURNING *",
           [approveMatch[1]]
@@ -144,7 +145,8 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
       }
 
       const denyMatch = url.match(/^\/api\/access-requests\/([^/]+)\/deny$/);
-      if (denyMatch && (method === "POST" || method === "PATCH")) {
+      if (denyMatch && (method === "POST" || method === "PATCH" || method === "GET")) {
+        await parseBody(req);
         const { rows } = await db.query(
           "UPDATE access_requests SET status='denied', reviewed_at=NOW() WHERE id=$1 RETURNING *",
           [denyMatch[1]]
