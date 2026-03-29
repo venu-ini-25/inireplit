@@ -91,6 +91,17 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/finance-saas` (`@workspace/finance-saas`)
+
+iNi (Invent N Invest) Finance Tech SaaS Platform — React + Vite frontend deployed to Vercel at `inventninvest.com`.
+
+- **Auth**: Clerk (sign-in/sign-up). Admin emails hardcoded in `src/App.tsx`, `src/components/layout/Sidebar.tsx`, `src/components/layout/Layout.tsx`: `venu.vegi@inventninvest.com`, `pitch@inventninvest.com`
+- **Data strategy**: `src/lib/mockFetch.ts` patches `window.fetch` at app startup to intercept all `/api/*` data calls and return hardcoded demo data from `src/lib/mockApiData.ts`. This enables full Vercel deployment without a backend server (zero serverless functions used for data — only `api/admin.ts` and `api/access-requests/` use serverless functions for DB-backed admin flows).
+- **14 pages**: Dashboard, P&L, Cash Flow, Expenses, Operations, Product, Marketing, Sales, People, Portfolio, Portfolio Detail, M&A Support, Professional Services, Reports & Analytics
+- **Vercel config**: `vercel.json` — single SPA catch-all rewrite to `index.html`. Root dir: `artifacts/finance-saas`, build: `pnpm run build`, output: `dist/public`
+- **Env vars on Vercel**: `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `DATABASE_URL` (Neon PostgreSQL)
+- **Local dev**: `pnpm --filter @workspace/finance-saas run dev` — uses the same mock fetch so data works without the api-server running
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
