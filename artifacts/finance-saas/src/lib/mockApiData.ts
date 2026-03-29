@@ -79,22 +79,35 @@ export const MOCK_API: Record<string, unknown> = {
   },
 
   "analytics/reports": [
-    { id: "rpt_001", title: "Q4 2025 Board Pack", type: "board_pack", status: "published", createdAt: "2025-01-05T00:00:00Z", period: "Q4 2025", pages: 24 },
-    { id: "rpt_002", title: "FY 2025 Annual Report", type: "annual", status: "published", createdAt: "2025-01-15T00:00:00Z", period: "FY 2025", pages: 48 },
-    { id: "rpt_003", title: "Q1 2026 Investor Update", type: "investor_update", status: "draft", createdAt: "2026-03-01T00:00:00Z", period: "Q1 2026", pages: 12 },
-    { id: "rpt_004", title: "Portfolio Performance H2 2025", type: "portfolio", status: "published", createdAt: "2026-01-10T00:00:00Z", period: "H2 2025", pages: 32 },
-    { id: "rpt_005", title: "Cash Flow Analysis Dec 2025", type: "cashflow", status: "published", createdAt: "2026-01-08T00:00:00Z", period: "Dec 2025", pages: 8 },
+    { id: "rpt_001", title: "Q4 2025 Board Pack", companyName: "Fund iNi", type: "board_pack", status: "published", createdAt: "2025-01-05T00:00:00Z", period: "Q4 2025", pages: 24 },
+    { id: "rpt_002", title: "FY 2025 Annual Report", companyName: "Fund iNi", type: "annual", status: "published", createdAt: "2025-01-15T00:00:00Z", period: "FY 2025", pages: 48 },
+    { id: "rpt_003", title: "Q1 2026 Investor Update", companyName: "Fund iNi", type: "investor_update", status: "draft", createdAt: "2026-03-01T00:00:00Z", period: "Q1 2026", pages: 12 },
+    { id: "rpt_004", title: "Portfolio Performance H2 2025", companyName: "Fund iNi", type: "portfolio", status: "ready", createdAt: "2026-01-10T00:00:00Z", period: "H2 2025", pages: 32 },
+    { id: "rpt_005", title: "Cash Flow Analysis Dec 2025", companyName: "Fund iNi", type: "financial", status: "published", createdAt: "2026-01-08T00:00:00Z", period: "Dec 2025", pages: 8 },
+    { id: "rpt_006", title: "DataStream AI — Series B Due Diligence", companyName: "DataStream AI", type: "portfolio", status: "published", createdAt: "2025-11-20T00:00:00Z", period: "Q4 2025", pages: 18 },
+    { id: "rpt_007", title: "Meridian Analytics M&A Summary", companyName: "Meridian Analytics", type: "m&a", status: "ready", createdAt: "2026-02-14T00:00:00Z", period: "Q1 2026", pages: 22 },
   ],
 
-  "analytics/benchmarks": [
-    { metric: "ARR Growth Rate", company: 48.2, p25: 22, median: 35, p75: 52, unit: "%" },
-    { metric: "Gross Margin", company: 81.4, p25: 68, median: 75, p75: 82, unit: "%" },
-    { metric: "CAC Payback (months)", company: 14, p25: 18, median: 22, p75: 30, unit: "mo" },
-    { metric: "Net Revenue Retention", company: 118, p25: 100, median: 108, p75: 120, unit: "%" },
-    { metric: "ARR per Employee ($K)", company: 287, p25: 180, median: 220, p75: 280, unit: "K" },
-    { metric: "Magic Number", company: 0.9, p25: 0.5, median: 0.7, p75: 1.0, unit: "x" },
-    { metric: "Rule of 40", company: 46, p25: 20, median: 32, p75: 48, unit: "" },
-  ],
+  "analytics/benchmarks": {
+    industry: "SaaS",
+    radarData: [
+      { subject: "ARR Growth", portfolio: 88, peerMedian: 70 },
+      { subject: "Gross Margin", portfolio: 92, peerMedian: 80 },
+      { subject: "NRR", portfolio: 85, peerMedian: 72 },
+      { subject: "Rule of 40", portfolio: 82, peerMedian: 60 },
+      { subject: "Magic Number", portfolio: 78, peerMedian: 65 },
+      { subject: "CAC Efficiency", portfolio: 80, peerMedian: 58 },
+    ],
+    metrics: [
+      { label: "ARR Growth Rate", company: 48.2, industry: 35, topQuartile: 52 },
+      { label: "Gross Margin", company: 81.4, industry: 75, topQuartile: 82 },
+      { label: "Net Revenue Retention", company: 118, industry: 108, topQuartile: 120 },
+      { label: "CAC Payback (months)", company: 14, industry: 22, topQuartile: 12 },
+      { label: "Rule of 40", company: 46, industry: 32, topQuartile: 48 },
+      { label: "Magic Number", company: 0.9, industry: 0.7, topQuartile: 1.0 },
+      { label: "ARR per Employee ($K)", company: 287, industry: 220, topQuartile: 300 },
+    ],
+  },
 
   "metrics/cashflow": {
     totalInflowsM: 56.8, totalOutflowsM: 44.1, netCashFlowM: 12.7, cashOnHandM: 18.4,
