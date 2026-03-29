@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/clerk-react";
 
-const ADMIN_EMAILS = ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
+const ADMIN_EMAILS = ["venu.vegi@inventninvest.com"];
 
 export function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
