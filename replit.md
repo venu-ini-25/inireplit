@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server (port 8080)
+│   └── finance-saas/       # React + Vite frontend (iNi SaaS platform)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -73,6 +74,12 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
 - Exports: `.` (pool, db, schema), `./schema` (schema only)
 
 Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+
+**Current schema tables** (`src/schema/index.ts`):
+- `companies` — portfolio company records (name, industry, stage, revenue, valuation, investors, trends as JSONB)
+- `deals` — M&A deal records (companyName, dealType, stage, dealSize, financials/synergies/contacts/documents/dueDiligenceItems/timeline as JSONB)
+- `financial_snapshots` — monthly revenue snapshots (period, revenue, expenses, ebitda, arr)
+- `access_requests` — user access requests (created via raw SQL in api-server, not via Drizzle migration)
 
 ### `lib/api-spec` (`@workspace/api-spec`)
 
