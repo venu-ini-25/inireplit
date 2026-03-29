@@ -5,10 +5,12 @@ import {
   GetDealPipelineSummaryResponse,
   GetDealsQueryParams,
 } from "@workspace/api-zod";
+import { db, deals } from "@workspace/db";
+import { asc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const DEALS_DATA = [
+const MOCK_DEALS = [
   {
     id: "deal_001",
     companyName: "Meridian Analytics",
@@ -291,9 +293,44 @@ const DEALS_DATA = [
   },
 ];
 
-router.get("/deals", (req, res) => {
+async function getDeals() {
+  try {
+    const rows = await db.select().from(deals).orderBy(asc(deals.createdAt));
+    if (rows.length > 0) {
+      return rows.map((d) => ({
+        id: d.id,
+        companyName: d.companyName,
+        industry: d.industry,
+        dealType: d.dealType,
+        stage: d.stage,
+        dealSize: d.dealSize,
+        valuation: d.valuation,
+        targetRevenue: d.targetRevenue,
+        assignedTo: d.assignedTo,
+        priority: d.priority,
+        createdAt: d.createdAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt: d.updatedAt?.toISOString() ?? new Date().toISOString(),
+        closingDate: d.closingDate ?? undefined,
+        ndaSigned: d.ndaSigned,
+        dataRoomAccess: d.dataRoomAccess,
+        overview: d.overview,
+        thesis: d.thesis,
+        financials: d.financials ?? { arr: 0, nrr: 100, growth: 0, ebitda: 0 },
+        synergies: (d.synergies as { type: string; value: string; confidence: string }[]) ?? [],
+        contacts: (d.contacts as { name: string; role: string; email?: string }[]) ?? [],
+        documents: (d.documents as { name: string; type: string; date: string; size: string }[]) ?? [],
+        dueDiligenceItems: (d.dueDiligenceItems as Record<string, unknown>[]) ?? [],
+        timeline: (d.timeline as Record<string, unknown>[]) ?? [],
+      }));
+    }
+  } catch {}
+  return null;
+}
+
+router.get("/deals", async (req, res) => {
   const query = GetDealsQueryParams.parse(req.query);
-  let filtered = DEALS_DATA;
+  const dbDeals = await getDeals();
+  let filtered = dbDeals ?? MOCK_DEALS;
 
   if (query.stage) filtered = filtered.filter((d) => d.stage === query.stage);
   if (query.type) filtered = filtered.filter((d) => d.dealType === query.type);
@@ -302,21 +339,23 @@ router.get("/deals", (req, res) => {
   res.json(data);
 });
 
-router.get("/deals/pipeline-summary", (_req, res) => {
+router.get("/deals/pipeline-summary", async (_req, res) => {
   const stages = ["sourcing", "nda", "due_diligence", "negotiation", "closing", "closed", "passed"] as const;
+  const dbDeals = await getDeals();
+  const list = dbDeals ?? MOCK_DEALS;
 
   const byStage = stages.map((stage) => {
-    const deals = DEALS_DATA.filter((d) => d.stage === stage);
+    const stagDeals = list.filter((d) => d.stage === stage);
     return {
       stage,
-      count: deals.length,
-      value: deals.reduce((s, d) => s + d.dealSize, 0),
+      count: stagDeals.length,
+      value: stagDeals.reduce((s, d) => s + d.dealSize, 0),
     };
   });
 
   const data = GetDealPipelineSummaryResponse.parse({
-    totalDeals: DEALS_DATA.length,
-    totalValue: DEALS_DATA.reduce((s, d) => s + d.dealSize, 0),
+    totalDeals: list.length,
+    totalValue: list.reduce((s, d) => s + d.dealSize, 0),
     byStage,
     avgTimeToClose: 4.2,
     dealsClosedThisYear: 1,
@@ -325,8 +364,10 @@ router.get("/deals/pipeline-summary", (_req, res) => {
   res.json(data);
 });
 
-router.get("/deals/:id", (req, res) => {
-  const deal = DEALS_DATA.find((d) => d.id === req.params.id) ?? DEALS_DATA[0];
+router.get("/deals/:id", async (req, res) => {
+  const dbDeals = await getDeals();
+  const list = dbDeals ?? MOCK_DEALS;
+  const deal = list.find((d) => d.id === req.params.id) ?? list[0];
   const data = GetDealResponse.parse(deal);
   res.json(data);
 });

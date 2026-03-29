@@ -7,6 +7,7 @@ import servicesRouter from "./services";
 import metricsRouter from "./metrics";
 import accessRequestsRouter from "./accessRequests";
 import authRouter from "./auth";
+import dataRouter from "./data";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(dealsRouter);
 router.use(servicesRouter);
 router.use(metricsRouter);
 router.use(accessRequestsRouter);
+router.use(dataRouter);
 
 export default router;

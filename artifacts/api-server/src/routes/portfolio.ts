@@ -6,6 +6,8 @@ import {
   GetPortfolioKpisResponse,
   GetPortfolioKpisQueryParams,
 } from "@workspace/api-zod";
+import { db, companies } from "@workspace/db";
+import { asc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -100,144 +102,91 @@ const COMPANY_EXTRAS: Record<string, {
   },
 };
 
-const COMPANIES = [
+const MOCK_COMPANIES = [
   {
-    id: "co_001",
-    name: "NovaPay",
-    industry: "Fintech",
-    stage: "series_b",
-    revenue: 8400000,
-    valuation: 62000000,
-    growthRate: 48.2,
-    employees: 94,
-    location: "San Francisco, CA",
-    status: "active",
-    dataVerified: true,
-    ndaSigned: true,
-    lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_001", name: "NovaPay", industry: "Fintech", stage: "series_b",
+    revenue: 8400000, valuation: 62000000, growthRate: 48.2, employees: 94,
+    location: "San Francisco, CA", status: "active", dataVerified: true, ndaSigned: true,
+    lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
   {
-    id: "co_002",
-    name: "CloudOps Pro",
-    industry: "SaaS / Infrastructure",
-    stage: "series_a",
-    revenue: 3200000,
-    valuation: 28000000,
-    growthRate: 72.1,
-    employees: 41,
-    location: "Austin, TX",
-    status: "active",
-    dataVerified: true,
-    ndaSigned: true,
-    lastUpdated: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_002", name: "CloudOps Pro", industry: "SaaS / Infrastructure", stage: "series_a",
+    revenue: 3200000, valuation: 28000000, growthRate: 72.1, employees: 41,
+    location: "Austin, TX", status: "active", dataVerified: true, ndaSigned: true,
+    lastUpdated: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
   {
-    id: "co_003",
-    name: "HealthVault",
-    industry: "HealthTech",
-    stage: "series_a",
-    revenue: 5100000,
-    valuation: 38000000,
-    growthRate: 31.4,
-    employees: 68,
-    location: "Boston, MA",
-    status: "monitoring",
-    dataVerified: false,
-    ndaSigned: true,
-    lastUpdated: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_003", name: "HealthVault", industry: "HealthTech", stage: "series_a",
+    revenue: 5100000, valuation: 38000000, growthRate: 31.4, employees: 68,
+    location: "Boston, MA", status: "monitoring", dataVerified: false, ndaSigned: true,
+    lastUpdated: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
   {
-    id: "co_004",
-    name: "DataStream AI",
-    industry: "AI / ML",
-    stage: "series_b",
-    revenue: 12800000,
-    valuation: 95000000,
-    growthRate: 88.6,
-    employees: 127,
-    location: "New York, NY",
-    status: "active",
-    dataVerified: true,
-    ndaSigned: true,
-    lastUpdated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_004", name: "DataStream AI", industry: "AI / ML", stage: "series_b",
+    revenue: 12800000, valuation: 95000000, growthRate: 88.6, employees: 127,
+    location: "New York, NY", status: "active", dataVerified: true, ndaSigned: true,
+    lastUpdated: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
   {
-    id: "co_005",
-    name: "RetailEdge",
-    industry: "Retail Tech",
-    stage: "growth",
-    revenue: 22500000,
-    valuation: 145000000,
-    growthRate: 19.3,
-    employees: 204,
-    location: "Chicago, IL",
-    status: "active",
-    dataVerified: true,
-    ndaSigned: true,
-    lastUpdated: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_005", name: "RetailEdge", industry: "Retail Tech", stage: "growth",
+    revenue: 22500000, valuation: 145000000, growthRate: 19.3, employees: 204,
+    location: "Chicago, IL", status: "active", dataVerified: true, ndaSigned: true,
+    lastUpdated: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
   {
-    id: "co_006",
-    name: "LogiChain",
-    industry: "Supply Chain",
-    stage: "series_a",
-    revenue: 2900000,
-    valuation: 21000000,
-    growthRate: 42.7,
-    employees: 35,
-    location: "Seattle, WA",
-    status: "watchlist",
-    dataVerified: false,
-    ndaSigned: false,
-    lastUpdated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_006", name: "LogiChain", industry: "Supply Chain", stage: "series_a",
+    revenue: 2900000, valuation: 21000000, growthRate: 42.7, employees: 35,
+    location: "Seattle, WA", status: "watchlist", dataVerified: false, ndaSigned: false,
+    lastUpdated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
   {
-    id: "co_007",
-    name: "EduCore",
-    industry: "EdTech",
-    stage: "seed",
-    revenue: 820000,
-    valuation: 9500000,
-    growthRate: 95.2,
-    employees: 18,
-    location: "Denver, CO",
-    status: "active",
-    dataVerified: false,
-    ndaSigned: true,
-    lastUpdated: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_007", name: "EduCore", industry: "EdTech", stage: "seed",
+    revenue: 820000, valuation: 9500000, growthRate: 95.2, employees: 18,
+    location: "Denver, CO", status: "active", dataVerified: false, ndaSigned: true,
+    lastUpdated: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
   {
-    id: "co_008",
-    name: "SecureVault",
-    industry: "Cybersecurity",
-    stage: "series_c",
-    revenue: 38000000,
-    valuation: 290000000,
-    growthRate: 26.8,
-    employees: 312,
-    location: "Washington, DC",
-    status: "active",
-    dataVerified: true,
-    ndaSigned: true,
-    lastUpdated: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    logo: "",
+    id: "co_008", name: "SecureVault", industry: "Cybersecurity", stage: "series_c",
+    revenue: 38000000, valuation: 290000000, growthRate: 26.8, employees: 312,
+    location: "Washington, DC", status: "active", dataVerified: true, ndaSigned: true,
+    lastUpdated: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), logo: "",
   },
 ];
 
-router.get("/portfolio/summary", (_req, res) => {
+async function getCompanies() {
+  try {
+    const rows = await db.select().from(companies).orderBy(asc(companies.name));
+    if (rows.length > 0) {
+      return rows.map((c) => ({
+        id: c.id,
+        name: c.name,
+        industry: c.industry,
+        stage: c.stage,
+        revenue: c.revenue,
+        valuation: c.valuation,
+        growthRate: c.growthRate,
+        employees: c.employees,
+        location: c.location,
+        status: c.status,
+        dataVerified: c.dataVerified,
+        ndaSigned: c.ndaSigned,
+        logo: c.logo,
+        lastUpdated: c.updatedAt?.toISOString() ?? new Date().toISOString(),
+      }));
+    }
+  } catch {}
+  return null;
+}
+
+router.get("/portfolio/summary", async (_req, res) => {
+  const dbCompanies = await getCompanies();
+  const list = dbCompanies ?? MOCK_COMPANIES;
   const data = GetPortfolioSummaryResponse.parse({
-    totalCompanies: COMPANIES.length,
+    totalCompanies: list.length,
     totalAum: 688500000,
-    totalRevenue: COMPANIES.reduce((s, c) => s + c.revenue, 0),
+    totalRevenue: list.reduce((s, c) => s + c.revenue, 0),
     avgGrowthRate: 53.0,
-    avgValuation: COMPANIES.reduce((s, c) => s + c.valuation, 0) / COMPANIES.length,
+    avgValuation: list.reduce((s, c) => s + c.valuation, 0) / list.length,
     totalDeals: 14,
     aumChange: 18.4,
     revenueChange: 34.2,
@@ -246,14 +195,45 @@ router.get("/portfolio/summary", (_req, res) => {
   res.json(data);
 });
 
-router.get("/portfolio/companies", (_req, res) => {
-  const data = GetPortfolioCompaniesResponse.parse(COMPANIES);
+router.get("/portfolio/companies", async (_req, res) => {
+  const dbCompanies = await getCompanies();
+  const data = GetPortfolioCompaniesResponse.parse(dbCompanies ?? MOCK_COMPANIES);
   res.json(data);
 });
 
-router.get("/portfolio/companies/:id", (req, res) => {
-  const company = COMPANIES.find((c) => c.id === req.params.id) || COMPANIES[0];
-  const extras = COMPANY_EXTRAS[company.id] || COMPANY_EXTRAS["co_001"];
+router.get("/portfolio/companies/:id", async (req, res) => {
+  const dbCompanies = await getCompanies();
+  const list = dbCompanies ?? MOCK_COMPANIES;
+
+  const company = list.find((c) => c.id === req.params.id) ?? list[0];
+
+  let extras = COMPANY_EXTRAS[company.id] ?? COMPANY_EXTRAS["co_001"];
+
+  if (dbCompanies) {
+    const dbRow = (await db.select().from(companies).orderBy(asc(companies.name)))
+      .find((c) => c.id === company.id);
+    if (dbRow) {
+      extras = {
+        founded: dbRow.founded ?? extras.founded,
+        ownership: dbRow.ownership ?? extras.ownership,
+        arr: dbRow.arr ?? extras.arr,
+        arrGrowthPct: dbRow.arrGrowthPct ?? extras.arrGrowthPct,
+        irr: dbRow.irr ?? extras.irr,
+        moic: dbRow.moic ?? extras.moic,
+        lastValDate: dbRow.lastValDate ?? extras.lastValDate,
+        investors: (dbRow.investors as string[]) ?? extras.investors,
+        arrTrend: (dbRow.arrTrend as { q: string; v: number }[])?.length
+          ? (dbRow.arrTrend as { q: string; v: number }[])
+          : extras.arrTrend,
+        headcountTrend: (dbRow.headcountTrend as { q: string; v: number }[])?.length
+          ? (dbRow.headcountTrend as { q: string; v: number }[])
+          : extras.headcountTrend,
+        burnTrend: (dbRow.burnTrend as { q: string; v: number }[])?.length
+          ? (dbRow.burnTrend as { q: string; v: number }[])
+          : extras.burnTrend,
+      };
+    }
+  }
 
   const data = GetPortfolioCompanyResponse.parse({
     ...company,
@@ -271,8 +251,8 @@ router.get("/portfolio/companies/:id", (req, res) => {
     capTable: [
       { investor: "Founders", shares: 4200000, percentage: 42.0, shareClass: "Common", investmentAmount: 0 },
       { investor: "iNi Capital", shares: 1800000, percentage: 18.0, shareClass: "Series B Preferred", investmentAmount: 12000000 },
-      { investor: extras.investors[0] || "Sequoia Capital", shares: 1500000, percentage: 15.0, shareClass: "Series B Preferred", investmentAmount: 9800000 },
-      { investor: extras.investors[1] || "Andreessen Horowitz", shares: 1000000, percentage: 10.0, shareClass: "Series A Preferred", investmentAmount: 5000000 },
+      { investor: extras.investors[0] ?? "Sequoia Capital", shares: 1500000, percentage: 15.0, shareClass: "Series B Preferred", investmentAmount: 9800000 },
+      { investor: extras.investors[1] ?? "Andreessen Horowitz", shares: 1000000, percentage: 10.0, shareClass: "Series A Preferred", investmentAmount: 5000000 },
       { investor: "ESOP Pool", shares: 800000, percentage: 8.0, shareClass: "Common", investmentAmount: 0 },
       { investor: "Angel Investors", shares: 700000, percentage: 7.0, shareClass: "Series A Preferred", investmentAmount: 2500000 },
     ],
@@ -298,10 +278,12 @@ router.get("/portfolio/companies/:id", (req, res) => {
   res.json(data);
 });
 
-router.get("/portfolio/kpis", (req, res) => {
+router.get("/portfolio/kpis", async (req, res) => {
   const query = GetPortfolioKpisQueryParams.parse(req.query);
   const period = query.period || "YTD";
-  const company = COMPANIES.find((c) => c.id === query.companyId) || COMPANIES[0];
+  const dbCompanies = await getCompanies();
+  const list = dbCompanies ?? MOCK_COMPANIES;
+  const company = list.find((c) => c.id === query.companyId) ?? list[0];
 
   const data = GetPortfolioKpisResponse.parse({
     period,

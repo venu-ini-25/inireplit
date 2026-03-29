@@ -6,12 +6,34 @@ import {
   GetBenchmarksQueryParams,
   GetReportsResponse,
 } from "@workspace/api-zod";
+import { db, financialSnapshots } from "@workspace/db";
+import { asc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-router.get("/analytics/revenue", (req, res) => {
+router.get("/analytics/revenue", async (req, res) => {
   const query = GetRevenueAnalyticsQueryParams.parse(req.query);
   const period = query.period || "1y";
+
+  try {
+    const dbRows = await db.select().from(financialSnapshots).orderBy(asc(financialSnapshots.sortOrder));
+    if (dbRows.length > 0) {
+      const data = dbRows.map((r) => ({
+        period: r.period,
+        revenue: r.revenue,
+        expenses: r.expenses,
+        ebitda: r.ebitda,
+        arr: r.arr,
+      }));
+      const totalRevenue = data.reduce((s, d) => s + d.revenue, 0);
+      const first = data[0]?.revenue ?? 1;
+      const last = data[data.length - 1]?.revenue ?? 1;
+      const revenueGrowth = first > 0 ? parseFloat((((last - first) / first) * 100).toFixed(1)) : 0;
+      const response = GetRevenueAnalyticsResponse.parse({ data, totalRevenue, revenueGrowth, arrGrowth: revenueGrowth * 1.09 });
+      res.json(response);
+      return;
+    }
+  } catch {}
 
   const months = period === "6m" ? 6 : period === "2y" ? 24 : period === "3y" ? 36 : 12;
   const data = Array.from({ length: months }, (_, i) => {
