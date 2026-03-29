@@ -1,38 +1,81 @@
 import { motion } from 'framer-motion';
-import { sceneTransitions } from '@/lib/video/animations';
 
 export function Scene7Outro() {
   return (
     <motion.div
-      className="absolute inset-0 flex flex-col items-center justify-center bg-transparent z-10"
-      variants={sceneTransitions.zoomThrough}
-      initial="initial"
-      animate="animate"
-      exit="exit"
+      className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c1424] z-10 overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 1 }}
     >
-      <div className="absolute inset-0 bg-accent/10 opacity-50 blur-3xl rounded-full scale-150" />
-      
+      {/* Radial glow — slightly stronger than intro for dramatic close */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 75% 65% at 50% 46%, rgba(37,99,235,0.3) 0%, rgba(37,99,235,0.1) 40%, transparent 70%)',
+        }}
+      />
+
       <motion.div
-        className="relative z-10 flex flex-col items-center"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+        className="flex flex-col items-center relative z-10"
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
       >
-        <div className="w-32 h-32 mb-8 relative rounded-2xl overflow-hidden flex items-center justify-center">
-          <img src="/images/ini-logo-transparent.png" alt="iNi Logo" className="w-full h-full object-contain drop-shadow-[0_0_60px_rgba(37,99,235,0.6)]" />
-        </div>
-        
-        <h1 className="text-8xl font-display font-bold text-white tracking-tighter mb-6 drop-shadow-2xl">
+        <motion.img
+          src="/images/ini-logo-transparent.png"
+          alt="iNi Logo"
+          style={{
+            width: '50vw',
+            maxWidth: 960,
+            minWidth: 480,
+            height: 'auto',
+            marginBottom: 44,
+            filter:
+              'drop-shadow(0 0 120px rgba(37,99,235,0.8)) drop-shadow(0 0 50px rgba(37,99,235,0.5))',
+          }}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+        />
+
+        <motion.h1
+          style={{
+            fontSize: 'clamp(3rem, 5vw, 5.5rem)',
+            fontWeight: 800,
+            color: 'white',
+            letterSpacing: '-0.03em',
+            marginBottom: '1.5rem',
+            lineHeight: 1,
+            fontFamily: 'Space Grotesk, system-ui, sans-serif',
+          }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
           Invent N Invest
-        </h1>
-        
+        </motion.h1>
+
         <motion.div
-          className="px-8 py-4 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 1 }}
+          transition={{ duration: 0.8, delay: 1.0 }}
+          style={{
+            padding: '12px 32px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 999,
+            backdropFilter: 'blur(8px)',
+          }}
         >
-          <p className="text-2xl text-accent font-mono tracking-wider">
+          <p style={{
+            fontFamily: 'JetBrains Mono, Space Grotesk, monospace',
+            fontSize: '1.4rem',
+            color: '#60a5fa',
+            letterSpacing: '0.06em',
+          }}>
             inventninvest.com
           </p>
         </motion.div>
