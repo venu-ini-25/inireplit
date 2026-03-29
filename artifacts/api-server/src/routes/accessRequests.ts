@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import pool from "../lib/db";
 
 export type AccessStatus = "pending" | "approved" | "denied";
 
@@ -19,94 +18,83 @@ export interface AccessRequest {
   reviewedAt: string | null;
 }
 
-const DATA_DIR = join(process.cwd(), "data");
-const DATA_FILE = join(DATA_DIR, "access-requests.json");
-
-function loadStore(): AccessRequest[] {
-  try {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-    if (!existsSync(DATA_FILE)) return [];
-    const raw = readFileSync(DATA_FILE, "utf-8");
-    return JSON.parse(raw) as AccessRequest[];
-  } catch {
-    return [];
-  }
+function rowToRequest(row: Record<string, unknown>): AccessRequest {
+  return {
+    id: row.id as string,
+    firstName: row.first_name as string,
+    lastName: row.last_name as string,
+    email: row.email as string,
+    company: (row.company as string) ?? "",
+    role: row.role as string,
+    aum: (row.aum as string) ?? "",
+    message: (row.message as string) ?? "",
+    status: row.status as AccessStatus,
+    submittedAt: (row.submitted_at as Date).toISOString(),
+    reviewedAt: row.reviewed_at ? (row.reviewed_at as Date).toISOString() : null,
+  };
 }
-
-function saveStore(store: AccessRequest[]) {
-  try {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-    writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf-8");
-  } catch (e) {
-    console.error("Failed to persist access requests:", e);
-  }
-}
-
-const store: AccessRequest[] = loadStore();
 
 const router = Router();
 
-router.post("/access-requests", (req, res) => {
+router.post("/access-requests", async (req, res) => {
   const { firstName, lastName, email, company, role, aum, message } = req.body as Partial<AccessRequest>;
 
   if (!firstName || !email || !role) {
     return res.status(400).json({ error: "firstName, email and role are required" });
   }
 
-  const existing = store.find((r) => r.email === email && r.status === "pending");
-  if (existing) {
-    return res.status(200).json({ id: existing.id, status: existing.status, message: "Request already submitted" });
+  // Prevent duplicate pending requests
+  const { rows: existing } = await pool.query(
+    "SELECT id, status FROM access_requests WHERE email = $1 AND status = 'pending'",
+    [email]
+  );
+  if (existing.length > 0) {
+    return res.status(200).json({ id: existing[0].id, status: existing[0].status, message: "Request already submitted" });
   }
 
-  const request: AccessRequest = {
-    id: `req_${randomUUID().slice(0, 8)}`,
-    firstName: firstName ?? "",
-    lastName: lastName ?? "",
-    email: email ?? "",
-    company: company ?? "",
-    role: role ?? "",
-    aum: aum ?? "",
-    message: message ?? "",
-    status: "pending",
-    submittedAt: new Date().toISOString(),
-    reviewedAt: null,
-  };
-
-  store.push(request);
-  saveStore(store);
-  return res.status(201).json(request);
-});
-
-router.get("/access-requests", (_req, res) => {
-  const sorted = [...store].sort(
-    (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+  const id = `req_${randomUUID().slice(0, 8)}`;
+  const { rows } = await pool.query(
+    `INSERT INTO access_requests (id, first_name, last_name, email, company, role, aum, message, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending') RETURNING *`,
+    [id, firstName ?? "", lastName ?? "", email ?? "", company ?? "", role ?? "", aum ?? "", message ?? ""]
   );
-  return res.json({ requests: sorted, total: store.length });
+
+  return res.status(201).json(rowToRequest(rows[0]));
 });
 
-router.get("/access-requests/status/:email", (req, res) => {
+router.get("/access-requests", async (_req, res) => {
+  const { rows } = await pool.query(
+    "SELECT * FROM access_requests ORDER BY submitted_at DESC"
+  );
+  return res.json({ requests: rows.map(rowToRequest), total: rows.length });
+});
+
+router.get("/access-requests/status/:email", async (req, res) => {
   const email = decodeURIComponent(req.params.email);
-  const request = store.find((r) => r.email === email);
-  if (!request) return res.json({ status: "not_found" });
-  return res.json({ status: request.status, id: request.id });
+  const { rows } = await pool.query(
+    "SELECT id, status FROM access_requests WHERE email = $1 ORDER BY submitted_at DESC LIMIT 1",
+    [email]
+  );
+  if (rows.length === 0) return res.json({ status: "not_found" });
+  return res.json({ status: rows[0].status, id: rows[0].id });
 });
 
-router.patch("/access-requests/:id/approve", (req, res) => {
-  const request = store.find((r) => r.id === req.params.id);
-  if (!request) return res.status(404).json({ error: "Request not found" });
-  request.status = "approved";
-  request.reviewedAt = new Date().toISOString();
-  saveStore(store);
-  return res.json(request);
+router.patch("/access-requests/:id/approve", async (req, res) => {
+  const { rows } = await pool.query(
+    "UPDATE access_requests SET status = 'approved', reviewed_at = NOW() WHERE id = $1 RETURNING *",
+    [req.params.id]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+  return res.json(rowToRequest(rows[0]));
 });
 
-router.patch("/access-requests/:id/deny", (req, res) => {
-  const request = store.find((r) => r.id === req.params.id);
-  if (!request) return res.status(404).json({ error: "Request not found" });
-  request.status = "denied";
-  request.reviewedAt = new Date().toISOString();
-  saveStore(store);
-  return res.json(request);
+router.patch("/access-requests/:id/deny", async (req, res) => {
+  const { rows } = await pool.query(
+    "UPDATE access_requests SET status = 'denied', reviewed_at = NOW() WHERE id = $1 RETURNING *",
+    [req.params.id]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+  return res.json(rowToRequest(rows[0]));
 });
 
 export default router;
