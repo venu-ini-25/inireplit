@@ -3,18 +3,19 @@ import { motion } from 'framer-motion';
 export function Scene1Intro() {
   return (
     <motion.div
-      className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c1424] z-10 overflow-hidden"
+      className="absolute inset-0 flex flex-col items-center justify-center z-10 overflow-hidden"
+      style={{ background: '#93b6fa' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
     >
-      {/* Radial glow behind logo */}
+      {/* Subtle white bloom in center */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(ellipse 70% 60% at 50% 46%, rgba(37,99,235,0.22) 0%, rgba(37,99,235,0.06) 50%, transparent 72%)',
+            'radial-gradient(ellipse 65% 55% at 50% 44%, rgba(255,255,255,0.25) 0%, transparent 70%)',
         }}
       />
 
@@ -27,8 +28,8 @@ export function Scene1Intro() {
           style={{
             fontFamily: 'Space Grotesk, system-ui, sans-serif',
             fontSize: 'clamp(1.1rem, 2vw, 1.6rem)',
-            fontWeight: 300,
-            color: 'rgba(148,163,184,0.85)',
+            fontWeight: 500,
+            color: 'rgba(30,58,138,0.85)',
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
             marginBottom: '1.2rem',
@@ -37,7 +38,7 @@ export function Scene1Intro() {
           Welcome to
         </motion.p>
 
-        {/* Logo — natural colors, no brightness wash-out */}
+        {/* Logo */}
         <motion.img
           src="/images/ini-logo-transparent.png"
           alt="iNi Logo"
@@ -51,7 +52,7 @@ export function Scene1Intro() {
             height: 'auto',
             marginBottom: '2.4rem',
             filter:
-              'drop-shadow(0 0 80px rgba(37,99,235,0.9)) drop-shadow(0 0 32px rgba(96,165,250,0.65))',
+              'drop-shadow(0 6px 32px rgba(30,58,138,0.4)) drop-shadow(0 2px 8px rgba(30,58,138,0.25))',
           }}
         />
 
@@ -62,14 +63,14 @@ export function Scene1Intro() {
           transition={{ duration: 0.9, delay: 1.0 }}
           style={{
             fontSize: 'clamp(1.1rem, 1.7vw, 1.75rem)',
-            color: 'rgba(148,163,184,0.9)',
-            fontWeight: 300,
+            color: 'rgba(30,58,138,0.75)',
+            fontWeight: 400,
             letterSpacing: '0.025em',
             fontFamily: 'Space Grotesk, system-ui, sans-serif',
           }}
         >
           Portfolio Intelligence.{' '}
-          <span style={{ color: '#60a5fa', fontWeight: 500 }}>Precision Finance.</span>
+          <span style={{ color: '#1e3a8a', fontWeight: 600 }}>Precision Finance.</span>
         </motion.p>
       </div>
     </motion.div>
