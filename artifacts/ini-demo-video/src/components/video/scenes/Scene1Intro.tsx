@@ -45,42 +45,24 @@ export function Scene1Intro() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 1.1, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
           style={{
-            width: '50vw',
-            maxWidth: 960,
-            minWidth: 480,
+            width: '68vw',
+            maxWidth: 1200,
+            minWidth: 560,
             height: 'auto',
-            marginBottom: '2.2rem',
+            marginBottom: '2.4rem',
             filter:
-              'drop-shadow(0 0 110px rgba(37,99,235,0.75)) drop-shadow(0 0 44px rgba(37,99,235,0.5))',
+              'brightness(1.6) drop-shadow(0 0 140px rgba(37,99,235,0.95)) drop-shadow(0 0 60px rgba(96,165,250,0.8)) drop-shadow(0 0 20px rgba(255,255,255,0.4))',
           }}
         />
-
-        {/* Company name */}
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.85, delay: 1.0, ease: 'easeOut' }}
-          style={{
-            fontSize: 'clamp(2.8rem, 4.5vw, 5rem)',
-            fontWeight: 800,
-            color: 'white',
-            letterSpacing: '-0.03em',
-            marginBottom: '0.75rem',
-            lineHeight: 1,
-            fontFamily: 'Space Grotesk, system-ui, sans-serif',
-          }}
-        >
-          Invent N Invest
-        </motion.h1>
 
         {/* Tagline */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.9, delay: 1.45 }}
+          transition={{ duration: 0.9, delay: 1.0 }}
           style={{
-            fontSize: 'clamp(1rem, 1.6vw, 1.6rem)',
-            color: 'rgba(148,163,184,0.85)',
+            fontSize: 'clamp(1.1rem, 1.7vw, 1.75rem)',
+            color: 'rgba(148,163,184,0.9)',
             fontWeight: 300,
             letterSpacing: '0.025em',
             fontFamily: 'Space Grotesk, system-ui, sans-serif',
