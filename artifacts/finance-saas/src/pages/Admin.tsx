@@ -295,11 +295,12 @@ const BLANK_DEAL = {
   overview: "", thesis: "",
 };
 
-function DealForm({ onSave, onCancel }: {
+function DealForm({ onSave, onCancel, initial }: {
   onSave: (data: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
+  initial?: Partial<typeof BLANK_DEAL>;
 }) {
-  const [f, setF] = useState(BLANK_DEAL);
+  const [f, setF] = useState({ ...BLANK_DEAL, ...initial });
   const [saving, setSaving] = useState(false);
 
   const set = (k: string, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
@@ -422,12 +423,15 @@ function DealForm({ onSave, onCancel }: {
 }
 
 // ===== SNAPSHOT FORM =====
-function SnapshotForm({ onSave, onCancel, nextOrder }: {
+const BLANK_SNAPSHOT = { period: "", revenue: "", expenses: "", arr: "" };
+
+function SnapshotForm({ onSave, onCancel, nextOrder, initial }: {
   onSave: (data: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
   nextOrder: number;
+  initial?: Partial<typeof BLANK_SNAPSHOT>;
 }) {
-  const [f, setF] = useState({ period: "", revenue: "", expenses: "", arr: "" });
+  const [f, setF] = useState({ ...BLANK_SNAPSHOT, ...initial });
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
@@ -561,6 +565,9 @@ export default function Admin() {
   const [addingCompany, setAddingCompany] = useState(false);
   const [addingDeal, setAddingDeal] = useState(false);
   const [addingSnapshot, setAddingSnapshot] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<CompanyRow | null>(null);
+  const [editingDeal, setEditingDeal] = useState<DealRow | null>(null);
+  const [editingSnapshot, setEditingSnapshot] = useState<SnapshotRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadDbStatus = async () => {
@@ -581,7 +588,9 @@ export default function Admin() {
       if (!res.ok) return;
       const data = await res.json() as { companies: CompanyRow[] };
       setDbCompanies(data.companies);
-    } catch {}
+    } catch (e) {
+      console.warn("loadDbCompanies failed:", (e as Error).message);
+    }
   };
 
   const loadDbDeals = async () => {
@@ -590,7 +599,9 @@ export default function Admin() {
       if (!res.ok) return;
       const data = await res.json() as { deals: DealRow[] };
       setDbDeals(data.deals);
-    } catch {}
+    } catch (e) {
+      console.warn("loadDbDeals failed:", (e as Error).message);
+    }
   };
 
   const loadDbSnapshots = async () => {
@@ -599,7 +610,9 @@ export default function Admin() {
       if (!res.ok) return;
       const data = await res.json() as { snapshots: SnapshotRow[] };
       setDbSnapshots(data.snapshots);
-    } catch {}
+    } catch (e) {
+      console.warn("loadDbSnapshots failed:", (e as Error).message);
+    }
   };
 
   useEffect(() => {
@@ -623,15 +636,28 @@ export default function Admin() {
     await Promise.all([loadDbCompanies(), loadDbStatus()]);
   };
 
+  const updateCompany = async (id: string, data: Record<string, unknown>) => {
+    const res = await fetch(`${API_BASE}/api/data/companies/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    setEditingCompany(null);
+    showToast("Company updated", true);
+    await loadDbCompanies();
+  };
+
   const deleteCompany = async (id: string) => {
     if (!confirm("Delete this company from the database?")) return;
     setDeletingId(id);
     try {
-      await fetch(`${API_BASE}/api/data/companies/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/data/companies/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
       showToast("Company deleted", false);
       await Promise.all([loadDbCompanies(), loadDbStatus()]);
-    } catch {
-      showToast("Delete failed", false);
+    } catch (e) {
+      showToast(`Delete failed: ${(e as Error).message}`, false);
     } finally {
       setDeletingId(null);
     }
@@ -649,15 +675,28 @@ export default function Admin() {
     await Promise.all([loadDbDeals(), loadDbStatus()]);
   };
 
+  const updateDeal = async (id: string, data: Record<string, unknown>) => {
+    const res = await fetch(`${API_BASE}/api/data/deals/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    setEditingDeal(null);
+    showToast("Deal updated", true);
+    await loadDbDeals();
+  };
+
   const deleteDeal = async (id: string) => {
     if (!confirm("Delete this deal from the database?")) return;
     setDeletingId(id);
     try {
-      await fetch(`${API_BASE}/api/data/deals/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/data/deals/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
       showToast("Deal deleted", false);
       await Promise.all([loadDbDeals(), loadDbStatus()]);
-    } catch {
-      showToast("Delete failed", false);
+    } catch (e) {
+      showToast(`Delete failed: ${(e as Error).message}`, false);
     } finally {
       setDeletingId(null);
     }
@@ -675,15 +714,28 @@ export default function Admin() {
     await Promise.all([loadDbSnapshots(), loadDbStatus()]);
   };
 
+  const updateSnapshot = async (id: string, data: Record<string, unknown>) => {
+    const res = await fetch(`${API_BASE}/api/data/financial-snapshots/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    setEditingSnapshot(null);
+    showToast("Snapshot updated", true);
+    await loadDbSnapshots();
+  };
+
   const deleteSnapshot = async (id: string) => {
     if (!confirm("Delete this snapshot?")) return;
     setDeletingId(id);
     try {
-      await fetch(`${API_BASE}/api/data/financial-snapshots/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/data/financial-snapshots/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
       showToast("Snapshot deleted", false);
       await Promise.all([loadDbSnapshots(), loadDbStatus()]);
-    } catch {
-      showToast("Delete failed", false);
+    } catch (e) {
+      showToast(`Delete failed: ${(e as Error).message}`, false);
     } finally {
       setDeletingId(null);
     }
@@ -1028,7 +1080,7 @@ export default function Admin() {
                       ? "No companies in database — app is using mock data"
                       : `${dbCompanies.length} compan${dbCompanies.length === 1 ? "y" : "ies"} in database`}
                   </p>
-                  <button onClick={() => setAddingCompany(true)}
+                  <button onClick={() => { setEditingCompany(null); setAddingCompany(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors">
                     <Plus className="w-3.5 h-3.5" /> Add Company
                   </button>
@@ -1036,6 +1088,24 @@ export default function Admin() {
                 <div className="p-5">
                   {addingCompany && (
                     <CompanyForm onSave={saveCompany} onCancel={() => setAddingCompany(false)} />
+                  )}
+                  {editingCompany && (
+                    <CompanyForm
+                      initial={{
+                        name: editingCompany.name, industry: editingCompany.industry,
+                        stage: editingCompany.stage, revenue: String(editingCompany.revenue),
+                        valuation: String(editingCompany.valuation), growthRate: String(editingCompany.growthRate),
+                        employees: String(editingCompany.employees), location: editingCompany.location,
+                        status: editingCompany.status, dataVerified: editingCompany.dataVerified,
+                        ndaSigned: editingCompany.ndaSigned, founded: String(editingCompany.founded ?? ""),
+                        ownership: editingCompany.ownership ?? "", arr: editingCompany.arr ?? "",
+                        arrGrowthPct: String(editingCompany.arrGrowthPct ?? ""),
+                        irr: editingCompany.irr ?? "", moic: editingCompany.moic ?? "",
+                        lastValDate: editingCompany.lastValDate ?? "",
+                      }}
+                      onSave={(data) => updateCompany(editingCompany.id, data)}
+                      onCancel={() => setEditingCompany(null)}
+                    />
                   )}
                   {dbCompanies.length === 0 && !addingCompany ? (
                     <div className="py-10 text-center text-slate-400 text-sm">
@@ -1071,10 +1141,16 @@ export default function Admin() {
                                 }`}>{c.status}</span>
                               </td>
                               <td className="py-2.5 text-right">
-                                <button onClick={() => deleteCompany(c.id)} disabled={deletingId === c.id}
-                                  className="p-1.5 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40">
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <button onClick={() => { setAddingCompany(false); setEditingCompany(c); }}
+                                    className="p-1.5 text-slate-300 hover:text-primary transition-colors">
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => deleteCompany(c.id)} disabled={deletingId === c.id}
+                                    className="p-1.5 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -1095,7 +1171,7 @@ export default function Admin() {
                       ? "No deals in database — app is using mock data"
                       : `${dbDeals.length} deal${dbDeals.length === 1 ? "" : "s"} in database`}
                   </p>
-                  <button onClick={() => setAddingDeal(true)}
+                  <button onClick={() => { setEditingDeal(null); setAddingDeal(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors">
                     <Plus className="w-3.5 h-3.5" /> Add Deal
                   </button>
@@ -1103,6 +1179,20 @@ export default function Admin() {
                 <div className="p-5">
                   {addingDeal && (
                     <DealForm onSave={saveDeal} onCancel={() => setAddingDeal(false)} />
+                  )}
+                  {editingDeal && (
+                    <DealForm
+                      initial={{
+                        companyName: editingDeal.companyName, industry: editingDeal.industry,
+                        dealType: editingDeal.dealType, stage: editingDeal.stage,
+                        dealSize: String(editingDeal.dealSize), valuation: String(editingDeal.valuation),
+                        targetRevenue: String(editingDeal.targetRevenue), assignedTo: editingDeal.assignedTo,
+                        priority: editingDeal.priority, closingDate: editingDeal.closingDate ?? "",
+                        ndaSigned: editingDeal.ndaSigned, overview: editingDeal.overview,
+                      }}
+                      onSave={(data) => updateDeal(editingDeal.id, data)}
+                      onCancel={() => setEditingDeal(null)}
+                    />
                   )}
                   {dbDeals.length === 0 && !addingDeal ? (
                     <div className="py-10 text-center text-slate-400 text-sm">
@@ -1138,10 +1228,16 @@ export default function Admin() {
                                 }`}>{d.priority}</span>
                               </td>
                               <td className="py-2.5 text-right">
-                                <button onClick={() => deleteDeal(d.id)} disabled={deletingId === d.id}
-                                  className="p-1.5 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40">
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <button onClick={() => { setAddingDeal(false); setEditingDeal(d); }}
+                                    className="p-1.5 text-slate-300 hover:text-primary transition-colors">
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => deleteDeal(d.id)} disabled={deletingId === d.id}
+                                    className="p-1.5 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -1162,7 +1258,7 @@ export default function Admin() {
                       ? "No financial snapshots — app is using mock revenue data"
                       : `${dbSnapshots.length} snapshot${dbSnapshots.length === 1 ? "" : "s"} in database`}
                   </p>
-                  <button onClick={() => setAddingSnapshot(true)}
+                  <button onClick={() => { setEditingSnapshot(null); setAddingSnapshot(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors">
                     <Plus className="w-3.5 h-3.5" /> Add Snapshot
                   </button>
@@ -1170,6 +1266,19 @@ export default function Admin() {
                 <div className="p-5">
                   {addingSnapshot && (
                     <SnapshotForm onSave={saveSnapshot} onCancel={() => setAddingSnapshot(false)} nextOrder={dbSnapshots.length} />
+                  )}
+                  {editingSnapshot && (
+                    <SnapshotForm
+                      initial={{
+                        period: editingSnapshot.period,
+                        revenue: String(editingSnapshot.revenue),
+                        expenses: String(editingSnapshot.expenses),
+                        arr: String(editingSnapshot.arr),
+                      }}
+                      onSave={(data) => updateSnapshot(editingSnapshot.id, data)}
+                      onCancel={() => setEditingSnapshot(null)}
+                      nextOrder={editingSnapshot.sortOrder}
+                    />
                   )}
                   {dbSnapshots.length === 0 && !addingSnapshot ? (
                     <div className="py-10 text-center text-slate-400 text-sm">
@@ -1199,10 +1308,16 @@ export default function Admin() {
                               </td>
                               <td className="py-2.5 pr-4 text-xs text-right">{fmt$(s.arr)}</td>
                               <td className="py-2.5 text-right">
-                                <button onClick={() => deleteSnapshot(s.id)} disabled={deletingId === s.id}
-                                  className="p-1.5 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40">
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <button onClick={() => { setAddingSnapshot(false); setEditingSnapshot(s); }}
+                                    className="p-1.5 text-slate-300 hover:text-primary transition-colors">
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => deleteSnapshot(s.id)} disabled={deletingId === s.id}
+                                    className="p-1.5 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}

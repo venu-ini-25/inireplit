@@ -10,15 +10,31 @@ import {
   GetSpendingAnalyticsResponse,
   GetSpendingAnalyticsQueryParams,
 } from "@workspace/api-zod";
+import { db, metricsSnapshots } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-router.get("/metrics/operations", (_req, res) => {
+async function getMetricValues(category: string): Promise<Map<string, number>> {
+  try {
+    const rows = await db
+      .select()
+      .from(metricsSnapshots)
+      .where(eq(metricsSnapshots.category, category));
+    return new Map(rows.map((r) => [r.metricKey, r.value]));
+  } catch (err) {
+    console.warn(`[metrics/${category}] DB query failed, using mock data:`, (err as Error).message);
+    return new Map();
+  }
+}
+
+router.get("/metrics/operations", async (_req, res) => {
+  const dbMetrics = await getMetricValues("operations");
   const data = GetOperationsMetricsResponse.parse({
-    totalHeadcount: 89,
-    monthlyBurnM: 3.5,
-    cashRunwayMonths: 14,
-    grossMarginPct: 81.4,
+    totalHeadcount: dbMetrics.get("totalHeadcount") ?? 89,
+    monthlyBurnM: dbMetrics.get("monthlyBurnM") ?? 3.5,
+    cashRunwayMonths: dbMetrics.get("cashRunwayMonths") ?? 14,
+    grossMarginPct: dbMetrics.get("grossMarginPct") ?? 81.4,
     headcountTrend: [
       { month: "Jan", hc: 48 }, { month: "Feb", hc: 52 }, { month: "Mar", hc: 55 },
       { month: "Apr", hc: 58 }, { month: "May", hc: 62 }, { month: "Jun", hc: 67 },

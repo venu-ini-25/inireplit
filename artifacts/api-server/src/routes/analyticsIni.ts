@@ -33,7 +33,9 @@ router.get("/analytics/revenue", async (req, res) => {
       res.json(response);
       return;
     }
-  } catch {}
+  } catch (dbErr) {
+    console.warn("[analytics/revenue] DB query failed, falling back to mock data:", (dbErr as Error).message);
+  }
 
   const months = period === "6m" ? 6 : period === "2y" ? 24 : period === "3y" ? 36 : 12;
   const data = Array.from({ length: months }, (_, i) => {
