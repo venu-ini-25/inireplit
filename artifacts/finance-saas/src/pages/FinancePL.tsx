@@ -287,12 +287,13 @@ export default function FinancePL() {
         </div>
       </div>
 
-      <div className="flex gap-6 items-start">
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="flex flex-col xl:flex-row gap-6 items-start">
+        <div className="flex-1 min-w-0 bg-white rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-800">Detailed P&L Breakdown</h3>
             <p className="text-xs text-muted-foreground mt-0.5">All figures in USD · vs prior year comparison</p>
           </div>
+          <div className="overflow-x-auto">
           <div className="min-w-[800px]">
             {computed ? (
               <>
@@ -326,9 +327,10 @@ export default function FinancePL() {
               </>
             )}
           </div>
+          </div>
         </div>
 
-        <div className="w-[280px] shrink-0 flex flex-col gap-4">
+        <div className="w-full xl:w-[280px] xl:shrink-0 flex flex-col gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-border p-5">
             <h3 className="font-semibold text-slate-800 mb-3">Q1 Highlights</h3>
             <ul className="space-y-3 text-sm text-slate-600">
