@@ -9,17 +9,17 @@ export function Scene1Intro() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
     >
-      {/* Radial glow */}
+      {/* Radial glow behind logo */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(ellipse 70% 60% at 50% 46%, rgba(37,99,235,0.28) 0%, rgba(37,99,235,0.08) 45%, transparent 70%)',
+            'radial-gradient(ellipse 70% 60% at 50% 46%, rgba(37,99,235,0.22) 0%, rgba(37,99,235,0.06) 50%, transparent 72%)',
         }}
       />
 
       <div className="relative z-10 flex flex-col items-center gap-0">
-        {/* "Welcome to" — appears first */}
+        {/* "Welcome to" */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -37,11 +37,11 @@ export function Scene1Intro() {
           Welcome to
         </motion.p>
 
-        {/* Logo — scales in after the welcome text */}
+        {/* Logo — natural colors, no brightness wash-out */}
         <motion.img
           src="/images/ini-logo-transparent.png"
           alt="iNi Logo"
-          initial={{ opacity: 0, scale: 0.75, y: 20 }}
+          initial={{ opacity: 0, scale: 0.78, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 1.1, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
           style={{
@@ -51,7 +51,7 @@ export function Scene1Intro() {
             height: 'auto',
             marginBottom: '2.4rem',
             filter:
-              'brightness(1.6) drop-shadow(0 0 140px rgba(37,99,235,0.95)) drop-shadow(0 0 60px rgba(96,165,250,0.8)) drop-shadow(0 0 20px rgba(255,255,255,0.4))',
+              'drop-shadow(0 0 80px rgba(37,99,235,0.9)) drop-shadow(0 0 32px rgba(96,165,250,0.65))',
           }}
         />
 
