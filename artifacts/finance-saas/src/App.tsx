@@ -50,7 +50,7 @@ function Spinner() {
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const screenshotMode = import.meta.env.VITE_SCREENSHOT_MODE === "true";
 
   if (screenshotMode) {
@@ -98,6 +98,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
           // Admin-only users go straight to the admin panel
           if (allowed === "admin") {
             navigate("/admin");
+          } else if (location === "/admin") {
+            // Non-admin users must not access the admin panel
+            navigate("/app");
+            return;
           }
           setAccessChecked(true);
         } else {

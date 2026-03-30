@@ -79,6 +79,7 @@ router.post("/access-requests", async (req, res) => {
 // No requireAdmin — this endpoint is admin-panel-only and Clerk auth gates the UI.
 // requireAdmin caused Clerk JWKS network calls that timed out in this environment.
 router.get("/admin", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   const id = req.query["id"] as string;
   const action = req.query["action"] as string;
   const platform = req.query["platform"] as string;
