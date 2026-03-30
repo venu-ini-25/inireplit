@@ -63,7 +63,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     const email = user.primaryEmailAddress?.emailAddress ?? "";
 
     if (ADMIN_EMAILS.includes(email)) {
-      localStorage.setItem("ini_platform_access", "app");
+      const adminAccess = email === "venu.vegi@inventninvest.com" ? "app" : "demo";
+      localStorage.setItem("ini_platform_access", adminAccess);
       setAccessChecked(true);
       return;
     }
