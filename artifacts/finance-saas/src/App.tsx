@@ -31,7 +31,7 @@ import BulkImport from "@/pages/BulkImport";
 import SSOCallback from "@/pages/SSOCallback";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
-const ADMIN_EMAILS = ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
+const SUPER_ADMIN = "venu.vegi@inventninvest.com";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,9 +52,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const [, navigate] = useLocation();
   const screenshotMode = import.meta.env.VITE_SCREENSHOT_MODE === "true";
+
   if (screenshotMode) {
     if (!localStorage.getItem("ini_platform_access_allowed")) {
-      localStorage.setItem("ini_platform_access_allowed", "both");
+      localStorage.setItem("ini_platform_access_allowed", "demo");
     }
     if (!localStorage.getItem("ini_platform_access")) {
       localStorage.setItem("ini_platform_access", "demo");
@@ -71,26 +72,28 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
     const email = user.primaryEmailAddress?.emailAddress ?? "";
 
-    if (ADMIN_EMAILS.includes(email)) {
-      const allowed = email === "pitch@inventninvest.com" ? "demo" : "both";
-      localStorage.setItem("ini_platform_access_allowed", allowed);
-      const current = localStorage.getItem("ini_platform_access");
-      if (!current || (allowed !== "both" && current !== allowed)) {
-        localStorage.setItem("ini_platform_access", allowed === "both" ? "app" : allowed);
+    // Super admin bypasses DB — always full access
+    if (email === SUPER_ADMIN) {
+      localStorage.setItem("ini_platform_access_allowed", "both");
+      if (!localStorage.getItem("ini_platform_access")) {
+        localStorage.setItem("ini_platform_access", "app");
       }
       setAccessChecked(true);
       return;
     }
 
+    // Every other user — access is exactly what the admin approved in the DB
     fetch(`/api/access-requests/status/${encodeURIComponent(email)}`)
       .then(r => r.json())
       .then((data: { status: string; platformAccess?: string }) => {
         if (data.status === "approved") {
           const allowed = data.platformAccess ?? "demo";
           localStorage.setItem("ini_platform_access_allowed", allowed);
-          const current = localStorage.getItem("ini_platform_access");
-          if (!current || (allowed !== "both" && current !== allowed)) {
-            localStorage.setItem("ini_platform_access", allowed === "both" ? "app" : allowed);
+          // Strictly enforce: non-"both" users always land on their approved mode
+          if (allowed !== "both") {
+            localStorage.setItem("ini_platform_access", allowed);
+          } else if (!localStorage.getItem("ini_platform_access")) {
+            localStorage.setItem("ini_platform_access", "app");
           }
           setAccessChecked(true);
         } else {
