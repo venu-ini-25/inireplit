@@ -32,6 +32,9 @@ export async function ensureTable() {
     CREATE INDEX IF NOT EXISTS idx_access_requests_email ON access_requests(email);
     CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
   `);
+  await db.query(
+    `ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS platform_access TEXT NOT NULL DEFAULT 'demo';`
+  );
 }
 
 export function rowToRequest(row: Record<string, unknown>) {
@@ -40,11 +43,12 @@ export function rowToRequest(row: Record<string, unknown>) {
     firstName: row.first_name,
     lastName: row.last_name,
     email: row.email,
-    company: row.company ?? "",
+    company: (row.company as string) ?? "",
     role: row.role,
-    aum: row.aum ?? "",
-    message: row.message ?? "",
+    aum: (row.aum as string) ?? "",
+    message: (row.message as string) ?? "",
     status: row.status,
+    platformAccess: (row.platform_access as string) ?? "demo",
     submittedAt: (row.submitted_at as Date).toISOString(),
     reviewedAt: row.reviewed_at ? (row.reviewed_at as Date).toISOString() : null,
   };

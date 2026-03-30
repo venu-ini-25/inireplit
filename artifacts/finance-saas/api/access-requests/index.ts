@@ -23,18 +23,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { rows: existing } = await db.query(
-      "SELECT id, status FROM access_requests WHERE email = $1 AND status = 'pending'",
+      "SELECT id, status FROM access_requests WHERE email = $1 ORDER BY submitted_at DESC LIMIT 1",
       [email]
     );
     if (existing.length > 0) {
-      return res.status(200).json({ id: existing[0].id, status: existing[0].status, message: "Request already submitted" });
+      const ex = existing[0];
+      if (ex.status === "pending" || ex.status === "approved") {
+        return res.status(200).json({ id: ex.id, status: ex.status, message: "Request already submitted" });
+      }
+      const { rows: updated } = await db.query(
+        `UPDATE access_requests SET status='pending', first_name=$1, last_name=$2, company=$3, role=$4, aum=$5, message=$6, submitted_at=NOW(), reviewed_at=NULL
+         WHERE id=$7 RETURNING *`,
+        [firstName ?? "", lastName ?? "", company ?? "", role, aum ?? "", message ?? "", ex.id]
+      );
+      return res.status(200).json(rowToRequest(updated[0]));
     }
 
     const id = `req_${randomUUID().slice(0, 8)}`;
     const { rows } = await db.query(
       `INSERT INTO access_requests (id, first_name, last_name, email, company, role, aum, message)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [id, firstName, lastName ?? "", email, company ?? "", role, aum ?? "", message ?? ""]
+      [id, firstName ?? "", lastName ?? "", email, company ?? "", role, aum ?? "", message ?? ""]
     );
     return res.status(201).json(rowToRequest(rows[0]));
   }
