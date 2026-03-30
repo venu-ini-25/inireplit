@@ -31,7 +31,7 @@ function rowToRequest(row: Record<string, unknown>): AccessRequest {
     aum: (row.aum as string) ?? "",
     message: (row.message as string) ?? "",
     status: row.status as AccessStatus,
-    platformAccess: ((row.platform_access as string) ?? "demo") as "app" | "demo" | "both",
+    platformAccess: ((row.platform_access as string) ?? "demo") as "app" | "demo" | "both" | "admin",
     submittedAt: (row.submitted_at as Date).toISOString(),
     reviewedAt: row.reviewed_at ? (row.reviewed_at as Date).toISOString() : null,
   };
@@ -137,7 +137,7 @@ router.post("/access-requests/:id/deny", requireAdmin, async (req, res) => {
 });
 
 router.patch("/access-requests/:id/platform-access", requireAdmin, async (req, res) => {
-  const validPlatforms = ["app", "demo", "both"];
+  const validPlatforms = ["app", "demo", "both", "admin"];
   const platform = req.body?.platform as string;
   const safePlatform = validPlatforms.includes(platform) ? platform : "demo";
   const { rows } = await pool.query(

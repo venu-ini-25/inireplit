@@ -95,6 +95,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
           } else if (!localStorage.getItem("ini_platform_access")) {
             localStorage.setItem("ini_platform_access", "app");
           }
+          // Admin-only users go straight to the admin panel
+          if (allowed === "admin") {
+            navigate("/admin");
+          }
           setAccessChecked(true);
         } else {
           navigate("/request-access");

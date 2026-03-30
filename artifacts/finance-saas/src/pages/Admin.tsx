@@ -13,7 +13,7 @@ const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 type Status = "pending" | "approved" | "denied";
 type Action = "approve" | "deny" | "revoke";
 type AccessTab = "active" | "all" | Status;
-type PlatformAccess = "app" | "demo" | "both";
+type PlatformAccess = "app" | "demo" | "both" | "admin";
 
 interface AccessRequest {
   id: string;
@@ -32,6 +32,9 @@ interface AccessRequest {
 
 function PlatformBadge({ access }: { access: PlatformAccess | undefined }) {
   const a = access ?? "demo";
+  if (a === "admin") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">Admin Only</span>
+  );
   if (a === "both") return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">App + Demo</span>
   );
@@ -957,15 +960,29 @@ export default function Admin() {
                           </div>
                           <div className="flex items-center gap-2 mb-3">
                             <PlatformBadge access={req.platformAccess} />
-                            <select
-                              value={req.platformAccess ?? "demo"}
-                              onChange={(e) => updateAccess(req.id, e.target.value as PlatformAccess)}
-                              className="ml-auto text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 text-slate-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30"
-                            >
-                              <option value="demo">Demo only</option>
-                              <option value="app">App only</option>
-                              <option value="both">App + Demo</option>
-                            </select>
+                            <div className="ml-auto flex items-center gap-1.5">
+                              <select
+                                value={pendingAccessLevel[req.id] ?? req.platformAccess ?? "demo"}
+                                onChange={(e) => setPendingAccessLevel(prev => ({ ...prev, [req.id]: e.target.value as PlatformAccess }))}
+                                className="text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 text-slate-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30"
+                              >
+                                <option value="demo">Demo only</option>
+                                <option value="app">App only</option>
+                                <option value="both">App + Demo</option>
+                                <option value="admin">Admin only</option>
+                              </select>
+                              {pendingAccessLevel[req.id] && pendingAccessLevel[req.id] !== req.platformAccess && (
+                                <button
+                                  onClick={async () => {
+                                    await updateAccess(req.id, pendingAccessLevel[req.id]);
+                                    setPendingAccessLevel(prev => { const n = { ...prev }; delete n[req.id]; return n; });
+                                  }}
+                                  className="text-[10px] bg-primary text-white rounded px-2 py-0.5 font-semibold hover:bg-primary/90 transition-colors"
+                                >
+                                  Save
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">

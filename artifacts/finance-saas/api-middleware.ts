@@ -166,7 +166,7 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         const { id, action, platform } = qs;
         if (!id || !action) return send(400, { error: "id and action are required" });
 
-        const validPlatforms = ["app", "demo", "both"];
+        const validPlatforms = ["app", "demo", "both", "admin"];
         const safeplatform = validPlatforms.includes(platform as string) ? platform : "demo";
 
         if (action === "set-access") {
@@ -200,7 +200,7 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         const raw = await readBody(req);
         let body: Record<string, string> = {};
         try { body = JSON.parse(raw || "{}"); } catch { /* ignore */ }
-        const validPlatforms = ["app", "demo", "both"];
+        const validPlatforms = ["app", "demo", "both", "admin"];
         const safePlatform = validPlatforms.includes(body.platform) ? body.platform : "demo";
         const { rows } = await db.query(
           "UPDATE access_requests SET platform_access=$1 WHERE id=$2 RETURNING *",

@@ -44,6 +44,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const [canToggle, setCanToggle] = useState<boolean>(
     () => (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "both"
   );
+  const isAdminOnly = (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "admin";
 
   useEffect(() => {
     setPlatformAccess(localStorage.getItem("ini_platform_access") ?? "demo");
@@ -112,7 +113,12 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             style={{ mixBlendMode: "multiply" }}
           />
         </Link>
-        {canToggle ? (
+        {isAdminOnly ? (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200 shrink-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+            <span className="text-[10px] font-semibold text-purple-700 uppercase tracking-wide">Admin</span>
+          </div>
+        ) : canToggle ? (
           <button
             onClick={toggleMode}
             title={`Switch to ${platformAccess === "demo" ? "Live" : "Demo"} mode`}
@@ -150,82 +156,91 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </div>
 
       <div className="flex-1 py-4 px-3 flex flex-col gap-0.5 overflow-y-auto">
-        <Link href="/app" className={linkCls("/app")} onClick={navClick}>
+        {isAdminOnly && (
+          <div className="mb-3 px-3 py-2 rounded-md bg-purple-50 border border-purple-100 text-xs text-purple-700 font-medium">
+            Admin access — panel only
+          </div>
+        )}
+        {!isAdminOnly && <Link href="/app" className={linkCls("/app")} onClick={navClick}>
           <LayoutGrid className="w-4 h-4 shrink-0" />
           Executive Summary
-        </Link>
+        </Link>}
 
-        <div className="mt-1">
-          <button onClick={() => toggle("finance")} className={sectionBtnCls("/finance")}>
-            <div className="flex items-center gap-3">
-              <span className="font-bold text-base leading-none w-4 h-4 text-center">$</span>
-              Finance
+        {!isAdminOnly && (
+          <>
+            <div className="mt-1">
+              <button onClick={() => toggle("finance")} className={sectionBtnCls("/finance")}>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-base leading-none w-4 h-4 text-center">$</span>
+                  Finance
+                </div>
+                <ChevronDown className={cn("w-4 h-4 transition-transform", expanded === "finance" ? "rotate-180" : "")} />
+              </button>
+              {expanded === "finance" && (
+                <div className="mt-0.5 ml-4 pl-3 border-l border-border flex flex-col gap-0.5">
+                  <Link href="/finance/pl" className={subLinkCls("/finance/pl")} onClick={navClick}>P&L</Link>
+                  <Link href="/finance/cashflow" className={subLinkCls("/finance/cashflow")} onClick={navClick}>Cash Flow</Link>
+                  <Link href="/finance/expenses" className={subLinkCls("/finance/expenses")} onClick={navClick}>Expenses</Link>
+                </div>
+              )}
             </div>
-            <ChevronDown className={cn("w-4 h-4 transition-transform", expanded === "finance" ? "rotate-180" : "")} />
-          </button>
-          {expanded === "finance" && (
-            <div className="mt-0.5 ml-4 pl-3 border-l border-border flex flex-col gap-0.5">
-              <Link href="/finance/pl" className={subLinkCls("/finance/pl")} onClick={navClick}>P&L</Link>
-              <Link href="/finance/cashflow" className={subLinkCls("/finance/cashflow")} onClick={navClick}>Cash Flow</Link>
-              <Link href="/finance/expenses" className={subLinkCls("/finance/expenses")} onClick={navClick}>Expenses</Link>
-            </div>
-          )}
-        </div>
 
-        <Link href="/operations" className={linkCls("/operations")} onClick={navClick}>
-          <Settings className="w-4 h-4 shrink-0" />
-          Operations
-        </Link>
+            <Link href="/operations" className={linkCls("/operations")} onClick={navClick}>
+              <Settings className="w-4 h-4 shrink-0" />
+              Operations
+            </Link>
 
-        <Link href="/product" className={linkCls("/product")} onClick={navClick}>
-          <Box className="w-4 h-4 shrink-0" />
-          Product
-        </Link>
+            <Link href="/product" className={linkCls("/product")} onClick={navClick}>
+              <Box className="w-4 h-4 shrink-0" />
+              Product
+            </Link>
 
-        <Link href="/marketing" className={linkCls("/marketing")} onClick={navClick}>
-          <Megaphone className="w-4 h-4 shrink-0" />
-          Marketing
-        </Link>
+            <Link href="/marketing" className={linkCls("/marketing")} onClick={navClick}>
+              <Megaphone className="w-4 h-4 shrink-0" />
+              Marketing
+            </Link>
 
-        <Link href="/sales" className={linkCls("/sales")} onClick={navClick}>
-          <ShoppingCart className="w-4 h-4 shrink-0" />
-          Sales
-        </Link>
+            <Link href="/sales" className={linkCls("/sales")} onClick={navClick}>
+              <ShoppingCart className="w-4 h-4 shrink-0" />
+              Sales
+            </Link>
 
-        <Link href="/people" className={linkCls("/people")} onClick={navClick}>
-          <Users className="w-4 h-4 shrink-0" />
-          People
-        </Link>
+            <Link href="/people" className={linkCls("/people")} onClick={navClick}>
+              <Users className="w-4 h-4 shrink-0" />
+              People
+            </Link>
+
+            <div className="border-t border-border my-2" />
+
+            <Link
+              href="/portfolio"
+              className={cn(linkCls("/portfolio"), isPrefix("/portfolio") && !isActive("/portfolio") ? "bg-blue-50 text-primary" : "")}
+              onClick={navClick}
+            >
+              <Building2 className="w-4 h-4 shrink-0" />
+              Portfolio
+            </Link>
+
+            <Link href="/ma" className={linkCls("/ma")} onClick={navClick}>
+              <HandshakeIcon className="w-4 h-4 shrink-0" />
+              M&A Support
+            </Link>
+
+            <Link href="/reports" className={linkCls("/reports")} onClick={navClick}>
+              <BarChart2 className="w-4 h-4 shrink-0" />
+              Reports & Analytics
+            </Link>
+
+            <Link href="/services" className={linkCls("/services")} onClick={navClick}>
+              <Wrench className="w-4 h-4 shrink-0" />
+              Professional Services
+            </Link>
+          </>
+        )}
 
         <div className="border-t border-border my-2" />
 
-        <Link
-          href="/portfolio"
-          className={cn(linkCls("/portfolio"), isPrefix("/portfolio") && !isActive("/portfolio") ? "bg-blue-50 text-primary" : "")}
-          onClick={navClick}
-        >
-          <Building2 className="w-4 h-4 shrink-0" />
-          Portfolio
-        </Link>
-
-        <Link href="/ma" className={linkCls("/ma")} onClick={navClick}>
-          <HandshakeIcon className="w-4 h-4 shrink-0" />
-          M&A Support
-        </Link>
-
-        <Link href="/reports" className={linkCls("/reports")} onClick={navClick}>
-          <BarChart2 className="w-4 h-4 shrink-0" />
-          Reports & Analytics
-        </Link>
-
-        <Link href="/services" className={linkCls("/services")} onClick={navClick}>
-          <Wrench className="w-4 h-4 shrink-0" />
-          Professional Services
-        </Link>
-
-        <div className="border-t border-border my-2" />
-
-        {isMaster && (
+        {(isMaster || isAdminOnly) && (
           <Link href="/admin" className={linkCls("/admin")} onClick={navClick}>
             <ShieldCheck className="w-4 h-4 shrink-0" />
             Admin Panel
