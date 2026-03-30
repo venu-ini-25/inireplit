@@ -18,7 +18,13 @@ function mockResponse(data: unknown): Response {
 
 const _nativeFetch = window.fetch.bind(window);
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+const USE_MOCK_ENV = import.meta.env.VITE_USE_MOCK === "true";
+
+function shouldUseMock(): boolean {
+  if (USE_MOCK_ENV) return true;
+  const pa = localStorage.getItem("ini_platform_access");
+  return pa === "demo";
+}
 
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const url = typeof input === "string" ? input
@@ -29,7 +35,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
 
   const apiPath = url.split("/api/")[1]?.split("?")[0] ?? "";
 
-  if (!USE_MOCK) {
+  if (!shouldUseMock()) {
     return _nativeFetch(input, init);
   }
 

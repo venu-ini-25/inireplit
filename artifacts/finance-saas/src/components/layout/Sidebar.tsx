@@ -47,6 +47,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const navClick = () => onClose?.();
 
   const handleLogout = async () => {
+    localStorage.removeItem("ini_platform_access");
     await signOut();
     onClose?.();
     navigate("/");

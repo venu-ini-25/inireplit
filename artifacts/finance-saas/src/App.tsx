@@ -2,8 +2,8 @@ import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wo
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClerkProvider, useAuth } from "@clerk/clerk-react";
-import { useEffect } from "react";
+import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
+import React, { useEffect, useState } from "react";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout/Layout";
 
@@ -49,15 +49,43 @@ function Spinner() {
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
   const [, navigate] = useLocation();
   const screenshotMode = import.meta.env.VITE_SCREENSHOT_MODE === "true";
+  const [accessChecked, setAccessChecked] = useState(screenshotMode);
 
   useEffect(() => {
-    if (!screenshotMode && isLoaded && !isSignedIn) navigate("/login");
-  }, [isLoaded, isSignedIn, navigate, screenshotMode]);
+    if (screenshotMode) return;
+    if (!isLoaded) return;
+    if (!isSignedIn) { navigate("/login"); return; }
+    if (!user) return;
+
+    const email = user.primaryEmailAddress?.emailAddress ?? "";
+
+    if (ADMIN_EMAILS.includes(email)) {
+      localStorage.setItem("ini_platform_access", "app");
+      setAccessChecked(true);
+      return;
+    }
+
+    fetch(`/api/access-requests/status/${encodeURIComponent(email)}`)
+      .then(r => r.json())
+      .then((data: { status: string; platformAccess?: string }) => {
+        if (data.status === "approved") {
+          localStorage.setItem("ini_platform_access", data.platformAccess ?? "demo");
+          setAccessChecked(true);
+        } else {
+          navigate("/request-access");
+        }
+      })
+      .catch(() => {
+        setAccessChecked(true);
+      });
+  }, [isLoaded, isSignedIn, user, navigate, screenshotMode]);
 
   if (!screenshotMode && !isLoaded) return <Spinner />;
   if (!screenshotMode && !isSignedIn) return null;
+  if (!screenshotMode && !accessChecked) return <Spinner />;
   return <>{children}</>;
 }
 

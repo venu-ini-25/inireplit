@@ -85,11 +85,15 @@ router.get("/access-requests", async (_req, res) => {
 router.get("/access-requests/status/:email", async (req, res) => {
   const email = decodeURIComponent(req.params.email);
   const { rows } = await pool.query(
-    "SELECT id, status FROM access_requests WHERE email = $1 ORDER BY submitted_at DESC LIMIT 1",
+    "SELECT id, status, platform_access FROM access_requests WHERE email = $1 ORDER BY submitted_at DESC LIMIT 1",
     [email]
   );
   if (rows.length === 0) return res.json({ status: "not_found" });
-  return res.json({ status: rows[0].status, id: rows[0].id });
+  return res.json({
+    status: rows[0].status,
+    id: rows[0].id,
+    platformAccess: (rows[0].platform_access as string) ?? "demo",
+  });
 });
 
 async function approveRequest(id: string) {
