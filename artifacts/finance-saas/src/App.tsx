@@ -52,6 +52,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const [, navigate] = useLocation();
   const screenshotMode = import.meta.env.VITE_SCREENSHOT_MODE === "true";
+  if (screenshotMode) {
+    if (!localStorage.getItem("ini_platform_access_allowed")) {
+      localStorage.setItem("ini_platform_access_allowed", "both");
+    }
+    if (!localStorage.getItem("ini_platform_access")) {
+      localStorage.setItem("ini_platform_access", "demo");
+    }
+  }
+
   const [accessChecked, setAccessChecked] = useState(screenshotMode);
 
   useEffect(() => {

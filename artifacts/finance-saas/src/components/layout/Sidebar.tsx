@@ -39,12 +39,15 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { signOut } = useClerk();
 
   const [platformAccess, setPlatformAccess] = useState<string>(
-    localStorage.getItem("ini_platform_access") ?? "demo"
+    () => localStorage.getItem("ini_platform_access") ?? "demo"
   );
-  const canToggle = (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "both";
+  const [canToggle, setCanToggle] = useState<boolean>(
+    () => (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "both"
+  );
 
   useEffect(() => {
     setPlatformAccess(localStorage.getItem("ini_platform_access") ?? "demo");
+    setCanToggle((localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "both");
   }, []);
 
   const toggleMode = () => {
