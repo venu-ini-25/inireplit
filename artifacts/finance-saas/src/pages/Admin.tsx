@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { useLocation } from "wouter";
 import {
   CheckCircle2, XCircle, Clock, Users, RefreshCw,
@@ -512,6 +513,7 @@ function SnapshotForm({ onSave, onCancel, nextOrder, initial }: {
 
 // ===== MAIN COMPONENT =====
 export default function Admin() {
+  const { getToken } = useAuth();
   const [, navigate] = useLocation();
 
   // Top-level section
@@ -554,7 +556,8 @@ export default function Admin() {
     try {
       let url = `${API_BASE}/api/admin?id=${encodeURIComponent(id)}&action=${action}`;
       if (platform) url += `&platform=${platform}`;
-      const res = await fetch(url);
+      const token = adminToken ?? await getToken();
+      const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const text = await res.text();
       if (!res.ok) throw new Error(text || `Server error ${res.status}`);
       const updated = JSON.parse(text) as AccessRequest;
@@ -578,7 +581,8 @@ export default function Admin() {
   const updateAccess = async (id: string, platform: PlatformAccess) => {
     try {
       const url = `${API_BASE}/api/admin?id=${encodeURIComponent(id)}&action=set-access&platform=${encodeURIComponent(platform)}`;
-      const res = await fetch(url);
+      const token = adminToken ?? await getToken();
+      const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
       const text = await res.text();
       if (!res.ok) throw new Error(text || `Server error ${res.status}`);
       const updated = JSON.parse(text) as AccessRequest;

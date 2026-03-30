@@ -75,6 +75,58 @@ router.post("/access-requests", async (req, res) => {
   return res.status(201).json(rowToRequest(rows[0]));
 });
 
+// GET /api/admin?id=xxx&action=approve|deny|revoke|set-access&platform=xxx
+router.get("/admin", requireAdmin, async (req, res) => {
+  const id = req.query["id"] as string;
+  const action = req.query["action"] as string;
+  const platform = req.query["platform"] as string;
+
+  if (!id || !action) {
+    return res.status(400).json({ error: "id and action are required" });
+  }
+
+  const validPlatforms = ["app", "demo", "both", "admin"];
+  const safePlatform = validPlatforms.includes(platform) ? platform : "demo";
+
+  if (action === "set-access") {
+    const { rows } = await pool.query(
+      "UPDATE access_requests SET platform_access=$1 WHERE id=$2 RETURNING *",
+      [safePlatform, id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+    return res.json(rowToRequest(rows[0]));
+  }
+
+  if (action === "approve") {
+    const { rows } = await pool.query(
+      "UPDATE access_requests SET status='approved', platform_access=$1, reviewed_at=NOW() WHERE id=$2 RETURNING *",
+      [safePlatform, id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+    return res.json(rowToRequest(rows[0]));
+  }
+
+  if (action === "deny") {
+    const { rows } = await pool.query(
+      "UPDATE access_requests SET status='denied', reviewed_at=NOW() WHERE id=$1 RETURNING *",
+      [id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+    return res.json(rowToRequest(rows[0]));
+  }
+
+  if (action === "revoke") {
+    const { rows } = await pool.query(
+      "UPDATE access_requests SET status='pending', reviewed_at=NOW() WHERE id=$1 RETURNING *",
+      [id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+    return res.json(rowToRequest(rows[0]));
+  }
+
+  return res.status(400).json({ error: `Unknown action: ${action}` });
+});
+
 router.get("/access-requests", async (_req, res) => {
   const { rows } = await pool.query(
     "SELECT * FROM access_requests ORDER BY submitted_at DESC"
