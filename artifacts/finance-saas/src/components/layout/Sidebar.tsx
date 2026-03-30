@@ -18,7 +18,7 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 
 const logoImg = "/images/ini-logo-transparent.png";
@@ -37,6 +37,13 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const { user } = useUser();
   const { signOut } = useClerk();
+
+  const [platformAccess, setPlatformAccess] = useState<string>(
+    localStorage.getItem("ini_platform_access") ?? "demo"
+  );
+  useEffect(() => {
+    setPlatformAccess(localStorage.getItem("ini_platform_access") ?? "demo");
+  }, []);
 
   const toggle = (section: NavSection) =>
     setExpanded((prev) => (prev === section ? null : section));
@@ -84,19 +91,26 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   return (
     <aside className="w-64 h-screen flex flex-col bg-white border-r border-border z-40">
-      <div className="h-14 md:h-16 flex items-center px-4 border-b border-border shrink-0 gap-2">
+      <div className="h-20 md:h-24 flex items-center px-4 border-b border-border shrink-0 gap-2">
         <Link href="/app" className="flex items-center gap-2 flex-1 min-w-0" onClick={onClose}>
           <img
             src={logoImg}
             alt="INVENT N INVEST"
-            className="h-12 w-auto object-contain"
+            className="h-16 md:h-20 w-auto object-contain"
             style={{ mixBlendMode: "multiply" }}
           />
         </Link>
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100 shrink-0">
-          <div className="w-1.5 h-1.5 rounded-full bg-success" />
-          <span className="text-[10px] font-medium text-success">Live</span>
-        </div>
+        {platformAccess === "demo" ? (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 shrink-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide">Demo</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100 shrink-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-success" />
+            <span className="text-[10px] font-semibold text-success uppercase tracking-wide">Live</span>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 py-4 px-3 flex flex-col gap-0.5 overflow-y-auto">
