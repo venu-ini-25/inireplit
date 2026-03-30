@@ -44,11 +44,21 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const [canToggle, setCanToggle] = useState<boolean>(
     () => (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "both"
   );
-  const isAdminOnly = (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "admin";
+  const [isAdminOnly, setIsAdminOnly] = useState<boolean>(
+    () => (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "admin"
+  );
+
+  const syncAccess = () => {
+    const allowed = localStorage.getItem("ini_platform_access_allowed") ?? "demo";
+    setPlatformAccess(localStorage.getItem("ini_platform_access") ?? "demo");
+    setCanToggle(allowed === "both");
+    setIsAdminOnly(allowed === "admin");
+  };
 
   useEffect(() => {
-    setPlatformAccess(localStorage.getItem("ini_platform_access") ?? "demo");
-    setCanToggle((localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "both");
+    syncAccess();
+    window.addEventListener("ini-access-updated", syncAccess);
+    return () => window.removeEventListener("ini-access-updated", syncAccess);
   }, []);
 
   const toggleMode = () => {

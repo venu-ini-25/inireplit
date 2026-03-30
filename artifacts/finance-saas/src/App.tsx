@@ -88,12 +88,17 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       .then((data: { status: string; platformAccess?: string }) => {
         if (data.status === "approved") {
           const allowed = data.platformAccess ?? "demo";
+          const prev = localStorage.getItem("ini_platform_access_allowed");
           localStorage.setItem("ini_platform_access_allowed", allowed);
           // Strictly enforce: non-"both" users always land on their approved mode
           if (allowed !== "both") {
             localStorage.setItem("ini_platform_access", allowed);
           } else if (!localStorage.getItem("ini_platform_access")) {
             localStorage.setItem("ini_platform_access", "app");
+          }
+          // Notify Sidebar (and any listener) whenever access level changes
+          if (prev !== allowed) {
+            window.dispatchEvent(new Event("ini-access-updated"));
           }
           // Admin-only users go straight to the admin panel
           if (allowed === "admin") {
@@ -111,7 +116,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       .catch(() => {
         setAccessChecked(true);
       });
-  }, [isLoaded, isSignedIn, user, navigate, screenshotMode]);
+  // Re-check DB on every navigation so admin panel changes take effect immediately
+  }, [isLoaded, isSignedIn, user, navigate, screenshotMode, location]);
 
   if (!screenshotMode && !isLoaded) return <Spinner />;
   if (!screenshotMode && !isSignedIn) return null;
