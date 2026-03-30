@@ -72,10 +72,11 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     const email = user.primaryEmailAddress?.emailAddress ?? "";
 
     if (ADMIN_EMAILS.includes(email)) {
-      localStorage.setItem("ini_platform_access_allowed", "both");
-      if (!localStorage.getItem("ini_platform_access")) {
-        const defaultMode = email === "venu.vegi@inventninvest.com" ? "app" : "demo";
-        localStorage.setItem("ini_platform_access", defaultMode);
+      const allowed = email === "pitch@inventninvest.com" ? "demo" : "both";
+      localStorage.setItem("ini_platform_access_allowed", allowed);
+      const current = localStorage.getItem("ini_platform_access");
+      if (!current || (allowed !== "both" && current !== allowed)) {
+        localStorage.setItem("ini_platform_access", allowed === "both" ? "app" : allowed);
       }
       setAccessChecked(true);
       return;
