@@ -194,6 +194,22 @@ export function createApiMiddleware(): Connect.NextHandleFunction {
         return send(200, rowToRequest(rows[0]));
       }
 
+      // PATCH /api/access-requests/:id/platform-access — update platform access level
+      if (/^\/api\/access-requests\/[^/]+\/platform-access$/.test(path) && method === "PATCH") {
+        const id = path.split("/")[3];
+        const raw = await readBody(req);
+        let body: Record<string, string> = {};
+        try { body = JSON.parse(raw || "{}"); } catch { /* ignore */ }
+        const validPlatforms = ["app", "demo", "both"];
+        const safePlatform = validPlatforms.includes(body.platform) ? body.platform : "demo";
+        const { rows } = await db.query(
+          "UPDATE access_requests SET platform_access=$1 WHERE id=$2 RETURNING *",
+          [safePlatform, id]
+        );
+        if (rows.length === 0) return send(404, { error: "Request not found" });
+        return send(200, rowToRequest(rows[0]));
+      }
+
       return proxyToApiServer(req, res, rawUrl);
     };
 

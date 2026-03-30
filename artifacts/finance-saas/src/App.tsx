@@ -63,8 +63,11 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     const email = user.primaryEmailAddress?.emailAddress ?? "";
 
     if (ADMIN_EMAILS.includes(email)) {
-      const adminAccess = email === "venu.vegi@inventninvest.com" ? "app" : "demo";
-      localStorage.setItem("ini_platform_access", adminAccess);
+      localStorage.setItem("ini_platform_access_allowed", "both");
+      if (!localStorage.getItem("ini_platform_access")) {
+        const defaultMode = email === "venu.vegi@inventninvest.com" ? "app" : "demo";
+        localStorage.setItem("ini_platform_access", defaultMode);
+      }
       setAccessChecked(true);
       return;
     }
@@ -73,7 +76,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       .then(r => r.json())
       .then((data: { status: string; platformAccess?: string }) => {
         if (data.status === "approved") {
-          localStorage.setItem("ini_platform_access", data.platformAccess ?? "demo");
+          const allowed = data.platformAccess ?? "demo";
+          localStorage.setItem("ini_platform_access_allowed", allowed);
+          const current = localStorage.getItem("ini_platform_access");
+          if (!current || (allowed !== "both" && current !== allowed)) {
+            localStorage.setItem("ini_platform_access", allowed === "both" ? "app" : allowed);
+          }
           setAccessChecked(true);
         } else {
           navigate("/request-access");

@@ -145,7 +145,7 @@ export default function RequestAccess() {
                   Signed in as <strong>{user.primaryEmailAddress.emailAddress}</strong>
                 </div>
                 <button
-                  onClick={async () => { localStorage.removeItem("ini_platform_access"); await signOut(); navigate("/login"); }}
+                  onClick={async () => { localStorage.removeItem("ini_platform_access"); localStorage.removeItem("ini_platform_access_allowed"); await signOut(); navigate("/login"); }}
                   className="text-xs text-muted-foreground hover:text-red-500 transition-colors underline underline-offset-2"
                 >
                   Not you? Sign out

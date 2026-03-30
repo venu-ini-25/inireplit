@@ -41,9 +41,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const [platformAccess, setPlatformAccess] = useState<string>(
     localStorage.getItem("ini_platform_access") ?? "demo"
   );
+  const canToggle = (localStorage.getItem("ini_platform_access_allowed") ?? "demo") === "both";
+
   useEffect(() => {
     setPlatformAccess(localStorage.getItem("ini_platform_access") ?? "demo");
   }, []);
+
+  const toggleMode = () => {
+    const next = platformAccess === "demo" ? "app" : "demo";
+    localStorage.setItem("ini_platform_access", next);
+    window.location.reload();
+  };
 
   const toggle = (section: NavSection) =>
     setExpanded((prev) => (prev === section ? null : section));
@@ -55,6 +63,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const handleLogout = async () => {
     localStorage.removeItem("ini_platform_access");
+    localStorage.removeItem("ini_platform_access_allowed");
     await signOut();
     onClose?.();
     navigate("/");
@@ -100,15 +109,39 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             style={{ mixBlendMode: "multiply" }}
           />
         </Link>
-        {platformAccess === "demo" ? (
+        {canToggle ? (
+          <button
+            onClick={toggleMode}
+            title={`Switch to ${platformAccess === "demo" ? "Live" : "Demo"} mode`}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-0.5 rounded-full border shrink-0 transition-all hover:scale-105 active:scale-95 cursor-pointer group",
+              platformAccess === "demo"
+                ? "bg-amber-50 border-amber-200 hover:bg-amber-100"
+                : "bg-green-50 border-green-200 hover:bg-green-100"
+            )}
+          >
+            {platformAccess === "demo" ? (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide">Demo</span>
+              </>
+            ) : (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                <span className="text-[10px] font-semibold text-green-600 uppercase tracking-wide">Live</span>
+              </>
+            )}
+            <span className="text-[9px] text-slate-400 group-hover:text-slate-500 ml-0.5">⇄</span>
+          </button>
+        ) : platformAccess === "demo" ? (
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 shrink-0">
             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
             <span className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide">Demo</span>
           </div>
         ) : (
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100 shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-success" />
-            <span className="text-[10px] font-semibold text-success uppercase tracking-wide">Live</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <span className="text-[10px] font-semibold text-green-600 uppercase tracking-wide">Live</span>
           </div>
         )}
       </div>

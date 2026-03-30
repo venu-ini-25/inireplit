@@ -275,7 +275,7 @@ export default function Settings() {
     }
   };
 
-  const handleLogout = async () => { localStorage.removeItem("ini_platform_access"); await signOut(); navigate("/"); };
+  const handleLogout = async () => { localStorage.removeItem("ini_platform_access"); localStorage.removeItem("ini_platform_access_allowed"); await signOut(); navigate("/"); };
 
   const handleSaveProfile = () => {
     localStorage.setItem("ini_user", JSON.stringify({ ...user, ...profileForm }));

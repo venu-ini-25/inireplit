@@ -136,4 +136,16 @@ router.post("/access-requests/:id/deny", requireAdmin, async (req, res) => {
   return res.json(rowToRequest(rows[0]));
 });
 
+router.patch("/access-requests/:id/platform-access", requireAdmin, async (req, res) => {
+  const validPlatforms = ["app", "demo", "both"];
+  const platform = req.body?.platform as string;
+  const safePlatform = validPlatforms.includes(platform) ? platform : "demo";
+  const { rows } = await pool.query(
+    "UPDATE access_requests SET platform_access=$1 WHERE id=$2 RETURNING *",
+    [safePlatform, String(req.params["id"])]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: "Request not found" });
+  return res.json(rowToRequest(rows[0]));
+});
+
 export default router;

@@ -574,7 +574,11 @@ export default function Admin() {
 
   const updateAccess = async (id: string, platform: PlatformAccess) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin?id=${encodeURIComponent(id)}&action=set-access&platform=${platform}`);
+      const res = await fetch(`${API_BASE}/api/access-requests/${encodeURIComponent(id)}/platform-access`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform }),
+      });
       const text = await res.text();
       if (!res.ok) throw new Error(text || `Server error ${res.status}`);
       const updated = JSON.parse(text) as AccessRequest;
