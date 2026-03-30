@@ -557,6 +557,8 @@ export default function Admin() {
       const res = await fetch(url);
       const text = await res.text();
       if (!res.ok) throw new Error(text || `Server error ${res.status}`);
+      if (!res.headers.get("content-type")?.includes("application/json"))
+        throw new Error("API server not reachable — use the Replit environment for admin actions");
       const updated = JSON.parse(text) as AccessRequest;
       setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
       if (action === "approve") {
@@ -581,6 +583,8 @@ export default function Admin() {
       const res = await fetch(url);
       const text = await res.text();
       if (!res.ok) throw new Error(text || `Server error ${res.status}`);
+      if (!res.headers.get("content-type")?.includes("application/json"))
+        throw new Error("API server not reachable — use the Replit environment for admin actions");
       const updated = JSON.parse(text) as AccessRequest;
       setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
       showToast(`Platform access updated to "${platform}"`, true);

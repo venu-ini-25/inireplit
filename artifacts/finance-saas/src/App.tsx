@@ -114,6 +114,17 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
+        // Backend unreachable (e.g. Vercel deployment without API server)
+        // Preserve any existing access, otherwise default to demo so mock data works
+        if (!localStorage.getItem("ini_platform_access_allowed")) {
+          localStorage.setItem("ini_platform_access_allowed", "demo");
+          localStorage.setItem("ini_platform_access", "demo");
+          window.dispatchEvent(new Event("ini-access-updated"));
+        } else if (!localStorage.getItem("ini_platform_access")) {
+          const allowed = localStorage.getItem("ini_platform_access_allowed")!;
+          localStorage.setItem("ini_platform_access", allowed === "both" ? "app" : allowed);
+          window.dispatchEvent(new Event("ini-access-updated"));
+        }
         setAccessChecked(true);
       });
   // Re-check DB on every navigation so admin panel changes take effect immediately

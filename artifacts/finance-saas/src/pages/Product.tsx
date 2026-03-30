@@ -38,8 +38,8 @@ export default function Product() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="DAU" value={data ? data.dauCount.toLocaleString() : "—"} change={133} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
-        <KpiCard title="MAU" value={data ? data.mauCount.toLocaleString() : "—"} change={81.5} changeLabel="YoY" icon={<Activity className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
+        <KpiCard title="DAU" value={data?.dauCount != null ? data.dauCount.toLocaleString() : "—"} change={133} changeLabel="YoY" icon={<Users className="w-4 h-4" />} iconBg="bg-blue-50 text-primary" />
+        <KpiCard title="MAU" value={data?.mauCount != null ? data.mauCount.toLocaleString() : "—"} change={81.5} changeLabel="YoY" icon={<Activity className="w-4 h-4" />} iconBg="bg-purple-50 text-purple-600" />
         <KpiCard title="NPS Score" value="62" change={14.8} changeLabel="vs last quarter" icon={<Star className="w-4 h-4" />} iconBg="bg-green-50 text-success" />
         <KpiCard title="Logo Churn" value={data ? `${data.churnRatePct}%` : "—"} change={-1.8} changeLabel="YoY" isPositiveGood={false} icon={<TrendingDown className="w-4 h-4" />} iconBg="bg-red-50 text-destructive" />
       </div>

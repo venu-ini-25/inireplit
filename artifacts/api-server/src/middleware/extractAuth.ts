@@ -29,7 +29,7 @@ function getAdminEmails(): string[] {
   if (envEmails) {
     return envEmails.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
   }
-  return ["venu.vegi@inventninvest.com", "pitch@inventninvest.com"];
+  return ["venu.vegi@inventninvest.com"];
 }
 
 async function extractFromClerk(token: string): Promise<AuthContext | null> {
