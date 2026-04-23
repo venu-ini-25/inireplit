@@ -69,9 +69,10 @@ export async function getAuthEmail(req: VercelRequest): Promise<string> {
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!token) return "";
 
-  const jwtSecret = process.env.JWT_SECRET;
-  if (jwtSecret) {
-    const payload = await verifyJwt(token, jwtSecret);
+  // Try all available HMAC JWT secrets (JWT_SECRET and SESSION_SECRET as fallback)
+  const jwtSecrets = [process.env.JWT_SECRET, process.env.SESSION_SECRET].filter(Boolean) as string[];
+  for (const secret of jwtSecrets) {
+    const payload = await verifyJwt(token, secret);
     if (payload?.email) return payload.email.toLowerCase();
   }
 

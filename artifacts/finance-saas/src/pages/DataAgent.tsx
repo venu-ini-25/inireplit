@@ -226,7 +226,7 @@ export default function DataAgent() {
   const { getToken } = useAuth();
 
   const authHeaders = useCallback(async (): Promise<Record<string, string>> => {
-    const adminToken = sessionStorage.getItem("ini_admin_token");
+    const adminToken = sessionStorage.getItem("ini_admin_token") ?? localStorage.getItem("ini_token");
     if (adminToken) return { Authorization: `Bearer ${adminToken}` };
     const token = await getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
