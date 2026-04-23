@@ -29,8 +29,16 @@ app.use(
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
-app.use("/api", extractAuth);
 
+// Apply auth extraction globally — the Replit proxy strips the /api prefix
+// before forwarding to this server, so we can't scope it to /api only.
+app.use(extractAuth);
+
+// Mount routes at /api for direct curl/Vercel access (full path preserved)
 app.use("/api", router);
+
+// Mount routes at / for the Replit dev proxy, which strips /api before
+// forwarding. This way POST /import/preview works in the browser.
+app.use("/", router);
 
 export default app;
