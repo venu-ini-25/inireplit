@@ -59,18 +59,24 @@ function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | nul
   return null;
 }
 
-async function callAI(messages: { role: string; content: string }[], stream: boolean): Promise<Response | null> {
+async function callAI(messages: { role: string; content: string }[], stream: boolean): Promise<{ resp: Response | null; error: string }> {
   const config = getAiConfig();
-  if (!config) return null;
+  if (!config) return { resp: null, error: "No AI API key configured (GOOGLE_API_KEY or OPENAI_API_KEY missing)" };
+  const url = `${config.baseUrl}/chat/completions`;
   try {
-    return await fetch(`${config.baseUrl}/chat/completions`, {
+    const resp = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
       body: JSON.stringify({ model: config.model, messages, max_tokens: 2048, stream }),
       signal: AbortSignal.timeout(25000),
     });
-  } catch {
-    return null;
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      return { resp, error: `${config.model} HTTP ${resp.status}: ${body.slice(0, 200)}` };
+    }
+    return { resp, error: "" };
+  } catch (e) {
+    return { resp: null, error: `fetch failed: ${(e as Error).message}` };
   }
 }
 
@@ -90,24 +96,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const suggestedMapping = autoMatch(cleanHeaders, detectedType);
     const issues = detectIssues(cleanHeaders, detectedType, sampleRows);
 
+    let aiError = "";
     if (getAiConfig()) {
       try {
         const schemaContext = Object.entries(DB_SCHEMAS).map(([t, s]) => `${t}: ${s.description}\n  Fields: ${s.fields.join(", ")}`).join("\n\n");
         const sampleText = sampleRows.slice(0, 5).map((row, i) => `Row ${i + 1}: ${Object.entries(row).slice(0, 10).map(([k, v]) => `${k}="${v}"`).join(", ")}`).join("\n");
         const prompt = `You are a financial data intelligence expert for a PE/VC finance SaaS platform.\nAnalyze this uploaded CSV data and return a JSON report.\n\nDatabase schemas:\n${schemaContext}\n\nHeaders (${cleanHeaders.length} columns): ${cleanHeaders.join(", ")}\n\nSample data:\n${sampleText}\n\n${tableTypeHint ? `User hint: "${tableTypeHint}"` : ""}\n\nRespond with this EXACT JSON structure (no markdown, no code fences):\n{\n  "sourceSystem": "<e.g. quickbooks, hubspot, excel_manual, gusto, stripe, unknown>",\n  "sourceName": "<human-readable name, e.g. 'QuickBooks P&L Export'>",\n  "dataLevel": "transaction"|"summary"|"mixed",\n  "dataLevelExplanation": "<1 sentence>",\n  "detectedTableType": "companies"|"deals"|"financials"|"metrics",\n  "targetTables": ["<DB tables this data populates>"],\n  "dashboardsImpacted": ["<dashboard names>"],\n  "confidence": <0-100>,\n  "detectionReason": "<2-3 sentences>",\n  "transformationPlan": [{ "id": "<id>", "label": "<short title>", "description": "<what it does>", "priority": <1-10>, "required": <true|false> }],\n  "mappings": [{ "sourceColumn": "<exact CSV header>", "targetField": "<db field or null>", "confidence": <0-100>, "reason": "<max 10 words>", "skip": <true if should not import> }],\n  "qualityIssues": [{ "column": "<col>", "issue": "<desc>", "recommendation": "<fix>", "severity": "high"|"medium"|"low" }],\n  "summary": "<3-4 sentences about this data>"\n}\nMap EVERY column. Return raw JSON only.`;
-        const aiRes = await callAI([
+        const { resp: aiResp, error: aiErr } = await callAI([
           { role: "system", content: "You are a financial data expert. Respond with valid JSON only — no markdown, no code fences." },
           { role: "user", content: prompt },
         ], false);
-        if (aiRes?.ok) {
-          const data = await aiRes.json() as { choices?: { message?: { content?: string } }[] };
+        if (aiResp?.ok) {
+          const data = await aiResp.json() as { choices?: { message?: { content?: string } }[] };
           const raw = data.choices?.[0]?.message?.content ?? "";
           const fenced = raw.match(/```(?:json)?\s*([\s\S]+?)```/);
           const jsonStr = fenced ? fenced[1].trim() : raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
           const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
           res.status(200).json({ success: true, ...parsed }); return;
         }
-      } catch {}
+        aiError = aiErr || "AI response was not OK";
+      } catch (e) {
+        aiError = `AI exception: ${(e as Error).message}`;
+      }
     }
 
     // Rule-based fallback — returns exact same field names as AiAnalysis interface
@@ -136,8 +146,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       dashboardsImpacted: dashboardMap[detectedType] ?? [],
       confidence: detectedType !== "unknown" ? 70 : 20,
       detectionReason: detectedType !== "unknown"
-        ? `Headers match the "${detectedType}" table schema. AI analysis unavailable — using rule-based detection.`
-        : "Could not determine data type from headers. Please select the data type manually.",
+        ? `Headers match the "${detectedType}" table schema. AI unavailable — rule-based fallback. ${aiError ? `AI error: ${aiError}` : ""}`
+        : `Could not determine data type from headers. ${aiError ? `AI error: ${aiError}` : "Please select the data type manually."}`,
       transformationPlan: [],
       mappings,
       qualityIssues: issues.map(issue => ({ column: "", issue, recommendation: "Review column mapping", severity: "medium" as const })),
@@ -191,8 +201,8 @@ Be specific, concise, and knowledgeable about financial data.`;
     res.setHeader("Connection", "keep-alive");
 
     try {
-      const aiRes = await callAI([{ role: "system", content: systemPrompt }, ...history.slice(-6), { role: "user", content: message }], true);
-      if (!aiRes?.ok) throw new Error("AI request failed");
+      const { resp: aiRes, error: chatErr } = await callAI([{ role: "system", content: systemPrompt }, ...history.slice(-6), { role: "user", content: message }], true);
+      if (!aiRes?.ok) throw new Error(chatErr || "AI request failed");
       const reader = aiRes.body?.getReader();
       if (!reader) throw new Error("No response body");
       const decoder = new TextDecoder();
