@@ -47,14 +47,25 @@ function detectIssues(headers: string[], tableType: string, sampleRows: Record<s
   return issues;
 }
 
-async function callOpenAI(messages: { role: string; content: string }[], stream: boolean): Promise<Response | null> {
-  const apiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  const baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1";
-  if (!apiKey) return null;
-  return fetch(`${baseUrl}/chat/completions`, {
+function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | null {
+  if (process.env.GROQ_API_KEY) {
+    return { apiKey: process.env.GROQ_API_KEY, baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" };
+  }
+  const openaiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (openaiKey) {
+    const baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+    return { apiKey: openaiKey, baseUrl, model: "gpt-4o-mini" };
+  }
+  return null;
+}
+
+async function callAI(messages: { role: string; content: string }[], stream: boolean): Promise<Response | null> {
+  const config = getAiConfig();
+  if (!config) return null;
+  return fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "gpt-4o-mini", messages, max_tokens: 2048, stream }),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
+    body: JSON.stringify({ model: config.model, messages, max_tokens: 2048, stream }),
   });
 }
 
