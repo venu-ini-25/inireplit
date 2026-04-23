@@ -91,51 +91,51 @@ function getExpectedClerkDomain(): string | null {
 }
 
 /** Verify a Clerk RS256 JWT signature using the public JWKS endpoint.
- *  Returns the decoded payload if valid, null otherwise. No secret key required. */
-async function verifyClerkJwt(token: string): Promise<Record<string, unknown> | null> {
+ *  Returns the decoded payload if valid, null otherwise. No secret key required.
+ *  Uses Node.js native crypto (battle-tested, works in all serverless environments). */
+export async function verifyClerkJwt(token: string): Promise<{ payload: Record<string, unknown> | null; error: string }> {
   try {
     const [headerB64, payloadB64, sigB64] = token.split(".");
-    if (!headerB64 || !payloadB64 || !sigB64) return null;
+    if (!headerB64 || !payloadB64 || !sigB64) return { payload: null, error: "malformed JWT (not 3 parts)" };
 
     const header = JSON.parse(Buffer.from(headerB64, "base64url").toString("utf8")) as {
       alg?: string; kid?: string;
     };
-    if (header.alg !== "RS256") return null;
+    if (header.alg !== "RS256") return { payload: null, error: `unsupported alg: ${header.alg}` };
 
     const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8")) as {
       iss?: string; sub?: string; exp?: number;
     };
-    if (!payload.iss || !payload.sub) return null;
-    if (payload.exp && payload.exp < Date.now() / 1000) return null;
+    if (!payload.iss || !payload.sub) return { payload: null, error: "missing iss or sub claim" };
+    if (payload.exp && payload.exp < Date.now() / 1000) return { payload: null, error: "JWT expired" };
 
     // Security: validate issuer matches our Clerk instance
     const expectedDomain = getExpectedClerkDomain();
-    if (expectedDomain && !payload.iss.includes(expectedDomain)) return null;
+    if (expectedDomain && !payload.iss.includes(expectedDomain)) {
+      return { payload: null, error: `issuer mismatch: ${payload.iss} does not include ${expectedDomain}` };
+    }
 
     // Fetch the public JWKS
     const jwksResp = await fetch(`${payload.iss}/.well-known/jwks.json`, {
       signal: AbortSignal.timeout(6000),
     });
-    if (!jwksResp.ok) return null;
-    const { keys } = await jwksResp.json() as { keys: (JsonWebKey & { kid?: string })[] };
+    if (!jwksResp.ok) return { payload: null, error: `JWKS fetch failed: HTTP ${jwksResp.status}` };
+    const jwksJson = await jwksResp.json() as { keys?: { kid?: string; kty?: string; n?: string; e?: string; alg?: string; use?: string }[] };
+    const keys = jwksJson.keys ?? [];
     const jwk = header.kid ? keys.find((k) => k.kid === header.kid) : keys[0];
-    if (!jwk) return null;
+    if (!jwk) return { payload: null, error: `JWK not found for kid: ${header.kid}` };
 
-    // Verify RS256 signature using Web Crypto (Node 18+)
-    const cryptoKey = await crypto.subtle.importKey(
-      "jwk", jwk as JsonWebKey,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      false, ["verify"]
-    );
-    const valid = await crypto.subtle.verify(
-      "RSASSA-PKCS1-v1_5",
-      cryptoKey,
-      Buffer.from(sigB64, "base64url"),
-      new TextEncoder().encode(`${headerB64}.${payloadB64}`)
-    );
-    return valid ? (payload as Record<string, unknown>) : null;
-  } catch {
-    return null;
+    // Use Node.js native crypto — battle-tested, works in all serverless environments
+    const { createPublicKey, createVerify } = await import("crypto");
+    const publicKey = createPublicKey({ key: jwk as never, format: "jwk" });
+    const verifier = createVerify("RSA-SHA256");
+    verifier.update(`${headerB64}.${payloadB64}`);
+    const valid = verifier.verify(publicKey, Buffer.from(sigB64, "base64url"));
+
+    if (!valid) return { payload: null, error: "signature verification failed" };
+    return { payload: payload as Record<string, unknown>, error: "" };
+  } catch (e) {
+    return { payload: null, error: `JWT verification exception: ${(e as Error).message}` };
   }
 }
 
@@ -175,7 +175,7 @@ export async function getAuthEmail(req: VercelRequest): Promise<string> {
   // Layer 2: Clerk RS256 JWT (what getToken() returns in the browser)
   // Step A: Verify signature using Clerk's public JWKS (reliable, no secret needed)
   // Step B: Get email — from custom claim, or Clerk API (uses CLERK_SECRET_KEY)
-  const verified = await verifyClerkJwt(token);
+  const { payload: verified } = await verifyClerkJwt(token);
   if (verified) {
     // 2a. Email in JWT custom claim (fastest — configure in Clerk Dashboard → Sessions)
     const claimEmail = (verified["email"] ?? verified["email_address"]) as string | undefined;

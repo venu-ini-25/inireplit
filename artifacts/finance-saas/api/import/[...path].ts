@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, ok, err, requireAdmin, getPool, extractPath } from "../_utils.js";
+import { handleCors, ok, err, requireAdmin, getPool, extractPath, verifyClerkJwt } from "../_utils.js";
 import * as XLSX from "@e965/xlsx";
 import { randomUUID } from "crypto";
 
@@ -62,6 +62,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const pathParts = extractPath(req, "/api/import");
   const sub = pathParts[0] ?? "";
+
+  // POST /api/import/auth-debug — traces auth flow with the supplied Bearer token
+  if (sub === "auth-debug") {
+    const authHeader = req.headers.authorization as string | undefined;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) return ok(res, { stage: "no-token", hasAuthHeader: !!authHeader });
+
+    const parts = token.split(".");
+    let header: unknown = null;
+    let payload: unknown = null;
+    try { header = JSON.parse(Buffer.from(parts[0] ?? "", "base64url").toString("utf8")); } catch { /* */ }
+    try {
+      const p = JSON.parse(Buffer.from(parts[1] ?? "", "base64url").toString("utf8")) as Record<string, unknown>;
+      payload = { iss: p.iss, sub: p.sub, sid: p.sid, azp: p.azp, exp: p.exp, iat: p.iat, hasEmail: !!(p.email ?? p.email_address) };
+    } catch { /* */ }
+
+    const verifyResult = await verifyClerkJwt(token);
+    let clerkApiResult: unknown = "not-attempted";
+    if (verifyResult.payload && process.env.CLERK_SECRET_KEY) {
+      const userId = verifyResult.payload["sub"] as string;
+      try {
+        const r = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+          headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!r.ok) {
+          clerkApiResult = { ok: false, status: r.status, body: (await r.text()).slice(0, 200) };
+        } else {
+          const u = await r.json() as { email_addresses?: { email_address: string }[]; primary_email_address_id?: string };
+          clerkApiResult = { ok: true, emailCount: u.email_addresses?.length ?? 0, hasPrimary: !!u.primary_email_address_id };
+        }
+      } catch (e) {
+        clerkApiResult = { ok: false, exception: (e as Error).message };
+      }
+    }
+
+    return ok(res, {
+      tokenLen: token.length,
+      tokenParts: parts.length,
+      tokenPrefix: token.slice(0, 12),
+      jwtHeader: header,
+      jwtPayload: payload,
+      verifySuccess: !!verifyResult.payload,
+      verifyError: verifyResult.error,
+      clerkApiResult,
+      env: {
+        hasClerkSecret: !!process.env.CLERK_SECRET_KEY,
+        hasPubKey: !!(process.env.VITE_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY),
+        hasAdminEmails: !!process.env.ADMIN_EMAILS,
+      },
+    });
+  }
 
   // GET /api/import/ping — diagnostic, no auth
   if (sub === "ping") {
