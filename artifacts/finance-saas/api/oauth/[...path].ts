@@ -43,7 +43,7 @@ async function exchangeGusto(code: string, redirectUri: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  const pathParts = (req.query.path as string[]) ?? [];
+  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
   const provider = pathParts[0] ?? "";
   const action = pathParts[1] ?? "";
 

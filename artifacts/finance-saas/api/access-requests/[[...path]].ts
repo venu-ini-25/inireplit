@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   await ensureTable();
   const db = getPool();
 
-  const pathParts = (req.query.path as string[] | undefined) ?? [];
+  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
 
   // GET /api/access-requests (list all)
   if (pathParts.length === 0 && req.method === "GET") {

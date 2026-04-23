@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const email = await requireAuth(req, res);
   if (!email) return;
 
-  const pathParts = (req.query.path as string[]) ?? [];
+  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
   const sub = pathParts[0] ?? "";
 
   // GET /api/services/overview

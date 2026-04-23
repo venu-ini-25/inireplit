@@ -34,7 +34,7 @@ function verifyJwt(token: string, secret: string): Record<string, unknown> | nul
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (handleCors(req, res)) return;
 
-  const pathParts = (req.query.path as string[]) ?? [];
+  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
   const sub = pathParts[0] ?? "";
 
   if (sub === "login" && req.method === "POST") {

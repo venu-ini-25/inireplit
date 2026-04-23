@@ -60,7 +60,7 @@ function parseFileBuffer(buffer: Buffer, columnMapping: Record<string, string>):
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (handleCors(req, res)) return;
 
-  const pathParts = (req.query.path as string[]) ?? [];
+  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
   const sub = pathParts[0] ?? "";
 
   // GET /api/import/logs — admin only

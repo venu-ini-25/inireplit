@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const email = await requireAdmin(req, res);
   if (!email) return;
 
-  const pathParts = (req.query.path as string[] | undefined) ?? [];
+  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
   const db = getPool();
 
   // GET /api/integrations (list all)
