@@ -112,6 +112,13 @@ export async function requireAuth(req: VercelRequest, res: VercelResponse): Prom
   return email;
 }
 
+/** Parse the sub-path from req.url — always reliable on Vercel (req.query.path can be string or array) */
+export function extractPath(req: VercelRequest, base: string): string[] {
+  const urlPath = (req.url ?? "").split("?")[0];
+  const after = urlPath.startsWith(base) ? urlPath.slice(base.length) : urlPath;
+  return after.split("/").filter(Boolean);
+}
+
 export async function getMetricValues(category: string): Promise<Map<string, number>> {
   const db = getPool();
   try {

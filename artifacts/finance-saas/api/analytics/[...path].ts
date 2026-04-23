@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, ok, err, requireAuth, getPool, getMetricValues } from "../_utils.js";
+import { handleCors, ok, err, requireAuth, getPool, getMetricValues, extractPath } from "../_utils.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (handleCors(req, res)) return;
@@ -7,7 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const email = await requireAuth(req, res);
   if (!email) return;
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/analytics");
   const sub = pathParts[0] ?? "";
 
   // GET /api/analytics/revenue

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, ok, err, requireAdmin, getPool } from "../_utils.js";
+import { handleCors, ok, err, requireAdmin, getPool, extractPath } from "../_utils.js";
 import { randomUUID } from "crypto";
 
 const PROVIDERS = ["quickbooks", "hubspot", "stripe", "sheets", "gusto"] as const;
@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const email = await requireAdmin(req, res);
   if (!email) return;
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/integrations");
   const db = getPool();
 
   // GET /api/integrations (list all)

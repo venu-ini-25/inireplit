@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, ok, err, requireAuth, getPool } from "../_utils.js";
+import { handleCors, ok, err, requireAuth, getPool, extractPath } from "../_utils.js";
 
 const MOCK_ENGAGEMENTS = [
   { id: "eng_001", clientName: "NovaPay", serviceType: "fpa", status: "active", startDate: "2025-01-01T00:00:00Z", endDate: "2025-06-30T00:00:00Z", fee: 72000, progress: 48, lead: "Venu Vegi", description: "Monthly FP&A support including budget vs actuals, rolling forecast, and board pack preparation.", deliverables: [], team: [] },
@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const email = await requireAuth(req, res);
   if (!email) return;
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/services");
   const sub = pathParts[0] ?? "";
 
   // GET /api/services/overview

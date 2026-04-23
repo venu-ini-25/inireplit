@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, err } from "../_utils.js";
+import { handleCors, err, extractPath } from "../_utils.js";
 import { createHmac } from "crypto";
 
 function getJwtSecret(): string | null {
@@ -34,7 +34,7 @@ function verifyJwt(token: string, secret: string): Record<string, unknown> | nul
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (handleCors(req, res)) return;
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/auth");
   const sub = pathParts[0] ?? "";
 
   if (sub === "login" && req.method === "POST") {

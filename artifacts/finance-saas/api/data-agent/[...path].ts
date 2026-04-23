@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, err } from "../_utils.js";
+import { handleCors, err, extractPath } from "../_utils.js";
 
 function toKey(s: string) { return s.toLowerCase().replace(/[\s_\-.]+/g, "").trim(); }
 
@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (handleCors(req, res)) return;
   if (req.method !== "POST") { err(res, "Method not allowed", 405); return; }
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/data-agent");
   const sub = pathParts[0] ?? "";
 
   // POST /api/data-agent/analyze

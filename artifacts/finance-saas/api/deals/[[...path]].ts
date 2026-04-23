@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, ok, err, requireAuth, getPool } from "../_utils.js";
+import { handleCors, ok, err, requireAuth, getPool, extractPath } from "../_utils.js";
 
 const STAGES = ["sourcing", "nda", "due_diligence", "negotiation", "closing", "closed", "passed"] as const;
 
@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const email = await requireAuth(req, res);
   if (!email) return;
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/deals");
   const sub = pathParts.join("/");
 
   // GET /api/deals (list)

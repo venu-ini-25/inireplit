@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPool } from "../_utils.js";
+import { getPool, extractPath } from "../_utils.js";
 import { randomUUID } from "crypto";
 
 function providerLabel(p: string): string {
@@ -43,7 +43,7 @@ async function exchangeGusto(code: string, redirectUri: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/oauth");
   const provider = pathParts[0] ?? "";
   const action = pathParts[1] ?? "";
 

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { randomUUID } from "crypto";
 import { getPool, ensureTable, rowToRequest } from "../_db.js";
+import { extractPath } from "../_utils.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -12,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   await ensureTable();
   const db = getPool();
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const pathParts = extractPath(req, "/api/access-requests");
 
   // GET /api/access-requests (list all)
   if (pathParts.length === 0 && req.method === "GET") {

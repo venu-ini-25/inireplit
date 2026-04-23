@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleCors, ok, err, requireAdmin, getPool } from "../_utils.js";
+import { handleCors, ok, err, requireAdmin, getPool, extractPath } from "../_utils.js";
 import * as XLSX from "@e965/xlsx";
 import { randomUUID } from "crypto";
 
@@ -60,8 +60,7 @@ function parseFileBuffer(buffer: Buffer, columnMapping: Record<string, string>):
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (handleCors(req, res)) return;
 
-  const rawPath = req.query.path;
-  const pathParts = Array.isArray(rawPath) ? rawPath as string[] : typeof rawPath === "string" ? [rawPath] : [];
+  const pathParts = extractPath(req, "/api/import");
   const sub = pathParts[0] ?? "";
 
   // GET /api/import/ping — diagnostic, no auth
