@@ -28,7 +28,7 @@ export default function Operations() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ChartCard title="Headcount Growth" subtitle="Monthly employee count — FY 2024">
+        <ChartCard title="Headcount Growth" subtitle="Monthly employee count — FY 2025">
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={headcountTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />

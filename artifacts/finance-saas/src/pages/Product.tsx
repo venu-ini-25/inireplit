@@ -79,7 +79,7 @@ export default function Product() {
         </ChartCard>
       </div>
 
-      <ChartCard title="Customer Waterfall" subtitle="Net customer movement — MoM Dec 2024 → Jan 2025">
+      <ChartCard title="Customer Waterfall" subtitle="Net customer movement — MoM Dec 2025 → Jan 2026">
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={churnWaterfall} barSize={48}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />

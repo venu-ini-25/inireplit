@@ -63,7 +63,7 @@ export default function Sales() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Bookings vs Quota" subtitle="Monthly ($000s) — FY 2024">
+        <ChartCard title="Bookings vs Quota" subtitle="Monthly ($000s) — FY 2025">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={bookings} barGap={2} barSize={12}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />

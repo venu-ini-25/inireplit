@@ -55,7 +55,7 @@ export default function FinanceExpenses() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Category & department spend analysis — Dec 2024</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Category & department spend analysis — FY 2025</p>
         </div>
         <button className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-md text-sm text-muted-foreground hover:bg-slate-50">
           <Download className="w-4 h-4" /> Export

@@ -192,7 +192,7 @@ export default function FinancePL() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Profit & Loss Statement</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {computed ? "Live data from DB" : "FY 2025"} · Quarterly financial performance and variance analysis
+            {computed ? (localStorage.getItem("ini_platform_access") === "app" ? "Live data" : "Demo data") : "FY 2025"} · Quarterly financial performance and variance analysis
           </p>
         </div>
         <div className="flex items-center gap-2">

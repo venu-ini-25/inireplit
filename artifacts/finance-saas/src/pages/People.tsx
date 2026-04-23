@@ -72,7 +72,7 @@ export default function People() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Monthly Hiring: Plan vs Actual" subtitle="New hires per month — FY 2024" className="col-span-2">
+        <ChartCard title="Monthly Hiring: Plan vs Actual" subtitle="New hires per month — FY 2025" className="col-span-2">
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={hiringPlan} barGap={3} barSize={14}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
