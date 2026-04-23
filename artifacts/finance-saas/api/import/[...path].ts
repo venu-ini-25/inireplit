@@ -60,8 +60,14 @@ function parseFileBuffer(buffer: Buffer, columnMapping: Record<string, string>):
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (handleCors(req, res)) return;
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path as string[] : typeof req.query.path === "string" ? [req.query.path] : [];
+  const rawPath = req.query.path;
+  const pathParts = Array.isArray(rawPath) ? rawPath as string[] : typeof rawPath === "string" ? [rawPath] : [];
   const sub = pathParts[0] ?? "";
+
+  // GET /api/import/ping — diagnostic, no auth
+  if (sub === "ping") {
+    return ok(res, { pong: true, sub, pathParts, rawPath, method: req.method, hasBody: !!req.body });
+  }
 
   // GET /api/import/logs — admin only
   if (sub === "logs" && req.method === "GET") {
@@ -76,9 +82,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // POST /api/import/preview
   if (sub === "preview" && req.method === "POST") {
-    const body = req.body as { file?: string; fileName?: string; tableType?: string; columnMapping?: string | Record<string, string> };
-    if (!body.file) { err(res, "No file data provided"); return; }
     try {
+    const body = (req.body ?? {}) as { file?: string; fileName?: string; tableType?: string; columnMapping?: string | Record<string, string> };
+    if (!body.file) { err(res, "No file data provided"); return; }
       const buffer = Buffer.from(body.file, "base64");
       const rawColumnMapping: Record<string, string> = typeof body.columnMapping === "string" ? JSON.parse(body.columnMapping) as Record<string, string> : (body.columnMapping ?? {});
       const { rawHeaders, rows, detectedType } = parseFileBuffer(buffer, rawColumnMapping);
