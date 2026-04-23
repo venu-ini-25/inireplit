@@ -51,9 +51,6 @@ function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | nul
   if (process.env.GOOGLE_API_KEY) {
     return { apiKey: process.env.GOOGLE_API_KEY, baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", model: "gemini-2.0-flash" };
   }
-  if (process.env.GROQ_API_KEY) {
-    return { apiKey: process.env.GROQ_API_KEY, baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" };
-  }
   const openaiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
   if (openaiKey) {
     const baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1";
