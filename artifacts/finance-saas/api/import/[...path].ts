@@ -94,7 +94,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const issues: string[] = [];
       if (resolvedType === "unknown") issues.push("Could not automatically detect data type — please select one manually.");
       if (isKnownType(resolvedType)) { for (const req of DB_FIELDS[resolvedType].required) { if (!sampleRows[0]?.[req]) issues.push(`Required field "${req}" not mapped — some rows may be skipped.`); } }
-      return ok(res, { rawHeaders, sampleRows, totalRows: rows.length, detectedType: resolvedType, suggestedMapping: finalMapping, issues });
+      return ok(res, {
+        rawHeaders,
+        preview: sampleRows,
+        tableType: resolvedType,
+        detectedType: resolvedType,
+        rowCount: rows.length,
+        totalRows: rows.length,
+        suggestedMapping: finalMapping,
+        allDbFields: DB_FIELDS,
+        issues,
+      });
     } catch (e) { return err(res, (e as Error).message, 500); }
   }
 

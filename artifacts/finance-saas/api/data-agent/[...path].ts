@@ -79,31 +79,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       try {
         const schemaContext = Object.entries(DB_SCHEMAS).map(([t, s]) => `${t}: ${s.description}\n  Fields: ${s.fields.join(", ")}`).join("\n\n");
         const sampleText = sampleRows.slice(0, 5).map((row, i) => `Row ${i + 1}: ${Object.entries(row).slice(0, 10).map(([k, v]) => `${k}="${v}"`).join(", ")}`).join("\n");
-        const prompt = `You are a financial data expert. Analyze this CSV data and return a JSON report.\n\nHeaders: ${cleanHeaders.join(", ")}\n\nSample data:\n${sampleText}\n\nDatabase schemas:\n${schemaContext}\n\nReturn JSON with: { tableType, sourceName, description, columnMappings: [{source, target, transform?, confidence}], unmappedColumns: [string], issues: [string], impactedDashboards: [string] }`;
-        const aiRes = await callOpenAI([{ role: "user", content: prompt }], false);
+        const prompt = `You are a financial data intelligence expert for a PE/VC finance SaaS platform.\nAnalyze this uploaded CSV data and return a JSON report.\n\nDatabase schemas:\n${schemaContext}\n\nHeaders (${cleanHeaders.length} columns): ${cleanHeaders.join(", ")}\n\nSample data:\n${sampleText}\n\n${tableTypeHint ? `User hint: "${tableTypeHint}"` : ""}\n\nRespond with this EXACT JSON structure (no markdown, no code fences):\n{\n  "sourceSystem": "<e.g. quickbooks, hubspot, excel_manual, gusto, stripe, unknown>",\n  "sourceName": "<human-readable name, e.g. 'QuickBooks P&L Export'>",\n  "dataLevel": "transaction"|"summary"|"mixed",\n  "dataLevelExplanation": "<1 sentence>",\n  "detectedTableType": "companies"|"deals"|"financials"|"metrics",\n  "targetTables": ["<DB tables this data populates>"],\n  "dashboardsImpacted": ["<dashboard names>"],\n  "confidence": <0-100>,\n  "detectionReason": "<2-3 sentences>",\n  "transformationPlan": [{ "id": "<id>", "label": "<short title>", "description": "<what it does>", "priority": <1-10>, "required": <true|false> }],\n  "mappings": [{ "sourceColumn": "<exact CSV header>", "targetField": "<db field or null>", "confidence": <0-100>, "reason": "<max 10 words>", "skip": <true if should not import> }],\n  "qualityIssues": [{ "column": "<col>", "issue": "<desc>", "recommendation": "<fix>", "severity": "high"|"medium"|"low" }],\n  "summary": "<3-4 sentences about this data>"\n}\nMap EVERY column. Return raw JSON only.`;
+        const aiRes = await callOpenAI([
+          { role: "system", content: "You are a financial data expert. Respond with valid JSON only — no markdown, no code fences." },
+          { role: "user", content: prompt },
+        ], false);
         if (aiRes?.ok) {
           const data = await aiRes.json() as { choices?: { message?: { content?: string } }[] };
           const raw = data.choices?.[0]?.message?.content ?? "";
           const fenced = raw.match(/```(?:json)?\s*([\s\S]+?)```/);
           const jsonStr = fenced ? fenced[1].trim() : raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
           const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
-          res.status(200).json(parsed); return;
+          res.status(200).json({ success: true, ...parsed }); return;
         }
       } catch {}
     }
 
-    // Rule-based fallback
+    // Rule-based fallback — returns exact same field names as AiAnalysis interface
     const schema = DB_SCHEMAS[detectedType as keyof typeof DB_SCHEMAS];
-    const unmapped = cleanHeaders.filter(h => !suggestedMapping[h]);
-    const dashboardMap: Record<string, string[]> = { companies: ["Portfolio","Executive Summary"], deals: ["M&A Support","Sales"], financials: ["Finance P&L","Cash Flow","Expenses","Executive Summary"], metrics: ["Operations","Product","Marketing","Sales","People"] };
+    const dashboardMap: Record<string, string[]> = {
+      companies: ["Portfolio", "Executive Summary"],
+      deals: ["M&A Support", "Sales"],
+      financials: ["Finance P&L", "Cash Flow", "Expenses", "Executive Summary"],
+      metrics: ["Operations", "Product", "Marketing", "Sales", "People"],
+    };
+    const mappings = cleanHeaders.map(h => ({
+      sourceColumn: h,
+      targetField: suggestedMapping[h] ?? null,
+      confidence: suggestedMapping[h] ? 85 : 0,
+      reason: suggestedMapping[h] ? "Column name matches DB field" : "No matching field found",
+      skip: !suggestedMapping[h],
+    }));
     res.status(200).json({
-      tableType: detectedType,
-      sourceName: detectedType !== "unknown" ? `${detectedType.charAt(0).toUpperCase() + detectedType.slice(1)} Data` : "Unknown",
-      description: schema ? `Detected as ${schema.description}` : "File type could not be determined automatically.",
-      columnMappings: Object.entries(suggestedMapping).map(([source, target]) => ({ source, target, confidence: "high" })),
-      unmappedColumns: unmapped,
-      issues,
-      impactedDashboards: dashboardMap[detectedType] ?? [],
+      success: true,
+      sourceSystem: "excel_manual",
+      sourceName: detectedType !== "unknown" ? `${detectedType.charAt(0).toUpperCase() + detectedType.slice(1)} Data` : "Unknown Data Source",
+      dataLevel: "summary" as const,
+      dataLevelExplanation: schema ? `Detected as ${schema.description}` : "File type could not be determined automatically.",
+      detectedTableType: detectedType,
+      targetTables: detectedType !== "unknown" ? [detectedType] : [],
+      dashboardsImpacted: dashboardMap[detectedType] ?? [],
+      confidence: detectedType !== "unknown" ? 70 : 20,
+      detectionReason: detectedType !== "unknown"
+        ? `Headers match the "${detectedType}" table schema. AI analysis unavailable — using rule-based detection.`
+        : "Could not determine data type from headers. Please select the data type manually.",
+      transformationPlan: [],
+      mappings,
+      qualityIssues: issues.map(issue => ({ column: "", issue, recommendation: "Review column mapping", severity: "medium" as const })),
+      summary: schema
+        ? `This appears to be ${schema.description}. ${mappings.filter(m => !m.skip).length} of ${cleanHeaders.length} columns were automatically mapped. Review the mapping below and adjust before importing.`
+        : `Data type could not be automatically detected. Please select the correct type and review column mappings before importing.`,
     });
   }
 
