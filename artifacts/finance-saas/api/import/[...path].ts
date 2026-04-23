@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // GET /api/import/ping — diagnostic, no auth
   if (sub === "ping") {
-    return ok(res, { pong: true, sub, pathParts, rawPath, method: req.method, hasBody: !!req.body });
+    return ok(res, { pong: true, sub, pathParts, method: req.method, hasBody: !!req.body });
   }
 
   // GET /api/import/logs — admin only
