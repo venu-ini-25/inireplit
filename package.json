@@ -15,5 +15,14 @@
   },
   "dependencies": {
     "playwright-core": "^1.58.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@clerk/shared",
+      "esbuild",
+      "sharp",
+      "better-sqlite3",
+      "bcrypt"
+    ]
   }
 }
