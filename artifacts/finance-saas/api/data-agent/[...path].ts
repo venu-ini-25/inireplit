@@ -48,6 +48,9 @@ function detectIssues(headers: string[], tableType: string, sampleRows: Record<s
 }
 
 function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | null {
+  if (process.env.GOOGLE_API_KEY) {
+    return { apiKey: process.env.GOOGLE_API_KEY, baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", model: "gemini-2.0-flash" };
+  }
   if (process.env.GROQ_API_KEY) {
     return { apiKey: process.env.GROQ_API_KEY, baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" };
   }
@@ -85,13 +88,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const suggestedMapping = autoMatch(cleanHeaders, detectedType);
     const issues = detectIssues(cleanHeaders, detectedType, sampleRows);
 
-    const apiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-    if (apiKey) {
+    if (getAiConfig()) {
       try {
         const schemaContext = Object.entries(DB_SCHEMAS).map(([t, s]) => `${t}: ${s.description}\n  Fields: ${s.fields.join(", ")}`).join("\n\n");
         const sampleText = sampleRows.slice(0, 5).map((row, i) => `Row ${i + 1}: ${Object.entries(row).slice(0, 10).map(([k, v]) => `${k}="${v}"`).join(", ")}`).join("\n");
         const prompt = `You are a financial data intelligence expert for a PE/VC finance SaaS platform.\nAnalyze this uploaded CSV data and return a JSON report.\n\nDatabase schemas:\n${schemaContext}\n\nHeaders (${cleanHeaders.length} columns): ${cleanHeaders.join(", ")}\n\nSample data:\n${sampleText}\n\n${tableTypeHint ? `User hint: "${tableTypeHint}"` : ""}\n\nRespond with this EXACT JSON structure (no markdown, no code fences):\n{\n  "sourceSystem": "<e.g. quickbooks, hubspot, excel_manual, gusto, stripe, unknown>",\n  "sourceName": "<human-readable name, e.g. 'QuickBooks P&L Export'>",\n  "dataLevel": "transaction"|"summary"|"mixed",\n  "dataLevelExplanation": "<1 sentence>",\n  "detectedTableType": "companies"|"deals"|"financials"|"metrics",\n  "targetTables": ["<DB tables this data populates>"],\n  "dashboardsImpacted": ["<dashboard names>"],\n  "confidence": <0-100>,\n  "detectionReason": "<2-3 sentences>",\n  "transformationPlan": [{ "id": "<id>", "label": "<short title>", "description": "<what it does>", "priority": <1-10>, "required": <true|false> }],\n  "mappings": [{ "sourceColumn": "<exact CSV header>", "targetField": "<db field or null>", "confidence": <0-100>, "reason": "<max 10 words>", "skip": <true if should not import> }],\n  "qualityIssues": [{ "column": "<col>", "issue": "<desc>", "recommendation": "<fix>", "severity": "high"|"medium"|"low" }],\n  "summary": "<3-4 sentences about this data>"\n}\nMap EVERY column. Return raw JSON only.`;
-        const aiRes = await callOpenAI([
+        const aiRes = await callAI([
           { role: "system", content: "You are a financial data expert. Respond with valid JSON only — no markdown, no code fences." },
           { role: "user", content: prompt },
         ], false);
@@ -162,12 +164,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const { message = "", history = [], analysisContext } = req.body as { message?: string; history?: { role: string; content: string }[]; analysisContext?: Record<string, unknown> };
     if (!message.trim()) { err(res, "message is required"); return; }
 
-    const apiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-    if (!apiKey) {
+    if (!getAiConfig()) {
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
-      const fallback = `I'm a financial data mapping assistant. AI is not configured in this deployment — please add an OPENAI_API_KEY environment variable to enable AI-powered responses. In the meantime, I can tell you that your data appears to be ${analysisContext?.tableType ?? "unknown"} type and ${Object.keys(analysisContext?.suggestedMapping ?? {}).length} columns were automatically mapped.`;
+      const fallback = `I'm a financial data mapping assistant. AI is not yet configured for this deployment. To enable it, add a GOOGLE_API_KEY (free at aistudio.google.com) to the Vercel environment variables. In the meantime, ${analysisContext?.detectedTableType && analysisContext.detectedTableType !== "unknown" ? `your data looks like "${analysisContext.detectedTableType}" — you can review the auto-mapped columns below and adjust any before importing.` : "you can manually select the data type and adjust the column mappings before importing."}`;
       res.write(`data: ${JSON.stringify({ content: fallback })}\n\n`);
       res.write(`data: ${JSON.stringify({ done: true, fullContent: fallback })}\n\n`);
       res.end(); return;
@@ -188,7 +189,7 @@ Be specific, concise, and knowledgeable about financial data.`;
     res.setHeader("Connection", "keep-alive");
 
     try {
-      const aiRes = await callOpenAI([{ role: "system", content: systemPrompt }, ...history.slice(-6), { role: "user", content: message }], true);
+      const aiRes = await callAI([{ role: "system", content: systemPrompt }, ...history.slice(-6), { role: "user", content: message }], true);
       if (!aiRes?.ok) throw new Error("AI request failed");
       const reader = aiRes.body?.getReader();
       if (!reader) throw new Error("No response body");
