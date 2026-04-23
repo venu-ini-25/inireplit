@@ -38,6 +38,16 @@ async function fileToBase64(f: File): Promise<string> {
   });
 }
 
+async function safeRespJson(resp: Response): Promise<Record<string, unknown>> {
+  try { return await resp.json() as Record<string, unknown>; } catch { return {}; }
+}
+async function checkRespOk(resp: Response): Promise<void> {
+  if (!resp.ok) {
+    const d = await safeRespJson(resp);
+    throw new Error((d.error as string) ?? resp.statusText ?? `HTTP ${resp.status}`);
+  }
+}
+
 type TableType = "companies" | "deals" | "financials" | "metrics" | "unknown";
 
 const TABLE_LABELS: Record<string, string> = {
@@ -321,7 +331,7 @@ export default function DataAgent() {
         headers: { ...hdrs, "Content-Type": "application/json" },
         body: JSON.stringify({ file: base64, fileName: f.name, tableType: tableType !== "unknown" ? tableType : undefined }),
       });
-      if (!resp.ok) { const d = await resp.json(); throw new Error(d.error ?? resp.statusText); }
+      await checkRespOk(resp);
       const raw = await resp.json() as PreviewResult;
       // Strip empty/blank column headers that XLSX produces when CSV rows have
       // more columns than the header (e.g. unquoted commas in memo fields)
@@ -526,7 +536,7 @@ export default function DataAgent() {
           columnMapping: Object.keys(finalMapping).length ? finalMapping : undefined,
         }),
       });
-      if (!resp.ok) { const d = await resp.json(); throw new Error(d.error ?? resp.statusText); }
+      await checkRespOk(resp);
       const data: ImportResult = await resp.json();
       setImportResult(data); setTab("result"); loadHistory();
     } catch (e) {
