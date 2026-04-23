@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPool } from "../../_utils.js";
+import { getPool } from "../_utils.js";
 import { randomUUID } from "crypto";
 
 function providerLabel(p: string): string {
@@ -24,13 +24,7 @@ async function exchangeHubSpot(code: string, redirectUri: string) {
   const resp = await fetch("https://api.hubapi.com/oauth/v1/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: process.env.HUBSPOT_CLIENT_ID!,
-      client_secret: process.env.HUBSPOT_CLIENT_SECRET!,
-      redirect_uri: redirectUri,
-      code,
-    }),
+    body: new URLSearchParams({ grant_type: "authorization_code", client_id: process.env.HUBSPOT_CLIENT_ID!, client_secret: process.env.HUBSPOT_CLIENT_SECRET!, redirect_uri: redirectUri, code }),
   });
   if (!resp.ok) throw new Error("HubSpot token exchange failed");
   const data = await resp.json() as { access_token: string; refresh_token: string; expires_in: number };
@@ -41,13 +35,7 @@ async function exchangeGusto(code: string, redirectUri: string) {
   const resp = await fetch("https://api.gusto.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: process.env.GUSTO_CLIENT_ID!,
-      client_secret: process.env.GUSTO_CLIENT_SECRET!,
-      redirect_uri: redirectUri,
-      code,
-    }),
+    body: new URLSearchParams({ grant_type: "authorization_code", client_id: process.env.GUSTO_CLIENT_ID!, client_secret: process.env.GUSTO_CLIENT_SECRET!, redirect_uri: redirectUri, code }),
   });
   if (!resp.ok) throw new Error("Gusto token exchange failed");
   const data = await resp.json() as { access_token: string; refresh_token: string; expires_in: number };
@@ -55,22 +43,23 @@ async function exchangeGusto(code: string, redirectUri: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  const provider = String(req.query["provider"] ?? "");
-  const code = String(req.query["code"] ?? "");
-  const realmId = String(req.query["realmId"] ?? "");
+  const pathParts = (req.query.path as string[]) ?? [];
+  const provider = pathParts[0] ?? "";
+  const action = pathParts[1] ?? "";
+
   const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? "https";
   const host = req.headers.host as string;
   const redirectUri = `${proto}://${host}/api/oauth/${provider}/callback`;
-
-  if (!code) {
-    res.redirect(302, `/settings/integrations?error=${provider}_no_code`); return;
-  }
-
   const settingsBase = `${proto}://${host}`;
+
+  if (action !== "callback") { res.redirect(302, `${settingsBase}/settings/integrations?error=invalid_path`); return; }
+
+  const code = String(req.query["code"] ?? "");
+  const realmId = String(req.query["realmId"] ?? "");
+  if (!code) { res.redirect(302, `${settingsBase}/settings/integrations?error=${provider}_no_code`); return; }
 
   try {
     let result: { accessToken: string; refreshToken: string; expiresAt: Date; realmId: string | null };
-
     if (provider === "quickbooks") result = await exchangeQuickBooks(code, realmId, redirectUri);
     else if (provider === "hubspot") result = await exchangeHubSpot(code, redirectUri);
     else if (provider === "gusto") result = await exchangeGusto(code, redirectUri);
@@ -81,18 +70,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const id = (existing[0] as Record<string, string> | undefined)?.id ?? `ic_${provider}_${randomUUID().slice(0, 8)}`;
     const now = new Date();
     await db.query(`
-      INSERT INTO integration_connections
-        (id, provider, display_name, status, access_token, refresh_token, token_expires_at, realm_id, created_at, updated_at)
-      VALUES ($1, $2, $3, 'connected', $4, $5, $6, $7, $8, $9)
-      ON CONFLICT (id) DO UPDATE SET
-        access_token = EXCLUDED.access_token, refresh_token = EXCLUDED.refresh_token,
-        token_expires_at = EXCLUDED.token_expires_at, status = 'connected',
-        realm_id = EXCLUDED.realm_id, updated_at = EXCLUDED.updated_at
+      INSERT INTO integration_connections (id, provider, display_name, status, access_token, refresh_token, token_expires_at, realm_id, created_at, updated_at)
+      VALUES ($1,$2,$3,'connected',$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (id) DO UPDATE SET access_token=EXCLUDED.access_token, refresh_token=EXCLUDED.refresh_token, token_expires_at=EXCLUDED.token_expires_at, realm_id=EXCLUDED.realm_id, status='connected', updated_at=EXCLUDED.updated_at
     `, [id, provider, providerLabel(provider), result.accessToken, result.refreshToken, result.expiresAt, result.realmId, now, now]);
 
     res.redirect(302, `${settingsBase}/settings/integrations?connected=${provider}`);
   } catch (e) {
-    console.error(`[oauth/${provider}/callback]`, (e as Error).message);
-    res.redirect(302, `${settingsBase}/settings/integrations?error=${provider}_auth_failed`);
+    console.error(`[oauth/${provider}]`, e);
+    res.redirect(302, `${settingsBase}/settings/integrations?error=${provider}_${(e as Error).message.replace(/\s+/g, "_")}`);
   }
 }

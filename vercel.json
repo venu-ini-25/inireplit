@@ -2,5 +2,7 @@
   "buildCommand": "pnpm --filter @workspace/finance-saas run build",
   "outputDirectory": "artifacts/finance-saas/dist/public",
   "installCommand": "pnpm install",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }
