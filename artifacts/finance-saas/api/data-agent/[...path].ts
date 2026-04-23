@@ -49,7 +49,7 @@ function detectIssues(headers: string[], tableType: string, sampleRows: Record<s
 
 function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | null {
   if (process.env.GOOGLE_API_KEY) {
-    return { apiKey: process.env.GOOGLE_API_KEY, baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", model: "gemini-2.0-flash" };
+    return { apiKey: process.env.GOOGLE_API_KEY, baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash" };
   }
   const openaiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
   if (openaiKey) {
@@ -62,11 +62,16 @@ function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | nul
 async function callAI(messages: { role: string; content: string }[], stream: boolean): Promise<Response | null> {
   const config = getAiConfig();
   if (!config) return null;
-  return fetch(`${config.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
-    body: JSON.stringify({ model: config.model, messages, max_tokens: 2048, stream }),
-  });
+  try {
+    return await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
+      body: JSON.stringify({ model: config.model, messages, max_tokens: 2048, stream }),
+      signal: AbortSignal.timeout(25000),
+    });
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
