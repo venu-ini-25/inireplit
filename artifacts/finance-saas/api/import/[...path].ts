@@ -59,14 +59,14 @@ function parseFileBuffer(buffer: Buffer, columnMapping: Record<string, string>):
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (handleCors(req, res)) return;
-  const email = await requireAdmin(req, res);
-  if (!email) return;
 
   const pathParts = (req.query.path as string[]) ?? [];
   const sub = pathParts[0] ?? "";
 
-  // GET /api/import/logs
+  // GET /api/import/logs — admin only
   if (sub === "logs" && req.method === "GET") {
+    const email = await requireAdmin(req, res);
+    if (!email) return;
     const db = getPool();
     try {
       const { rows } = await db.query(`SELECT * FROM import_logs ORDER BY imported_at DESC LIMIT 20`);
@@ -93,8 +93,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     } catch (e) { return err(res, (e as Error).message, 500); }
   }
 
-  // POST /api/import/commit
+  // POST /api/import/commit — admin only (writes to DB)
   if (sub === "commit" && req.method === "POST") {
+    const commitEmail = await requireAdmin(req, res);
+    if (!commitEmail) return;
     const body = req.body as { file?: string; fileName?: string; tableType?: string; columnMapping?: string | Record<string, string> };
     if (!body.file) { err(res, "No file data provided"); return; }
     const db = getPool();
