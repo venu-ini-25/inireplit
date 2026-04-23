@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Pool } from "pg";
-import { verifyToken } from "@clerk/backend";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +45,8 @@ function getAdminEmails(): string[] {
   return ["venu.vegi@inventninvest.com"];
 }
 
+// ── Layer 1: HMAC JWT (custom admin tokens signed with SESSION_SECRET) ────────
+
 async function verifyHmacJwt(token: string, secret: string): Promise<{ email?: string; role?: string } | null> {
   try {
     const [headerB64, payloadB64, sigB64] = token.split(".");
@@ -64,8 +65,20 @@ async function verifyHmacJwt(token: string, secret: string): Promise<{ email?: s
   }
 }
 
-/** Derive the expected Clerk frontend API domain from VITE_CLERK_PUBLISHABLE_KEY.
- *  Format: pk_live_<base64url(domain + "$")> or pk_test_<...> */
+// ── Layer 2: Clerk RS256 JWT — JWKS verification + email lookup ───────────────
+
+/** Decode (without verification) the JWT payload. */
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    return JSON.parse(Buffer.from(parts[1]!, "base64url").toString("utf8")) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/** Derive the expected Clerk frontend API domain from the publishable key. */
 function getExpectedClerkDomain(): string | null {
   const pk = process.env.VITE_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY;
   if (!pk) return null;
@@ -77,13 +90,12 @@ function getExpectedClerkDomain(): string | null {
   }
 }
 
-/** Verify a Clerk RS256 JWT using the public JWKS endpoint (no secret key needed).
- *  Returns the decoded payload if valid, null otherwise. */
-async function verifyClerkJwtPublic(token: string): Promise<Record<string, unknown> | null> {
+/** Verify a Clerk RS256 JWT signature using the public JWKS endpoint.
+ *  Returns the decoded payload if valid, null otherwise. No secret key required. */
+async function verifyClerkJwt(token: string): Promise<Record<string, unknown> | null> {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const [headerB64, payloadB64, sigB64] = parts;
+    const [headerB64, payloadB64, sigB64] = token.split(".");
+    if (!headerB64 || !payloadB64 || !sigB64) return null;
 
     const header = JSON.parse(Buffer.from(headerB64, "base64url").toString("utf8")) as {
       alg?: string; kid?: string;
@@ -91,107 +103,98 @@ async function verifyClerkJwtPublic(token: string): Promise<Record<string, unkno
     if (header.alg !== "RS256") return null;
 
     const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8")) as {
-      iss?: string; sub?: string; exp?: number; iat?: number;
-      email?: string; email_address?: string;
+      iss?: string; sub?: string; exp?: number;
     };
     if (!payload.iss || !payload.sub) return null;
     if (payload.exp && payload.exp < Date.now() / 1000) return null;
 
-    // Security: validate the issuer matches our Clerk instance
+    // Security: validate issuer matches our Clerk instance
     const expectedDomain = getExpectedClerkDomain();
     if (expectedDomain && !payload.iss.includes(expectedDomain)) return null;
 
-    // Fetch the JWKS from the issuer's public endpoint
+    // Fetch the public JWKS
     const jwksResp = await fetch(`${payload.iss}/.well-known/jwks.json`, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(6000),
     });
     if (!jwksResp.ok) return null;
     const { keys } = await jwksResp.json() as { keys: (JsonWebKey & { kid?: string })[] };
     const jwk = header.kid ? keys.find((k) => k.kid === header.kid) : keys[0];
     if (!jwk) return null;
 
-    // Verify the RS256 signature using Web Crypto (built into Node 18+)
+    // Verify RS256 signature using Web Crypto (Node 18+)
     const cryptoKey = await crypto.subtle.importKey(
       "jwk", jwk as JsonWebKey,
       { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
       false, ["verify"]
     );
-    const signingInput = `${headerB64}.${payloadB64}`;
-    const sigBytes = Buffer.from(sigB64, "base64url");
     const valid = await crypto.subtle.verify(
-      "RSASSA-PKCS1-v1_5", cryptoKey, sigBytes,
-      new TextEncoder().encode(signingInput)
+      "RSASSA-PKCS1-v1_5",
+      cryptoKey,
+      Buffer.from(sigB64, "base64url"),
+      new TextEncoder().encode(`${headerB64}.${payloadB64}`)
     );
-    if (!valid) return null;
-
-    return payload as Record<string, unknown>;
+    return valid ? (payload as Record<string, unknown>) : null;
   } catch {
     return null;
   }
 }
 
-/** Get email from the Clerk OIDC userinfo endpoint — accepts session JWTs as bearer. */
-async function getEmailFromClerkUserinfo(token: string, iss: string): Promise<string> {
+/** Look up a user's email via Clerk API using CLERK_SECRET_KEY. */
+async function getEmailFromClerkApi(sub: string, clerkSecret: string): Promise<string> {
   try {
-    const resp = await fetch(`${iss}/oauth/userinfo`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(5000),
+    const resp = await fetch(`https://api.clerk.com/v1/users/${sub}`, {
+      headers: { Authorization: `Bearer ${clerkSecret}` },
+      signal: AbortSignal.timeout(6000),
     });
     if (!resp.ok) return "";
-    const info = await resp.json() as { email?: string; email_address?: string };
-    return (info.email ?? info.email_address ?? "").toLowerCase();
+    const user = await resp.json() as {
+      email_addresses?: { id: string; email_address: string }[];
+      primary_email_address_id?: string;
+    };
+    const emailObj = user.email_addresses?.find((e) => e.id === user.primary_email_address_id);
+    return emailObj?.email_address?.toLowerCase() ?? "";
   } catch {
     return "";
   }
 }
+
+// ── Main auth entry point ─────────────────────────────────────────────────────
 
 export async function getAuthEmail(req: VercelRequest): Promise<string> {
   const authHeader = req.headers.authorization as string | undefined;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
   if (!token) return "";
 
-  // Layer 1: HMAC secrets — for custom admin tokens (JWT_SECRET / SESSION_SECRET)
+  // Layer 1: HMAC — for custom admin tokens signed with SESSION_SECRET / JWT_SECRET
   const jwtSecrets = [process.env.JWT_SECRET, process.env.SESSION_SECRET].filter(Boolean) as string[];
   for (const secret of jwtSecrets) {
     const payload = await verifyHmacJwt(token, secret);
     if (payload?.email) return payload.email.toLowerCase();
   }
 
-  // Layer 2: Clerk secret key — full server-side verification + email lookup
-  const clerkSecret = process.env.CLERK_SECRET_KEY;
-  if (clerkSecret) {
-    try {
-      const payload = await verifyToken(token, { secretKey: clerkSecret });
-      if (payload.sub) {
-        const resp = await fetch(`https://api.clerk.com/v1/users/${payload.sub}`, {
-          headers: { Authorization: `Bearer ${clerkSecret}` },
-        });
-        if (resp.ok) {
-          const user = await resp.json() as {
-            email_addresses?: { id: string; email_address: string }[];
-            primary_email_address_id?: string;
-          };
-          const emailObj = user.email_addresses?.find((e) => e.id === user.primary_email_address_id);
-          if (emailObj?.email_address) return emailObj.email_address.toLowerCase();
-        }
-      }
-    } catch {}
-  }
-
-  // Layer 3: Public JWKS verification — works without CLERK_SECRET_KEY on Vercel.
-  // Verifies the RS256 signature using Clerk's public JWKS endpoint, then retrieves
-  // the email via the Clerk OIDC userinfo endpoint (which accepts session JWTs as bearer).
-  const verified = await verifyClerkJwtPublic(token);
+  // Layer 2: Clerk RS256 JWT (what getToken() returns in the browser)
+  // Step A: Verify signature using Clerk's public JWKS (reliable, no secret needed)
+  // Step B: Get email — from custom claim, or Clerk API (uses CLERK_SECRET_KEY)
+  const verified = await verifyClerkJwt(token);
   if (verified) {
-    const iss = verified["iss"] as string;
-
-    // Try email from JWT custom claims first (fastest, no network call)
+    // 2a. Email in JWT custom claim (fastest — configure in Clerk Dashboard → Sessions)
     const claimEmail = (verified["email"] ?? verified["email_address"]) as string | undefined;
     if (claimEmail) return claimEmail.toLowerCase();
 
-    // Fall back to userinfo endpoint
-    const email = await getEmailFromClerkUserinfo(token, iss);
-    if (email) return email;
+    // 2b. Clerk API email lookup using CLERK_SECRET_KEY
+    const clerkSecret = process.env.CLERK_SECRET_KEY;
+    const sub = verified["sub"] as string | undefined;
+    if (clerkSecret && sub) {
+      const email = await getEmailFromClerkApi(sub, clerkSecret);
+      if (email) return email;
+    }
+
+    // 2c. Last resort: check if sub matches a configured admin user ID
+    const adminUserIds = (process.env.ADMIN_CLERK_USER_IDS ?? "").split(",").map(s => s.trim()).filter(Boolean);
+    const sub2 = verified["sub"] as string | undefined;
+    if (sub2 && adminUserIds.includes(sub2)) {
+      return getAdminEmails()[0] ?? "";
+    }
   }
 
   return "";
@@ -210,7 +213,7 @@ export async function requireAuth(req: VercelRequest, res: VercelResponse): Prom
   return email;
 }
 
-/** Parse the sub-path from req.url — always reliable on Vercel (req.query.path can be string or array) */
+/** Parse the sub-path from req.url — always reliable on Vercel */
 export function extractPath(req: VercelRequest, base: string): string[] {
   const urlPath = (req.url ?? "").split("?")[0];
   const after = urlPath.startsWith(base) ? urlPath.slice(base.length) : urlPath;

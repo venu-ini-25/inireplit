@@ -1,6 +1,6 @@
 import { Sidebar } from "./Sidebar";
 import { SearchPalette } from "./SearchPalette";
-import { Search, RotateCw, Menu, ArrowRightLeft } from "lucide-react";
+import { Search, RotateCw, Menu } from "lucide-react";
 import { ReactNode, useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@clerk/clerk-react";
@@ -22,14 +22,9 @@ export function Layout({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<"demo" | "app">(() =>
     (localStorage.getItem("ini_platform_access") ?? "demo") as "demo" | "app"
   );
-  const [selectedMode, setSelectedMode] = useState<"demo" | "app">(() =>
-    (localStorage.getItem("ini_platform_access") ?? "demo") as "demo" | "app"
-  );
 
   const syncMode = useCallback(() => {
-    const stored = (localStorage.getItem("ini_platform_access") ?? "demo") as "demo" | "app";
-    setMode(stored);
-    setSelectedMode(stored);
+    setMode((localStorage.getItem("ini_platform_access") ?? "demo") as "demo" | "app");
   }, []);
 
   useEffect(() => {
@@ -38,10 +33,11 @@ export function Layout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("ini-access-updated", syncMode);
   }, [syncMode]);
 
-  const applyMode = () => {
-    localStorage.setItem("ini_platform_access", selectedMode);
+  const switchMode = useCallback(() => {
+    const next = mode === "demo" ? "app" : "demo";
+    localStorage.setItem("ini_platform_access", next);
     window.location.reload();
-  };
+  }, [mode]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -99,37 +95,23 @@ export function Layout({ children }: { children: ReactNode }) {
               <span>Data Synced</span>
             </div>
 
-            <div className={cn(
-              "hidden sm:flex items-center gap-1.5 rounded-lg border px-1 py-1",
-              selectedMode === "demo" ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200"
-            )}>
-              <select
-                value={selectedMode}
-                onChange={e => setSelectedMode(e.target.value as "demo" | "app")}
-                className={cn(
-                  "bg-transparent text-xs font-semibold outline-none cursor-pointer pr-1 pl-1.5 py-0.5",
-                  selectedMode === "demo" ? "text-amber-700" : "text-green-700"
-                )}
-              >
-                <option value="demo">Demo Mode — sample data</option>
-                <option value="app">Live — real data</option>
-              </select>
-              <button
-                onClick={applyMode}
-                disabled={selectedMode === mode}
-                className={cn(
-                  "flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all",
-                  selectedMode === mode
-                    ? "bg-transparent text-slate-400 cursor-not-allowed"
-                    : selectedMode === "demo"
-                      ? "bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-sm"
-                      : "bg-green-600 text-white hover:bg-green-700 active:scale-95 shadow-sm"
-                )}
-              >
-                <ArrowRightLeft className="w-3 h-3" />
-                <span>Switch</span>
-              </button>
-            </div>
+            <button
+              onClick={switchMode}
+              title={mode === "demo" ? "Switch to Live — real database data" : "Switch to Demo — sample data"}
+              className={cn(
+                "hidden sm:flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm",
+                mode === "demo"
+                  ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                  : "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+              )}
+            >
+              <span className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                mode === "demo" ? "bg-amber-500 animate-pulse" : "bg-emerald-500"
+              )} />
+              <span>{mode === "demo" ? "DEMO MODE — sample data" : "LIVE — real data"}</span>
+              <span className="text-[10px] opacity-60 font-normal">⇄ switch</span>
+            </button>
 
             <button
               onClick={() => navigate("/settings/profile")}
