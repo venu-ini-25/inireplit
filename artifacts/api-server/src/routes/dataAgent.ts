@@ -206,7 +206,7 @@ Rules:
 - Be specific about GL account classification in the transformation descriptions`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       max_completion_tokens: 8192,
       messages: [
         { role: "system", content: "You are a financial data intelligence expert. Respond with valid JSON only — no markdown, no code fences, no explanation. Output the raw JSON object directly." },
@@ -301,7 +301,7 @@ Respond with this JSON:
 }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       max_completion_tokens: 8192,
       messages: [
         { role: "system", content: "You are a financial data transformation engine. Respond with valid JSON only — no markdown, no code fences, no explanation. Output the raw JSON object directly." },
@@ -397,7 +397,7 @@ Be specific, concise, and knowledgeable about financial data. If asked about GL 
     ];
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       max_completion_tokens: 2048,
       messages,
       stream: true,
