@@ -1,0 +1,41 @@
+Date,Description,Category,Amount,Balance,Transaction Type,Reference Number,Counterparty
+01/02/2025,Customer Payment - Meridian Analytics Q1 Invoice,Revenue,82500.00,1245800.00,Credit,ACH-2025010201,Meridian Analytics LLC
+01/03/2025,Customer Payment - Apex Software Annual License,Revenue,47200.00,1293000.00,Credit,WIRE-2025010301,Apex Software Inc
+01/05/2025,AWS Cloud Infrastructure - December,Infrastructure,-18400.00,1274600.00,Debit,ACH-2025010501,Amazon Web Services
+01/07/2025,Stripe Payments - December Revenue,Revenue,31800.00,1306400.00,Credit,ACH-2025010701,Stripe Inc
+01/10/2025,Google Ads - Campaign Spend,Marketing,-8200.00,1298200.00,Debit,CC-2025011001,Google LLC
+01/10/2025,LinkedIn Ads - B2B Campaigns,Marketing,-4300.00,1293900.00,Debit,CC-2025011002,LinkedIn Corp
+01/12/2025,Vendor Payment - Datadog Monitoring,Software,-1840.00,1292060.00,Debit,ACH-2025011201,Datadog Inc
+01/15/2025,Payroll - January First Half,Payroll,-128500.00,1163560.00,Debit,PAY-2025011501,Gusto Payroll Services
+01/18/2025,Customer Payment - Northstar Capital,Revenue,18000.00,1181560.00,Credit,WIRE-2025011801,Northstar Capital Partners
+01/20/2025,Office Rent - January,Rent,-4500.00,1177060.00,Debit,CHECK-2025012001,555 California St Properties
+01/22/2025,Vendor Payment - Slack Enterprise,Software,-960.00,1176100.00,Debit,CC-2025012201,Slack Technologies
+01/25/2025,Vendor Payment - Zoom Business,Software,-540.00,1175560.00,Debit,CC-2025012501,Zoom Video Communications
+01/28/2025,Sales Team Travel - Q1 Kickoff,Travel,-1200.00,1174360.00,Debit,EXPENSE-2025012801,Corporate Card - Sales
+01/29/2025,Customer Payment - Cascade Cloud Services,Revenue,24500.00,1198860.00,Credit,ACH-2025012901,Cascade Cloud Inc
+01/31/2025,Payroll - January Second Half,Payroll,-134200.00,1064660.00,Debit,PAY-2025013101,Gusto Payroll Services
+02/03/2025,Customer Payment - Lumina Analytics Annual,Revenue,91200.00,1155860.00,Credit,WIRE-2025020301,Lumina Analytics Corp
+02/05/2025,AWS Cloud Infrastructure - January,Infrastructure,-21200.00,1134660.00,Debit,ACH-2025020501,Amazon Web Services
+02/07/2025,Stripe Payments - January Revenue,Revenue,38400.00,1173060.00,Credit,ACH-2025020701,Stripe Inc
+02/10/2025,Google Ads + Content - February,Marketing,-9800.00,1163260.00,Debit,CC-2025021001,Google LLC
+02/12/2025,LinkedIn Ads - February,Marketing,-5400.00,1157860.00,Debit,CC-2025021201,LinkedIn Corp
+02/14/2025,Vendor Payment - Datadog Monitoring,Software,-1840.00,1156020.00,Debit,ACH-2025021401,Datadog Inc
+02/15/2025,Payroll - February First Half,Payroll,-142800.00,1013220.00,Debit,PAY-2025021501,Gusto Payroll Services
+02/18,Customer Payment - Vortex Robotics Consulting,Revenue,32000.00,1045220.00,Credit,WIRE-2025021801,Vortex Robotics Inc
+02/20,Office Rent - February,Rent,-4500.00,1040720.00,Debit,CHECK-2025022001,555 California St Properties
+02/24,Customer Payment - Pinnacle HR Tech,Revenue,15600.00,1056320.00,Credit,ACH-2025022401,Pinnacle HR Technologies
+02/26,Vendor Payment - AWS Reserved Instances,Infrastructure,-8400.00,1047920.00,Debit,ACH-2025022601,Amazon Web Services
+02/28,Payroll - February Second Half,Payroll,-148500.00,899420.00,Debit,PAY-2025022801,Gusto Payroll Services
+03/03,Customer Payment - Fulcrum Payments Q1,Revenue,98500.00,997920.00,Credit,WIRE-2025030301,Fulcrum Payments Inc
+03/05,AWS Cloud Infrastructure - February,Infrastructure,-23800.00,974120.00,Debit,ACH-2025030501,Amazon Web Services
+03/07,Stripe Payments - February Revenue,Revenue,42100.00,1016220.00,Credit,ACH-2025030701,Stripe Inc
+03/10,Google Ads - March Campaign,Marketing,-12400.00,1003820.00,Debit,CC-2025031001,Google LLC
+03/12,Conference Sponsorship - SaaStr Annual,Marketing,-5600.00,998220.00,Debit,WIRE-2025031201,SaaStr LLC
+03/14,Vendor Payment - Datadog + Notion,Software,-2180.00,996040.00,Debit,ACH-2025031401,Datadog Inc
+03/15,Payroll - March First Half,Payroll,-155000.00,841040.00,Debit,PAY-2025031501,Gusto Payroll Services
+03/18,Customer Payment - DataVault Security,Revenue,28000.00,869040.00,Credit,ACH-2025031801,DataVault Security Corp
+03/20,Office Rent - March,Rent,-4500.00,864540.00,Debit,CHECK-2025032001,555 California St Properties
+03/24,Sales Team Travel - March,Travel,-2800.00,861740.00,Debit,EXPENSE-2025032401,Corporate Card - Sales
+03/27,Customer Payment - Beacon Health Partners,Revenue,18500.00,880240.00,Credit,WIRE-2025032701,Beacon Health Partners LLC
+03/29,Vendor Payment - HubSpot CRM,Software,-3200.00,877040.00,Debit,CC-2025032901,HubSpot Inc
+03/31,Payroll - March Second Half,Payroll,-162000.00,715040.00,Debit,PAY-2025033101,Gusto Payroll Services

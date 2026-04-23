@@ -1,0 +1,28 @@
+Employee ID,First Name,Last Name,Department,Title,Employment Type,Status,Start Date,Base Salary Annual,Bonus Annual,Equity Grant,Pay Period,Hours Per Week,Manager,Location,Gender,Ethnicity
+EMP001,Alex,Martinez,Engineering,VP of Engineering,Full-time,Active,2021-03-15,185000,28000,450000,Semimonthly,40,CEO,San Francisco CA,Male,Hispanic/Latino
+EMP002,Priya,Sharma,Engineering,Senior Software Engineer,Full-time,Active,2022-01-10,155000,15000,250000,Semimonthly,40,EMP001,San Francisco CA,Female,Asian
+EMP003,Jordan,Kim,Engineering,Software Engineer II,Full-time,Active,2023-06-01,135000,12000,150000,Semimonthly,40,EMP001,Remote,Non-binary,Asian
+EMP004,Taylor,Okonkwo,Engineering,Software Engineer I,Full-time,Active,2024-02-15,115000,8000,100000,Semimonthly,40,EMP001,San Francisco CA,Female,Black/African American
+EMP005,Ryan,Chen,Engineering,Staff Engineer,Full-time,Active,2020-08-20,175000,22000,380000,Semimonthly,40,EMP001,San Francisco CA,Male,Asian
+EMP006,Sam,Patel,Engineering,DevOps Engineer,Full-time,Active,2022-09-12,148000,14000,200000,Semimonthly,40,EMP001,Remote,Male,Asian
+EMP007,Casey,Johnson,Engineering,QA Engineer,Full-time,Active,2023-03-20,128000,10000,125000,Semimonthly,40,EMP001,San Francisco CA,Female,White
+EMP008,Morgan,Williams,Engineering,Software Engineer II,Full-time,Active,2023-11-01,138000,12000,160000,Semimonthly,40,EMP001,Remote,Male,Black/African American
+EMP009,Jamie,Torres,Engineering,Frontend Engineer,Full-time,Active,2024-07-08,122000,9000,110000,Semimonthly,40,EMP001,San Francisco CA,Female,Hispanic/Latino
+EMP010,Dana,Lee,Sales,VP of Sales,Full-time,Active,2021-05-01,170000,85000,400000,Semimonthly,40,CEO,San Francisco CA,Female,Asian
+EMP011,Chris,Brown,Sales,Account Executive,Full-time,Active,2022-04-15,95000,48000,150000,Semimonthly,40,EMP010,San Francisco CA,Male,White
+EMP012,Avery,Garcia,Sales,Account Executive,Full-time,Active,2022-10-01,95000,52000,150000,Semimonthly,40,EMP010,Remote,Female,Hispanic/Latino
+EMP013,Blake,Wilson,Sales,Sales Development Rep,Full-time,Active,2023-08-14,72000,22000,75000,Semimonthly,40,EMP010,San Francisco CA,Male,White
+EMP014,Quinn,Anderson,Sales,Enterprise AE,Full-time,Active,2023-01-09,115000,75000,200000,Semimonthly,40,EMP010,Remote,Non-binary,White
+EMP015,Reese,Thompson,Marketing,VP of Marketing,Full-time,Active,2021-11-15,165000,25000,380000,Semimonthly,40,CEO,San Francisco CA,Female,White
+EMP016,Skylar,Davis,Marketing,Content Marketing Manager,Full-time,Active,2022-07-18,110000,12000,150000,Semimonthly,40,EMP015,Remote,Male,Black/African American
+EMP017,Bailey,Moore,Marketing,Growth Marketing Manager,Full-time,Active,2023-02-06,118000,14000,160000,Semimonthly,40,EMP015,San Francisco CA,Female,Asian
+EMP018,Robin,Jackson,Marketing,SEO Specialist,Full-time,Active,2023-09-25,92000,8000,100000,Semimonthly,40,EMP015,Remote,Male,Hispanic/Latino
+EMP019,Alex,White,Finance,CFO,Full-time,Active,2020-12-01,210000,35000,550000,Semimonthly,40,CEO,San Francisco CA,Male,White
+EMP020,Jordan,Harris,Finance,Senior Financial Analyst,Full-time,Active,2022-03-14,130000,18000,175000,Semimonthly,40,EMP019,San Francisco CA,Female,Asian
+EMP021,Pat,Clark,Finance,FP&A Analyst,Full-time,Active,2023-10-16,105000,12000,120000,Semimonthly,40,EMP019,Remote,Male,White
+EMP022,Leslie,Lewis,People Operations,VP of People,Full-time,Active,2022-01-03,155000,20000,280000,Semimonthly,40,CEO,San Francisco CA,Female,Black/African American
+EMP023,Frankie,Robinson,People Operations,HR Generalist,Full-time,Active,2023-05-22,95000,8000,100000,Semimonthly,40,EMP022,San Francisco CA,Non-binary,Hispanic/Latino
+EMP024,Cameron,Walker,Customer Success,VP of Customer Success,Full-time,Active,2021-08-09,160000,28000,360000,Semimonthly,40,CEO,San Francisco CA,Male,White
+EMP025,Drew,Hall,Customer Success,Customer Success Manager,Full-time,Active,2022-06-27,112000,16000,150000,Semimonthly,40,EMP024,Remote,Female,Asian
+EMP026,Jessie,Young,Customer Success,Customer Success Manager,Full-time,Active,2023-04-10,112000,14000,150000,Semimonthly,40,EMP024,San Francisco CA,Male,Black/African American
+EMP027,Kai,Allen,Customer Success,Implementation Specialist,Full-time,Active,2023-12-04,98000,10000,110000,Semimonthly,40,EMP024,Remote,Female,Asian

@@ -1,0 +1,33 @@
+Date,Transaction Type,Account Number,Account Name,Account Type,Debit,Credit,Memo,Class
+01/02/2025,Invoice,4000,Product Revenue,Income,0.00,82500.00,SaaS subscription fees - January,Enterprise
+01/05/2025,Invoice,4100,Professional Services Revenue,Income,0.00,24000.00,Consulting engagement - Meridian Analytics,Services
+01/10/2025,Bill,5000,Cost of Goods Sold,Cost of Goods Sold,28000.00,0.00,Infrastructure & hosting costs,Operations
+01/15/2025,Journal Entry,6000,Salaries - Engineering,Expense,48000.00,0.00,Payroll - Engineering team (8 staff),Engineering
+01/15/2025,Journal Entry,6010,Salaries - Sales,Expense,22000.00,0.00,Payroll - Sales team (4 staff),Sales
+01/15/2025,Journal Entry,6020,Salaries - G&A,Expense,18000.00,0.00,Payroll - G&A (3 staff),G&A
+01/20/2025,Bill,6100,Marketing & Advertising,Expense,12500.00,0.00,Google Ads + LinkedIn campaigns,Marketing
+01/22/2025,Bill,6200,Software Subscriptions,Expense,3800.00,0.00,"AWS, Datadog, Notion, Slack, Zoom",Operations
+01/25/2025,Bill,6300,Travel & Entertainment,Expense,1200.00,0.00,Sales team travel - Q1 kickoff,Sales
+01/28/2025,Bill,6400,Office & Facilities,Expense,4500.00,0.00,Office rent - January,G&A
+01/31/2025,Invoice,4000,Product Revenue,Income,0.00,6800.00,New customer onboarding - January,Enterprise
+02/03/2025,Invoice,4000,Product Revenue,Income,0.00,91200.00,SaaS subscription fees - February,Enterprise
+02/07/2025,Invoice,4100,Professional Services Revenue,Income,0.00,18000.00,FP&A advisory - Northstar Capital,Services
+02/12/2025,Bill,5000,Cost of Goods Sold,Cost of Goods Sold,31000.00,0.00,Infrastructure & hosting - February,Operations
+02/15/2025,Journal Entry,6000,Salaries - Engineering,Expense,51000.00,0.00,Payroll - Engineering (9 staff - 1 new hire),Engineering
+02/15/2025,Journal Entry,6010,Salaries - Sales,Expense,24000.00,0.00,Payroll - Sales team,Sales
+02/15/2025,Journal Entry,6020,Salaries - G&A,Expense,18000.00,0.00,Payroll - G&A,G&A
+02/18/2025,Bill,6100,Marketing & Advertising,Expense,15200.00,0.00,Google Ads + LinkedIn + content,Marketing
+02/20/2025,Bill,6200,Software Subscriptions,Expense,4100.00,0.00,"AWS, Datadog, tools",Operations
+02/26/2025,Bill,6400,Office & Facilities,Expense,4500.00,0.00,Office rent - February,G&A
+02/28/2025,Invoice,4000,Product Revenue,Income,0.00,9400.00,Expansion revenue - upsells February,Enterprise
+03/03/2025,Invoice,4000,Product Revenue,Income,0.00,98500.00,SaaS subscription fees - March,Enterprise
+03/06/2025,Invoice,4100,Professional Services Revenue,Income,0.00,32000.00,M&A due diligence support - two clients,Services
+03/10/2025,Bill,5000,Cost of Goods Sold,Cost of Goods Sold,33500.00,0.00,Infrastructure & hosting - March,Operations
+03/15/2025,Journal Entry,6000,Salaries - Engineering,Expense,54000.00,0.00,Payroll - Engineering (9 staff),Engineering
+03/15/2025,Journal Entry,6010,Salaries - Sales,Expense,26000.00,0.00,Payroll - Sales + commissions,Sales
+03/15/2025,Journal Entry,6020,Salaries - G&A,Expense,19000.00,0.00,Payroll - G&A,G&A
+03/19/2025,Bill,6100,Marketing & Advertising,Expense,18000.00,0.00,Q1 campaign spend - Google + events,Marketing
+03/21/2025,Bill,6200,Software Subscriptions,Expense,4300.00,0.00,"AWS, tools, analytics platforms",Operations
+03/24/2025,Bill,6300,Travel & Entertainment,Expense,2800.00,0.00,Sales team - prospect visits,Sales
+03/28/2025,Bill,6400,Office & Facilities,Expense,4500.00,0.00,Office rent - March,G&A
+03/31/2025,Invoice,4000,Product Revenue,Income,0.00,11200.00,Q1 expansion - enterprise upsells,Enterprise

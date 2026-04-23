@@ -1,0 +1,13 @@
+Deal Name,Company,Deal Stage,Deal Type,Amount,ARR,Close Date,Owner,Industry,Priority,Days in Stage,NDA Signed,Data Room,Overview
+Meridian Analytics Acquisition,Meridian Analytics,Due Diligence,acquisition,22500000,4200000,2025-06-30,Sarah Chen,Data & Analytics,high,24,true,true,AI-powered analytics platform with 140% NRR and strong enterprise customer base
+Northstar Capital Series B,Northstar Capital,Term Sheet,investment,8000000,1800000,2025-04-15,James Park,FinTech,high,12,true,false,B2B payments infrastructure serving community banks; growing 85% YoY
+Apex Software LOI Signed,Apex Software,LOI Signed,acquisition,35000000,7600000,2025-05-31,Sarah Chen,Enterprise SaaS,high,8,true,true,Vertical SaaS for commercial real estate; 92% gross retention; profitable
+Beacon Health Partners,Beacon Health,Sourcing,investment,5000000,950000,2025-09-30,Maria Rodriguez,HealthTech,medium,5,false,false,Care coordination platform; early traction with 3 health system pilots
+Vortex Robotics,Vortex Robotics,Due Diligence,investment,12000000,2100000,2025-07-15,James Park,DeepTech,medium,31,true,true,Industrial automation software; hardware-agnostic; $2.1M ARR growing 120%
+ClearPath Logistics,ClearPath Logistics,Sourcing,acquisition,18000000,3400000,2025-10-31,Maria Rodriguez,Supply Chain,medium,3,false,false,Route optimization SaaS for mid-market trucking companies
+Pinnacle HR Tech,Pinnacle HR,Term Sheet,investment,6500000,1400000,2025-05-15,Sarah Chen,HR Tech,high,18,true,false,AI-powered recruiting and onboarding; 110% NRR; Series A bridge
+DataVault Security,DataVault,Sourcing,investment,4000000,720000,2025-11-30,James Park,Cybersecurity,low,2,false,false,Zero-trust data access platform; early stage; strong founding team
+Lumina Analytics,Lumina Analytics,LOI Signed,acquisition,28000000,5800000,2025-04-30,Sarah Chen,Business Intelligence,high,15,true,true,"Self-serve BI for SMBs; 8,000 customers; acquisition multiple of 4.8x ARR"
+Cascade Cloud,Cascade Cloud,Due Diligence,investment,9500000,1950000,2025-06-15,Maria Rodriguez,Cloud Infrastructure,medium,19,true,false,Multi-cloud cost optimization; $1.95M ARR; 95% gross margin
+Horizon EdTech,Horizon EdTech,Sourcing,investment,3500000,580000,2025-12-31,James Park,EdTech,low,1,false,false,Corporate L&D platform; early customer traction in mid-market
+Fulcrum Payments,Fulcrum Payments,Term Sheet,acquisition,45000000,9200000,2025-08-31,Sarah Chen,FinTech,high,9,true,false,Payment processing for vertical SaaS; $9.2M ARR; 88% gross margin

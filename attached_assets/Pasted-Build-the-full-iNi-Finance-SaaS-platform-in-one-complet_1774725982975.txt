@@ -1,0 +1,132 @@
+Build the full iNi Finance SaaS platform in one complete build. This is not an MVP, prototype, or partial implementation. I want the full application built out across all key modules using rich mock data, working pages, and polished UI. Do not leave placeholder pages, empty charts, dummy text, or unwired navigation. The app should feel like a real enterprise finance product that is demo-ready for investors and customers.
+
+The application should support CFOs, finance teams, investors, and operators. It should look and behave like a complete finance platform, not a shell.
+
+Build and complete all of these modules:
+- Finance
+- Operations
+- Product
+- Marketing
+- Sales
+- People
+- Portfolio
+- M&A Support
+- Reports & Analytics
+- Professional Services
+
+Finance requirements:
+- Keep the existing P&L page
+- Build a full Cash Flow page with monthly trend chart, operating/investing/financing cash flow views, waterfall chart, and supporting table
+- Build a full Expenses page with category breakdown, department breakdown, and expense line-item table with filters
+
+Operations requirements:
+- Show operational KPIs including headcount trend, burn rate, runway, departmental headcount, and unit economics table
+
+Product requirements:
+- Show DAU/MAU trend, feature adoption, NPS score, churn waterfall, and cohort table
+
+Marketing requirements:
+- Show CAC by channel, campaign performance table, lead funnel, MQL to SQL to Closed conversion, and attribution breakdown
+
+Sales requirements:
+- Show ARR bridge, pipeline by stage, bookings vs quota, ACV by segment, and deal summary table
+
+People requirements:
+- Show headcount by department, hiring plan vs actual, attrition trend, compensation breakdown, and open roles table
+
+Portfolio requirements:
+- Portfolio page should show fund-level summary metrics including total AUM, portfolio count, IRR, and MOIC
+- Company cards must be clickable
+- Build a company detail page at /portfolio/:id
+- Company detail page should include tabs for KPIs, Cap Table, Documents, and Notes
+- KPIs tab should show ARR, headcount, and burn trends
+- Cap Table tab should show shareholder ownership table
+- Documents tab should show a document list
+
+M&A Support requirements:
+- Clicking a deal card should open a slide-over detail panel
+- The panel should show deal overview, due diligence checklist with completion status, key contacts, and documents list
+
+Reports & Analytics requirements:
+- Build a real reports library
+- Search must work
+- Filters must work
+- Include benchmark comparison charts for revenue growth vs peers, margin vs peers, and burn multiple vs peers
+- Include report cards with visible download/export buttons
+
+Professional Services requirements:
+- Add Professional Services as a new sidebar section
+- Build a full page showing engagement cards
+- Each card should show client, engagement type, status, and timeline
+- Clicking an engagement should open a detail view
+
+Page structure requirements:
+Every page should include:
+- KPI summary cards at the top
+- 2 to 3 charts
+- at least 1 data table
+- filters where relevant
+
+Navigation requirements:
+Wire all sidebar items correctly so every section routes to its page:
+- Finance
+- Operations
+- Product
+- Marketing
+- Sales
+- People
+- Portfolio
+- M&A
+- Reports
+- Professional Services
+
+Backend requirements:
+Back all new pages with mock API routes
+Do not hardcode everything directly in the frontend
+Create backend endpoints for:
+- finance
+- operations
+- product
+- marketing
+- sales
+- people
+- portfolio
+- deals
+- reports
+- services
+
+Each endpoint should return structured mock data for:
+- KPIs
+- chart data
+- table data
+
+Design requirements:
+Do not redesign the app
+Keep the existing design system:
+- light theme
+- white cards
+- blue primary (#2563EB)
+- existing typography
+- consistent spacing
+
+Component requirements:
+Reuse shared components across the app for:
+- KPI cards
+- chart containers
+- tables
+- filter bars
+- tabs
+- slide-over panels
+
+Quality requirements:
+- no placeholder pages
+- no broken navigation
+- no empty sections
+- no incomplete modules
+- no stub-only pages
+- all modules should feel finished
+- all pages should use rich mock data
+- all pages should feel consistent with one product design
+
+Final expectation:
+Build everything completely in this request. Do not stop at a partial implementation. Do not treat this as an MVP. I want the full application built out across all listed modules so the platform feels complete, polished, and demo-ready.

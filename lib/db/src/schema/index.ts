@@ -1,0 +1,178 @@
+import {
+  pgTable,
+  text,
+  integer,
+  doublePrecision,
+  boolean,
+  timestamp,
+  jsonb,
+} from "drizzle-orm/pg-core";
+
+export const companies = pgTable("companies", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  industry: text("industry").notNull().default(""),
+  stage: text("stage").notNull().default("seed"),
+  revenue: integer("revenue").notNull().default(0),
+  valuation: integer("valuation").notNull().default(0),
+  growthRate: doublePrecision("growth_rate").notNull().default(0),
+  employees: integer("employees").notNull().default(0),
+  location: text("location").notNull().default(""),
+  status: text("status").notNull().default("active"),
+  dataVerified: boolean("data_verified").notNull().default(false),
+  ndaSigned: boolean("nda_signed").notNull().default(false),
+  logo: text("logo").notNull().default(""),
+  founded: integer("founded"),
+  ownership: text("ownership"),
+  arr: text("arr"),
+  arrGrowthPct: doublePrecision("arr_growth_pct"),
+  irr: text("irr"),
+  moic: text("moic"),
+  lastValDate: text("last_val_date"),
+  investors: jsonb("investors").$type<string[]>().default([]),
+  arrTrend: jsonb("arr_trend").$type<{ q: string; v: number }[]>().default([]),
+  headcountTrend: jsonb("headcount_trend").$type<{ q: string; v: number }[]>().default([]),
+  burnTrend: jsonb("burn_trend").$type<{ q: string; v: number }[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const deals = pgTable("deals", {
+  id: text("id").primaryKey(),
+  companyName: text("company_name").notNull(),
+  industry: text("industry").notNull().default(""),
+  dealType: text("deal_type").notNull().default("investment"),
+  stage: text("stage").notNull().default("sourcing"),
+  dealSize: integer("deal_size").notNull().default(0),
+  valuation: integer("valuation").notNull().default(0),
+  targetRevenue: integer("target_revenue").notNull().default(0),
+  assignedTo: text("assigned_to").notNull().default(""),
+  priority: text("priority").notNull().default("medium"),
+  closingDate: text("closing_date"),
+  ndaSigned: boolean("nda_signed").notNull().default(false),
+  dataRoomAccess: boolean("data_room_access").notNull().default(false),
+  overview: text("overview").notNull().default(""),
+  thesis: text("thesis").notNull().default(""),
+  financials: jsonb("financials").$type<{ arr: number; nrr: number; growth: number; ebitda: number }>(),
+  synergies: jsonb("synergies").$type<{ type: string; value: string; confidence: string }[]>().default([]),
+  contacts: jsonb("contacts").$type<{ name: string; role: string; email?: string }[]>().default([]),
+  documents: jsonb("documents").$type<{ name: string; type: string; date: string; size: string }[]>().default([]),
+  dueDiligenceItems: jsonb("due_diligence_items").$type<Record<string, unknown>[]>().default([]),
+  timeline: jsonb("timeline").$type<Record<string, unknown>[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const financialSnapshots = pgTable("financial_snapshots", {
+  id: text("id").primaryKey(),
+  period: text("period").notNull(),
+  revenue: integer("revenue").notNull().default(0),
+  expenses: integer("expenses").notNull().default(0),
+  ebitda: integer("ebitda").notNull().default(0),
+  arr: integer("arr").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const engagements = pgTable("engagements", {
+  id: text("id").primaryKey(),
+  clientName: text("client_name").notNull(),
+  serviceType: text("service_type").notNull().default("fpa"),
+  status: text("status").notNull().default("active"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  fee: integer("fee").notNull().default(0),
+  progress: integer("progress").notNull().default(0),
+  lead: text("lead").notNull().default(""),
+  description: text("description").notNull().default(""),
+  deliverables: jsonb("deliverables").$type<string[]>().default([]),
+  team: jsonb("team").$type<{ name: string; role: string }[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const metricsSnapshots = pgTable("metrics_snapshots", {
+  id: text("id").primaryKey(),
+  category: text("category").notNull(),
+  metricKey: text("metric_key").notNull(),
+  metricLabel: text("metric_label").notNull().default(""),
+  value: doublePrecision("value").notNull().default(0),
+  unit: text("unit").notNull().default(""),
+  periodLabel: text("period_label").notNull().default(""),
+  source: text("source").notNull().default("manual"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const integrationConnections = pgTable("integration_connections", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),
+  displayName: text("display_name").notNull().default(""),
+  status: text("status").notNull().default("disconnected"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  realmId: text("realm_id"),
+  extra: jsonb("extra").$type<Record<string, unknown>>().default({}),
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const syncLogs = pgTable("sync_logs", {
+  id: text("id").primaryKey(),
+  integrationId: text("integration_id").notNull(),
+  provider: text("provider").notNull(),
+  status: text("status").notNull().default("running"),
+  recordsSynced: integer("records_synced").notNull().default(0),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const importLogs = pgTable("import_logs", {
+  id: text("id").primaryKey(),
+  fileName: text("file_name").notNull(),
+  tableType: text("table_type").notNull(),
+  totalRows: integer("total_rows").notNull().default(0),
+  importedRows: integer("imported_rows").notNull().default(0),
+  skippedRows: integer("skipped_rows").notNull().default(0),
+  errorRows: integer("error_rows").notNull().default(0),
+  errors: jsonb("errors").$type<{ row: number; field?: string; message: string }[]>().default([]),
+  columnMapping: jsonb("column_mapping").$type<Record<string, string>>().default({}),
+  importedAt: timestamp("imported_at").defaultNow(),
+});
+export type ImportLog = typeof importLogs.$inferSelect;
+export type InsertImportLog = typeof importLogs.$inferInsert;
+
+export type Engagement = typeof engagements.$inferSelect;
+export type InsertEngagement = typeof engagements.$inferInsert;
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = typeof companies.$inferInsert;
+export type Deal = typeof deals.$inferSelect;
+export type InsertDeal = typeof deals.$inferInsert;
+export type FinancialSnapshot = typeof financialSnapshots.$inferSelect;
+export type InsertFinancialSnapshot = typeof financialSnapshots.$inferInsert;
+export type MetricsSnapshot = typeof metricsSnapshots.$inferSelect;
+export type InsertMetricsSnapshot = typeof metricsSnapshots.$inferInsert;
+export type IntegrationConnection = typeof integrationConnections.$inferSelect;
+export type InsertIntegrationConnection = typeof integrationConnections.$inferInsert;
+export type SyncLog = typeof syncLogs.$inferSelect;
+export type InsertSyncLog = typeof syncLogs.$inferInsert;
+
+export const accessRequests = pgTable("access_requests", {
+  id: text("id").primaryKey(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  company: text("company"),
+  role: text("role").notNull(),
+  aum: text("aum"),
+  message: text("message"),
+  status: text("status").notNull().default("pending"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  platformAccess: text("platform_access").notNull().default("demo"),
+});
+export type AccessRequest = typeof accessRequests.$inferSelect;
+export type InsertAccessRequest = typeof accessRequests.$inferInsert;

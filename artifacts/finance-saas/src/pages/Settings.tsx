@@ -1,0 +1,1032 @@
+import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useRoute } from "wouter";
+import {
+  User, LogOut, Plug, Shield, Bell, RefreshCw, Mail,
+  CheckCircle2, XCircle, AlertCircle, Edit2, Save, X,
+  ExternalLink, Loader2, Unplug, Info, Copy, Check
+} from "lucide-react";
+import { useUser, useClerk, useAuth } from "@clerk/clerk-react";
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+interface IntegrationStatus {
+  provider: string;
+  displayName: string;
+  status: "connected" | "disconnected";
+  lastSyncAt: string | null;
+  connectionId: string | null;
+  configured: boolean;
+  configMode?: string;
+}
+
+interface ProviderSetupInfo {
+  authType: string;
+  missingVars: string[];
+  setupUrl?: string;
+  setupUrlApiKey?: string;
+  setupUrlServiceAccount?: string;
+  redirectUri?: string;
+  steps: string[];
+  configMode?: string;
+  configured?: boolean;
+}
+
+interface SetupInfo {
+  quickbooks?: ProviderSetupInfo;
+  hubspot?: ProviderSetupInfo;
+  gusto?: ProviderSetupInfo;
+  sheets?: ProviderSetupInfo;
+  stripe?: ProviderSetupInfo;
+  emailAlerts?: ProviderSetupInfo;
+}
+
+const PROVIDER_META: Record<string, { icon: string; category: string; desc: string; authType: "oauth" | "apikey" | "sheets" }> = {
+  quickbooks: { icon: "💼", category: "Accounting", desc: "Sync P&L, cash flow, and chart of accounts", authType: "oauth" },
+  hubspot: { icon: "🔶", category: "CRM", desc: "Pipeline, revenue, and contact management", authType: "oauth" },
+  stripe: { icon: "💳", category: "Payments", desc: "Revenue, MRR, churn, and subscription data", authType: "apikey" },
+  sheets: { icon: "📊", category: "Spreadsheets", desc: "Import financials, companies, and deals from sheets", authType: "sheets" },
+  gusto: { icon: "👥", category: "HR / Payroll", desc: "Headcount, payroll, and department data", authType: "oauth" },
+};
+
+const DEMO_INTEGRATIONS = [
+  { id: "salesforce", name: "Salesforce CRM", category: "CRM", icon: "☁️", status: "connected", lastSync: "15 min ago", desc: "Pipeline and customer data" },
+  { id: "slack", name: "Slack", category: "Notifications", icon: "💬", status: "connected", lastSync: "Active", desc: "Alerts and notifications" },
+  { id: "carta", name: "Carta", category: "Cap Table", icon: "📑", status: "connected", lastSync: "Daily", desc: "Equity and cap table" },
+  { id: "plaid", name: "Plaid", category: "Banking", icon: "🏦", status: "not_connected", lastSync: null, desc: "Bank account aggregation" },
+  { id: "netsuite", name: "NetSuite ERP", category: "ERP", icon: "🔷", status: "not_connected", lastSync: null, desc: "Enterprise financials" },
+  { id: "jira", name: "Jira", category: "Product", icon: "🎯", status: "not_connected", lastSync: null, desc: "Sprint velocity and roadmap" },
+  { id: "looker", name: "Looker / BigQuery", category: "Data Warehouse", icon: "📐", status: "not_connected", lastSync: null, desc: "Custom BI integration" },
+];
+
+type Tab = "integrations" | "profile" | "notifications" | "security";
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.round(diff / 60_000)} min ago`;
+  if (diff < 86_400_000) return `${Math.round(diff / 3_600_000)} hr ago`;
+  return d.toLocaleDateString();
+}
+
+export default function Settings() {
+  const [, navigate] = useLocation();
+  const [, params] = useRoute("/settings/:tab");
+  const activeTab: Tab = (params?.tab as Tab) || "profile";
+
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const { getToken } = useAuth();
+
+  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
+  const [loadingInts, setLoadingInts] = useState(true);
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<"all" | "connected" | "not_connected">("all");
+  const [flashMsg, setFlashMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [stripeModal, setStripeModal] = useState(false);
+  const [stripeKey, setStripeKey] = useState("");
+  const [stripeError, setStripeError] = useState("");
+
+  const [sheetsModal, setSheetsModal] = useState(false);
+  const [sheetsUrl, setSheetsUrl] = useState("");
+  const [sheetsTab, setSheetsTab] = useState("Sheet1");
+  const [sheetsError, setSheetsError] = useState("");
+  const [sheetsStep, setSheetsStep] = useState<"url" | "mapping">("url");
+  const [sheetsHeaders, setSheetsHeaders] = useState<string[]>([]);
+  const [sheetsDetectedType, setSheetsDetectedType] = useState<string>("");
+  const [sheetsColumnMapping, setSheetsColumnMapping] = useState<Record<string, string>>({});
+  const [sheetsPreviewLoading, setSheetsPreviewLoading] = useState(false);
+  const [sheetsRowCount, setSheetsRowCount] = useState(0);
+
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [syncHistoryMap, setSyncHistoryMap] = useState<Record<string, { id: string; status: string; recordsSynced: number | null; startedAt: string; completedAt: string | null; errorMessage: string | null }[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
+
+  const [setupGuide, setSetupGuide] = useState<{ provider: string; info: ProviderSetupInfo } | null>(null);
+  const [setupInfo, setSetupInfo] = useState<SetupInfo | null>(null);
+  const [copiedVar, setCopiedVar] = useState<string | null>(null);
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem("ini_notif_prefs") ?? "{}"); } catch { return {}; }
+  });
+
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: user?.fullName ?? "", email: user?.primaryEmailAddress?.emailAddress ?? "", company: "", role: "Investor / Fund Manager" });
+  const [saved, setSaved] = useState(false);
+
+  const adminToken = sessionStorage.getItem("ini_admin_token");
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm(prev => ({ ...prev, name: user.fullName ?? prev.name, email: user.primaryEmailAddress?.emailAddress ?? prev.email }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const connected = q.get("connected");
+    const error = q.get("error");
+    if (connected) {
+      setFlashMsg({ type: "success", text: `Successfully connected ${PROVIDER_META[connected]?.category ?? connected}!` });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (error) {
+      setFlashMsg({ type: "error", text: `Connection failed: ${error.replace(/_/g, " ")}` });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  const loadIntegrations = useCallback(async () => {
+    setLoadingInts(true);
+    try {
+      const resp = await fetch(`${API_BASE}/api/integrations`);
+      if (resp.ok) setIntegrations(await resp.json());
+    } catch {
+    } finally {
+      setLoadingInts(false);
+    }
+  }, []);
+
+  const loadSetupInfo = useCallback(async () => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/integrations/setup-info`);
+      if (resp.ok) setSetupInfo(await resp.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "integrations") { loadIntegrations(); loadSetupInfo(); }
+    if (activeTab === "notifications") { loadSetupInfo(); }
+  }, [activeTab, loadIntegrations, loadSetupInfo]);
+
+  const openSetupGuide = useCallback((provider: string) => {
+    if (!setupInfo) return;
+    const info = setupInfo[provider as keyof SetupInfo];
+    if (info) setSetupGuide({ provider, info });
+  }, [setupInfo]);
+
+  const copyToClipboard = useCallback((text: string, key: string) => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopiedVar(key);
+    setTimeout(() => setCopiedVar(null), 2000);
+  }, []);
+
+  const toggleNotifPref = useCallback((key: string, defaultVal: boolean) => {
+    setNotifPrefs(prev => {
+      const cur = prev[key] !== undefined ? prev[key] : defaultVal;
+      const next = { ...prev, [key]: !cur };
+      localStorage.setItem("ini_notif_prefs", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const getAuthHeader = useCallback(async (): Promise<Record<string, string>> => {
+    if (adminToken) return { Authorization: `Bearer ${adminToken}` };
+    const token = await getToken();
+    if (token) return { Authorization: `Bearer ${token}` };
+    return {};
+  }, [adminToken, getToken]);
+
+  const toggleSyncHistory = useCallback(async (provider: string) => {
+    if (expandedProvider === provider) {
+      setExpandedProvider(null);
+      return;
+    }
+    setExpandedProvider(provider);
+    if (syncHistoryMap[provider]) return;
+    setLoadingHistory(provider);
+    try {
+      const headers = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/${provider}/sync-logs`, { headers });
+      if (resp.ok) {
+        const logs = await resp.json();
+        setSyncHistoryMap(prev => ({ ...prev, [provider]: logs.slice(0, 5) }));
+      }
+    } catch { /* ignore */ } finally {
+      setLoadingHistory(null);
+    }
+  }, [expandedProvider, syncHistoryMap, getAuthHeader]);
+
+  const handleSync = async (provider: string) => {
+    setSyncing(provider);
+    try {
+      const headers = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/${provider}/sync`, { method: "POST", headers });
+      const data = await resp.json() as { ok?: boolean; error?: string; recordsSynced?: number };
+      if (!resp.ok) throw new Error(data.error ?? "Sync failed");
+      setFlashMsg({ type: "success", text: `${PROVIDER_META[provider]?.category ?? provider} synced — ${data.recordsSynced ?? 0} records updated` });
+      await loadIntegrations();
+    } catch (err) {
+      setFlashMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const handleDisconnect = async (provider: string) => {
+    if (!confirm(`Disconnect ${PROVIDER_META[provider]?.category ?? provider}? This will stop data syncing.`)) return;
+    setDisconnecting(provider);
+    try {
+      const headers = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/${provider}`, { method: "DELETE", headers });
+      if (!resp.ok) throw new Error("Disconnect failed");
+      setFlashMsg({ type: "success", text: `${provider} disconnected` });
+      await loadIntegrations();
+    } catch (err) {
+      setFlashMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setDisconnecting(null);
+    }
+  };
+
+  const handleOAuthConnect = async (provider: string) => {
+    setConnecting(provider);
+    try {
+      const headers = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/${provider}/oauth-url`, { headers });
+      const data = await resp.json() as { url?: string; error?: string };
+      if (!resp.ok) throw new Error(data.error ?? "Could not get OAuth URL");
+      window.location.href = data.url!;
+    } catch (err) {
+      setFlashMsg({ type: "error", text: (err as Error).message });
+      setConnecting(null);
+    }
+  };
+
+  const handleStripeConnect = async () => {
+    if (!stripeKey.trim()) { setStripeError("API key is required"); return; }
+    setConnecting("stripe");
+    setStripeError("");
+    try {
+      const headers = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/stripe/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ apiKey: stripeKey.trim() }),
+      });
+      const data = await resp.json() as { ok?: boolean; error?: string };
+      if (!resp.ok) throw new Error(data.error ?? "Connection failed");
+      setStripeModal(false);
+      setStripeKey("");
+      setFlashMsg({ type: "success", text: "Stripe connected successfully!" });
+      await loadIntegrations();
+    } catch (err) {
+      setStripeError((err as Error).message);
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const handleSheetsPreview = async () => {
+    if (!sheetsUrl.trim()) { setSheetsError("Spreadsheet URL is required"); return; }
+    setSheetsPreviewLoading(true);
+    setSheetsError("");
+    try {
+      const authHeaders = await getAuthHeader();
+      const resp = await fetch(`${API_BASE}/api/integrations/sheets/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ spreadsheetUrl: sheetsUrl.trim(), sheetName: sheetsTab.trim() || "Sheet1" }),
+      });
+      const data = await resp.json() as { valid?: boolean; error?: string; tableType?: string; rowCount?: number; headers?: string[] };
+      if (!resp.ok || !data.valid) throw new Error(data.error ?? "Could not read sheet");
+      setSheetsHeaders(data.headers ?? []);
+      setSheetsDetectedType(data.tableType ?? "unknown");
+      setSheetsRowCount(data.rowCount ?? 0);
+      setSheetsColumnMapping({});
+      setSheetsStep("mapping");
+    } catch (err) {
+      setSheetsError((err as Error).message);
+    } finally {
+      setSheetsPreviewLoading(false);
+    }
+  };
+
+  const handleSheetsConnect = async () => {
+    if (!sheetsUrl.trim()) { setSheetsError("Spreadsheet URL is required"); return; }
+    setConnecting("sheets");
+    setSheetsError("");
+    try {
+      const authHeaders = await getAuthHeader();
+      const effectiveMapping = Object.keys(sheetsColumnMapping).length > 0 ? sheetsColumnMapping : null;
+      const resp = await fetch(`${API_BASE}/api/integrations/sheets/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ spreadsheetUrl: sheetsUrl.trim(), sheetName: sheetsTab.trim() || "Sheet1", columnMapping: effectiveMapping }),
+      });
+      const data = await resp.json() as { ok?: boolean; error?: string; tableType?: string; rowCount?: number };
+      if (!resp.ok) throw new Error(data.error ?? "Connection failed");
+      setSheetsModal(false);
+      setSheetsUrl("");
+      setSheetsTab("Sheet1");
+      setSheetsStep("url");
+      setSheetsHeaders([]);
+      setSheetsColumnMapping({});
+      setFlashMsg({ type: "success", text: `Google Sheets connected — ${data.rowCount ?? 0} rows (${data.tableType ?? "unknown"} format)` });
+      await loadIntegrations();
+    } catch (err) {
+      setSheetsError((err as Error).message);
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const handleLogout = async () => { localStorage.removeItem("ini_platform_access"); localStorage.removeItem("ini_platform_access_allowed"); await signOut(); navigate("/"); };
+
+  const handleSaveProfile = () => {
+    localStorage.setItem("ini_user", JSON.stringify({ ...user, ...profileForm }));
+    setEditingProfile(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const isAdmin = Boolean(adminToken || user?.primaryEmailAddress?.emailAddress?.match(/venu\.vegi|pitch@inventninvest/));
+
+  const liveConnectedCount = integrations.filter(i => i.status === "connected").length;
+  const totalCount = integrations.length + DEMO_INTEGRATIONS.length;
+  const demoConnectedCount = DEMO_INTEGRATIONS.filter(i => i.status === "connected").length;
+  const connectedCount = liveConnectedCount + demoConnectedCount;
+
+  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: "profile", label: "User Profile", icon: <User className="w-4 h-4" /> },
+    { id: "integrations", label: "Integrations", icon: <Plug className="w-4 h-4" /> },
+    { id: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
+    { id: "security", label: "Security", icon: <Shield className="w-4 h-4" /> },
+  ];
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-slate-900">Settings</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">Manage your account, integrations, and preferences</p>
+      </div>
+
+      {flashMsg && (
+        <div className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-xl text-sm border ${flashMsg.type === "success" ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700"}`}>
+          {flashMsg.type === "success" ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+          {flashMsg.text}
+          <button onClick={() => setFlashMsg(null)} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      )}
+
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        <div className="w-full md:w-52 md:shrink-0">
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+            {tabs.map((tab) => (
+              <button key={tab.id} onClick={() => navigate(`/settings/${tab.id}`)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-b border-slate-50 last:border-0 ${activeTab === tab.id ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-50"}`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors border-t border-slate-100">
+              <LogOut className="w-4 h-4" /> Sign Out
+            </button>
+          </div>
+          {activeTab === "integrations" && (
+            <div className="mt-3 bg-white rounded-xl border border-slate-100 p-4 text-center">
+              <div className="text-2xl font-black text-primary">{connectedCount}</div>
+              <div className="text-xs text-muted-foreground">of {totalCount} connected</div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+
+          {/* ── Profile ── */}
+          {activeTab === "profile" && (
+            <div className="space-y-4">
+              {saved && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-xl text-sm text-green-700">
+                  <CheckCircle2 className="w-4 h-4" /> Profile updated successfully.
+                </div>
+              )}
+              <div className="bg-white rounded-xl border border-slate-100 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-black text-slate-900">Account Information</h2>
+                  {!editingProfile ? (
+                    <button onClick={() => setEditingProfile(true)} className="flex items-center gap-1.5 text-sm text-primary font-medium hover:underline">
+                      <Edit2 className="w-3.5 h-3.5" /> Edit
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={() => setEditingProfile(false)} className="flex items-center gap-1 text-sm text-slate-500 hover:text-foreground">
+                        <X className="w-3.5 h-3.5" /> Cancel
+                      </button>
+                      <button onClick={handleSaveProfile} className="flex items-center gap-1.5 text-sm text-white bg-primary px-3 py-1.5 rounded-lg font-medium hover:bg-primary/90">
+                        <Save className="w-3.5 h-3.5" /> Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-2xl">
+                    {(profileForm.name || "U").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900">{profileForm.name || "—"}</div>
+                    <div className="text-sm text-muted-foreground">{profileForm.email}</div>
+                    <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 rounded-full text-xs text-primary font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                      {isAdmin ? "Admin" : "Demo Access"}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { label: "Full Name", field: "name", placeholder: "Your full name" },
+                    { label: "Work Email", field: "email", placeholder: "you@company.com" },
+                    { label: "Company / Fund", field: "company", placeholder: "Acme Ventures" },
+                    { label: "Role", field: "role", placeholder: "Your role" },
+                  ].map(({ label, field, placeholder }) => (
+                    <div key={field}>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>
+                      {editingProfile ? (
+                        <input
+                          value={(profileForm as Record<string, string>)[field]}
+                          onChange={(e) => setProfileForm((f) => ({ ...f, [field]: e.target.value }))}
+                          placeholder={placeholder}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                      ) : (
+                        <div className="px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-700">
+                          {(profileForm as Record<string, string>)[field] || <span className="text-muted-foreground">—</span>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-100 p-6">
+                <h2 className="font-black text-slate-900 mb-4">Sign In Method</h2>
+                <div className="flex items-center justify-between py-3 border-b border-slate-50">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <div className="text-sm font-medium text-slate-800">Email & Password</div>
+                      <div className="text-xs text-muted-foreground">{profileForm.email || "—"}</div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-success font-medium bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Active</span>
+                </div>
+                <div className="pt-4">
+                  <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-red-600 font-medium hover:text-red-700 transition-colors">
+                    <LogOut className="w-4 h-4" /> Sign out of all devices
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Integrations ── */}
+          {activeTab === "integrations" && (
+            <div className="space-y-4">
+              {!isAdmin && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  Integration management requires admin access. Contact your administrator to connect data sources.
+                </div>
+              )}
+
+              <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                <div className="border-b border-slate-100 bg-slate-50 px-5 py-3 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Live Connectors</span>
+                  <button onClick={loadIntegrations} className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1">
+                    <RefreshCw className={`w-3 h-3 ${loadingInts ? "animate-spin" : ""}`} /> Refresh
+                  </button>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left text-xs font-semibold text-slate-500 px-5 py-3">Integration</th>
+                      <th className="text-left text-xs font-semibold text-slate-500 px-4 py-3 hidden sm:table-cell">Category</th>
+                      <th className="text-left text-xs font-semibold text-slate-500 px-4 py-3">Status</th>
+                      <th className="text-left text-xs font-semibold text-slate-500 px-4 py-3 hidden md:table-cell">Last Sync</th>
+                      <th className="text-right text-xs font-semibold text-slate-500 px-5 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingInts ? (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin inline mr-2" /> Loading integrations…
+                        </td>
+                      </tr>
+                    ) : integrations.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                          API server not reachable — live integration status unavailable
+                        </td>
+                      </tr>
+                    ) : integrations.map((int, i) => {
+                      const meta = PROVIDER_META[int.provider];
+                      const isSyncing = syncing === int.provider;
+                      const isConnecting = connecting === int.provider;
+                      const isDisconnecting = disconnecting === int.provider;
+                      return (
+                        <React.Fragment key={int.provider}>
+                        <tr className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${i === integrations.length - 1 && expandedProvider !== int.provider ? "border-0" : ""}`}>
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{meta?.icon ?? "🔌"}</span>
+                              <div>
+                                <div className="font-semibold text-slate-800 text-sm">{int.displayName}</div>
+                                <div className="text-xs text-muted-foreground hidden lg:block">{meta?.desc}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 hidden sm:table-cell">
+                            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{meta?.category}</span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-1.5">
+                              {int.status === "connected" ? (
+                                <><CheckCircle2 className="w-3.5 h-3.5 text-success" /><span className="text-xs font-medium text-success">Connected</span></>
+                              ) : (
+                                <><XCircle className="w-3.5 h-3.5 text-slate-300" /><span className="text-xs font-medium text-slate-400">Not connected</span></>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5 hidden md:table-cell">
+                            <button onClick={() => toggleSyncHistory(int.provider)}
+                              className="text-xs text-muted-foreground hover:text-primary hover:underline underline-offset-2 transition-colors text-left">
+                              {fmtDate(int.lastSyncAt)}
+                              {int.status === "connected" && <span className="ml-1 text-[10px] text-primary/60">{expandedProvider === int.provider ? "▲" : "▼"}</span>}
+                            </button>
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            {int.status === "connected" ? (
+                              <div className="flex items-center gap-2 justify-end">
+                                {isAdmin && (
+                                  <>
+                                    <button onClick={() => handleSync(int.provider)} disabled={isSyncing}
+                                      className="inline-flex items-center gap-1.5 text-xs text-slate-600 border border-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
+                                      <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+                                      {isSyncing ? "Syncing…" : "Sync"}
+                                    </button>
+                                    <button onClick={() => handleDisconnect(int.provider)} disabled={isDisconnecting}
+                                      className="inline-flex items-center gap-1.5 text-xs text-red-600 border border-red-200 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
+                                      <Unplug className="w-3 h-3" />
+                                      {isDisconnecting ? "…" : "Disconnect"}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 justify-end">
+                                {!int.configured && setupInfo?.[int.provider as keyof SetupInfo] && (
+                                  <button
+                                    onClick={() => openSetupGuide(int.provider)}
+                                    className="inline-flex items-center gap-1 text-xs text-primary border border-primary/30 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                                    title="View setup instructions"
+                                  >
+                                    <Info className="w-3 h-3" /> Setup guide
+                                  </button>
+                                )}
+                                {isAdmin && (
+                                  <button
+                                    disabled={isConnecting || !int.configured}
+                                    onClick={() => {
+                                      if (meta?.authType === "oauth") handleOAuthConnect(int.provider);
+                                      else if (meta?.authType === "apikey") setStripeModal(true);
+                                      else if (meta?.authType === "sheets") setSheetsModal(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 text-xs text-white bg-primary px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                    title={!int.configured ? "OAuth credentials not configured — click 'Setup guide' for instructions" : undefined}
+                                  >
+                                    {isConnecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plug className="w-3 h-3" />}
+                                    {isConnecting ? "Connecting…" : !int.configured ? "Not configured" : "Connect"}
+                                  </button>
+                                )}
+                                {!isAdmin && int.configured && (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                        {expandedProvider === int.provider && (
+                          <tr key={`${int.provider}-history`} className="bg-slate-50/60 border-b border-slate-100">
+                            <td colSpan={5} className="px-6 py-3">
+                              <div className="text-xs font-semibold text-slate-600 mb-2">Sync History (last 5 runs)</div>
+                              {loadingHistory === int.provider ? (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1">
+                                  <Loader2 className="w-3 h-3 animate-spin" /> Loading…
+                                </div>
+                              ) : !syncHistoryMap[int.provider] || syncHistoryMap[int.provider].length === 0 ? (
+                                <div className="text-xs text-muted-foreground py-1">No sync history found.</div>
+                              ) : (
+                                <table className="w-full text-xs border-collapse">
+                                  <thead>
+                                    <tr className="text-slate-400 text-left">
+                                      <th className="pb-1 pr-4 font-medium">Started</th>
+                                      <th className="pb-1 pr-4 font-medium">Duration</th>
+                                      <th className="pb-1 pr-4 font-medium">Status</th>
+                                      <th className="pb-1 font-medium">Records</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {syncHistoryMap[int.provider].map(log => {
+                                      const started = new Date(log.startedAt);
+                                      const completed = log.completedAt ? new Date(log.completedAt) : null;
+                                      const durSec = completed ? Math.round((completed.getTime() - started.getTime()) / 1000) : null;
+                                      return (
+                                        <tr key={log.id} className="border-t border-slate-100">
+                                          <td className="py-1 pr-4 text-slate-600">{fmtDate(log.startedAt)}</td>
+                                          <td className="py-1 pr-4 text-slate-500">{durSec !== null ? `${durSec}s` : "—"}</td>
+                                          <td className="py-1 pr-4">
+                                            {log.status === "success" ? (
+                                              <span className="text-success font-medium">Success</span>
+                                            ) : log.status === "running" ? (
+                                              <span className="text-amber-500 font-medium">Running</span>
+                                            ) : (
+                                              <span className="text-red-500 font-medium" title={log.errorMessage ?? ""}>Failed</span>
+                                            )}
+                                          </td>
+                                          <td className="py-1 text-slate-600">{log.recordsSynced ?? "—"}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Additional Integrations</span>
+                  <span className="text-xs text-muted-foreground ml-2">(coming soon)</span>
+                </div>
+                <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100">
+                  {(["all", "connected", "not_connected"] as const).map((s) => (
+                    <button key={s} onClick={() => setFilterStatus(s)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filterStatus === s ? "bg-primary text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                      {s === "all" ? "All" : s === "connected" ? "Connected" : "Available"}
+                    </button>
+                  ))}
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left text-xs font-semibold text-slate-500 px-5 py-3">Integration</th>
+                      <th className="text-left text-xs font-semibold text-slate-500 px-4 py-3 hidden sm:table-cell">Category</th>
+                      <th className="text-left text-xs font-semibold text-slate-500 px-4 py-3">Status</th>
+                      <th className="text-left text-xs font-semibold text-slate-500 px-4 py-3 hidden md:table-cell">Last Sync</th>
+                      <th className="text-right text-xs font-semibold text-slate-500 px-5 py-3">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {DEMO_INTEGRATIONS.filter(i => filterStatus === "all" ? true : (filterStatus === "connected" ? i.status === "connected" : i.status === "not_connected")).map((int, i, arr) => (
+                      <tr key={int.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${i === arr.length - 1 ? "border-0" : ""}`}>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{int.icon}</span>
+                            <div>
+                              <div className="font-semibold text-slate-800 text-sm">{int.name}</div>
+                              <div className="text-xs text-muted-foreground hidden lg:block">{int.desc}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 hidden sm:table-cell">
+                          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{int.category}</span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {int.status === "connected"
+                            ? <div className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success" /><span className="text-xs font-medium text-success">Connected</span></div>
+                            : <div className="flex items-center gap-1.5"><XCircle className="w-3.5 h-3.5 text-slate-300" /><span className="text-xs font-medium text-slate-400">Not connected</span></div>
+                          }
+                        </td>
+                        <td className="px-4 py-3.5 hidden md:table-cell text-xs text-muted-foreground">{int.lastSync ?? "—"}</td>
+                        <td className="px-5 py-3.5 text-right">
+                          {int.status === "connected"
+                            ? <span className="text-xs text-muted-foreground italic">Demo data</span>
+                            : <button className="inline-flex items-center gap-1.5 text-xs text-slate-500 border border-slate-200 px-3 py-1.5 rounded-lg cursor-not-allowed opacity-60"><ExternalLink className="w-3 h-3" />Request access</button>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ── Notifications ── */}
+          {activeTab === "notifications" && (
+            <div className="space-y-4">
+              {setupInfo?.emailAlerts && !setupInfo.emailAlerts.configured && (
+                <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">Email delivery not configured.</span> Notification preferences are saved, but emails won't be sent until <span className="font-mono text-xs bg-amber-100 px-1 rounded">RESEND_API_KEY</span> is set.{" "}
+                    <button onClick={() => openSetupGuide("emailAlerts")} className="underline underline-offset-2 font-semibold hover:text-amber-900">Setup guide →</button>
+                  </div>
+                </div>
+              )}
+              {setupInfo?.emailAlerts?.configured && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-xl text-sm text-green-700">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  Email delivery is active — notifications will be sent to your admin email.
+                </div>
+              )}
+              <div className="bg-white rounded-xl border border-slate-100 p-6">
+                <h2 className="font-black text-slate-900 mb-1">Notification Preferences</h2>
+                <p className="text-xs text-muted-foreground mb-5">Choose which events trigger email notifications. Preferences are saved in your browser.</p>
+                <div className="space-y-0">
+                  {[
+                    { key: "weekly_summary", label: "Weekly Portfolio Summary", desc: "A digest of portfolio performance every Monday", defaultOn: true },
+                    { key: "cashflow_alert", label: "Cash Flow Alerts", desc: "Alert when runway drops below 6 months", defaultOn: true },
+                    { key: "deal_stage", label: "Deal Stage Updates", desc: "Notify when M&A deals move to a new stage", defaultOn: true },
+                    { key: "kpi_anomaly", label: "KPI Anomaly Detection", desc: "Alert when a metric exceeds 2σ from baseline", defaultOn: false },
+                    { key: "new_report", label: "New Report Available", desc: "Notify when a new investor report is generated", defaultOn: true },
+                    { key: "sync_errors", label: "Integration Sync Errors", desc: "Alert when a data source fails to sync", defaultOn: true },
+                    { key: "access_requests", label: "Access Requests", desc: "Notify when someone requests platform access", defaultOn: true },
+                  ].map((item) => {
+                    const enabled = notifPrefs[item.key] !== undefined ? notifPrefs[item.key] : item.defaultOn;
+                    return (
+                      <div key={item.key} className="flex items-center justify-between py-3.5 border-b border-slate-50 last:border-0">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-800">{item.label}</div>
+                          <div className="text-xs text-muted-foreground">{item.desc}</div>
+                        </div>
+                        <button
+                          onClick={() => toggleNotifPref(item.key, item.defaultOn)}
+                          className={`rounded-full relative transition-colors flex-shrink-0 ${enabled ? "bg-primary" : "bg-slate-200"}`}
+                          style={{ width: 40, height: 22 }}
+                          title={enabled ? "Enabled — click to disable" : "Disabled — click to enable"}
+                        >
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0.5"}`} style={{ left: 2 }} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Security ── */}
+          {activeTab === "security" && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl border border-slate-100 p-6">
+                <h2 className="font-black text-slate-900 mb-5">Security Settings</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-slate-50">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-800">Two-Factor Authentication</div>
+                      <div className="text-xs text-muted-foreground">Add an extra layer of security to your account</div>
+                    </div>
+                    <button className="text-xs text-primary font-semibold border border-primary px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">Enable 2FA</button>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-slate-50">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-800">Change Password</div>
+                      <div className="text-xs text-muted-foreground">Last changed: Never</div>
+                    </div>
+                    <button className="text-xs text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">Update</button>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-800">Active Sessions</div>
+                      <div className="text-xs text-muted-foreground">1 active session — this device</div>
+                    </div>
+                    <button onClick={handleLogout} className="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Sign Out All</button>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-red-50 rounded-xl border border-red-100 p-5">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-sm font-bold text-red-800">Danger Zone</div>
+                    <div className="text-xs text-red-600 mt-1 mb-3">These actions are irreversible. Please proceed with caution.</div>
+                    <button className="text-xs text-red-600 border border-red-300 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors font-medium">Delete Account</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Setup Guide Modal */}
+      {setupGuide && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Info className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-black text-slate-900">
+                  {setupGuide.provider === "emailAlerts" ? "Email Alerts Setup" :
+                   setupGuide.provider === "sheets" ? "Google Sheets Setup" :
+                   `${PROVIDER_META[setupGuide.provider]?.category ?? setupGuide.provider} Setup Guide`}
+                </h3>
+                <p className="text-xs text-muted-foreground">Step-by-step configuration instructions</p>
+              </div>
+              <button onClick={() => setSetupGuide(null)} className="ml-auto text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
+            </div>
+
+            {setupGuide.info.missingVars.length > 0 && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                <div className="text-xs font-semibold text-amber-800 mb-2">Missing environment variables:</div>
+                {setupGuide.info.missingVars.map((v) => (
+                  <div key={v} className="flex items-center gap-2 mt-1">
+                    <code className="text-xs font-mono bg-white border border-amber-200 px-2 py-0.5 rounded text-amber-900 flex-1">{v}</code>
+                    <button onClick={() => copyToClipboard(v, v)} className="text-amber-600 hover:text-amber-800 shrink-0">
+                      {copiedVar === v ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {setupGuide.info.redirectUri && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                <div className="text-xs font-semibold text-blue-800 mb-1.5">Redirect URI (paste this into your OAuth app):</div>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs font-mono bg-white border border-blue-200 px-2 py-1 rounded text-blue-900 flex-1 break-all">{setupGuide.info.redirectUri}</code>
+                  <button onClick={() => copyToClipboard(setupGuide.info.redirectUri!, "redirectUri")} className="text-blue-600 hover:text-blue-800 shrink-0">
+                    {copiedVar === "redirectUri" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-5">
+              <div className="text-xs font-semibold text-slate-700 mb-3">Setup steps:</div>
+              <ol className="space-y-2.5">
+                {setupGuide.info.steps.map((step, i) => (
+                  <li key={i} className="flex gap-3 text-sm text-slate-600">
+                    <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="leading-relaxed">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {(setupGuide.info.setupUrl || setupGuide.info.setupUrlApiKey) && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                {setupGuide.info.setupUrl && (
+                  <a href={setupGuide.info.setupUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium">
+                    <ExternalLink className="w-3 h-3" /> Open Developer Console
+                  </a>
+                )}
+                {setupGuide.info.setupUrlApiKey && (
+                  <a href={setupGuide.info.setupUrlApiKey} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium">
+                    <ExternalLink className="w-3 h-3" /> Google Cloud — API Key
+                  </a>
+                )}
+                {setupGuide.info.setupUrlServiceAccount && (
+                  <a href={setupGuide.info.setupUrlServiceAccount} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                    <ExternalLink className="w-3 h-3" /> Google Cloud — Service Account
+                  </a>
+                )}
+                <button onClick={() => setSetupGuide(null)} className="ml-auto text-sm text-slate-600 px-4 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50">Close</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Stripe Connect Modal */}
+      {stripeModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">💳</span>
+              <div>
+                <h3 className="font-black text-slate-900">Connect Stripe</h3>
+                <p className="text-xs text-muted-foreground">Enter your Stripe secret key to sync revenue data</p>
+              </div>
+              <button onClick={() => { setStripeModal(false); setStripeKey(""); setStripeError(""); }} className="ml-auto text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Stripe Secret Key</label>
+              <input
+                type="password"
+                value={stripeKey}
+                onChange={(e) => setStripeKey(e.target.value)}
+                placeholder="sk_live_..."
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+              />
+              {stripeError && <p className="text-xs text-red-600 mt-1.5">{stripeError}</p>}
+              <p className="text-xs text-muted-foreground mt-2">Your key is stored encrypted and never displayed again. Use a restricted key with read-only access.</p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setStripeModal(false); setStripeKey(""); setStripeError(""); }} className="text-sm text-slate-600 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
+              <button onClick={handleStripeConnect} disabled={connecting === "stripe"} className="text-sm text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                {connecting === "stripe" ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting…</> : <><Plug className="w-3.5 h-3.5" /> Connect Stripe</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sheets Connect Modal */}
+      {sheetsModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">📊</span>
+              <div>
+                <h3 className="font-black text-slate-900">Connect Google Sheets</h3>
+                <p className="text-xs text-muted-foreground">
+                  {sheetsStep === "url" ? "Step 1 of 2 — Enter sheet details" : `Step 2 of 2 — Column mapping (${sheetsRowCount} rows detected)`}
+                </p>
+              </div>
+              <button onClick={() => { setSheetsModal(false); setSheetsUrl(""); setSheetsTab("Sheet1"); setSheetsError(""); setSheetsStep("url"); setSheetsHeaders([]); setSheetsColumnMapping({}); }} className="ml-auto text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
+            </div>
+
+            {sheetsStep === "url" ? (
+              <>
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Spreadsheet URL</label>
+                    <input
+                      value={sheetsUrl}
+                      onChange={(e) => setSheetsUrl(e.target.value)}
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Sheet / Tab Name</label>
+                    <input
+                      value={sheetsTab}
+                      onChange={(e) => setSheetsTab(e.target.value)}
+                      placeholder="Sheet1"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  {sheetsError && <p className="text-xs text-red-600">{sheetsError}</p>}
+                  {integrations.find(i => i.provider === "sheets")?.configMode === "api_key" ? (
+                    <p className="text-xs text-muted-foreground">Using <strong>Google API Key</strong> — sheet must be publicly accessible (anyone with the link can view).</p>
+                  ) : integrations.find(i => i.provider === "sheets")?.configMode === "service_account" ? (
+                    <p className="text-xs text-muted-foreground">Using <strong>Service Account</strong> — share your sheet with the service account email to grant access.</p>
+                  ) : (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1.5 rounded-lg">
+                      Google Sheets is not configured yet. <button onClick={() => openSetupGuide("sheets")} className="underline font-semibold">View setup guide →</button>
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => { setSheetsModal(false); setSheetsUrl(""); setSheetsTab("Sheet1"); setSheetsError(""); }} className="text-sm text-slate-600 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
+                  <button onClick={handleSheetsPreview} disabled={sheetsPreviewLoading} className="text-sm text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                    {sheetsPreviewLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Reading…</> : "Preview Sheet →"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-semibold">Auto-detected: {sheetsDetectedType}</span>
+                  <span className="text-xs text-muted-foreground">{sheetsRowCount} data rows</span>
+                </div>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Column Mapping — map your sheet headers to iNi fields</p>
+                  <div className="max-h-52 overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-50">
+                    {sheetsHeaders.map((h) => (
+                      <div key={h} className="flex items-center gap-3 px-3 py-2">
+                        <span className="text-xs text-slate-600 w-32 shrink-0 font-mono">{h}</span>
+                        <span className="text-xs text-muted-foreground">→</span>
+                        <input
+                          value={sheetsColumnMapping[h] ?? ""}
+                          onChange={(e) => setSheetsColumnMapping(prev => ({ ...prev, [h]: e.target.value }))}
+                          placeholder={h}
+                          className="flex-1 px-2 py-1 border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Leave blank to use the original column name. Common targets: company, industry, stage, revenue, valuation, employees, period, expenses, ebitda, arr, deal, dealsize, closedate</p>
+                </div>
+                {sheetsError && <p className="text-xs text-red-600 mb-3">{sheetsError}</p>}
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setSheetsStep("url")} className="text-sm text-slate-600 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">← Back</button>
+                  <button onClick={handleSheetsConnect} disabled={connecting === "sheets"} className="text-sm text-white bg-primary px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                    {connecting === "sheets" ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting…</> : <><Plug className="w-3.5 h-3.5" /> Connect Sheet</>}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

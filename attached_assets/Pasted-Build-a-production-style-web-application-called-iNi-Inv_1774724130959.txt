@@ -1,0 +1,768 @@
+Build a production-style web application called iNi (Invent N Invest).
+
+PRODUCT OVERVIEW
+iNi is a unified AI-powered strategic finance platform for early-stage to growth-stage companies and investors. The product connects data from multiple business systems, standardizes and consolidates the data, and provides real-time dashboards, financial reporting, board and investor reporting, KPI tracking, portfolio management, and M&A workflows.
+
+The platform should serve two main user groups:
+1. Businesses / operators
+2. Investors / portfolio managers
+
+Primary stakeholders:
+- CFO
+- CEO
+- Finance team
+- Board members
+- Investors / operating partners
+- Corp dev / M&A users
+- External advisors with limited access
+
+CORE PRODUCT GOALS
+- Connect fragmented systems into one finance-ready platform
+- Provide real-time insights and faster reporting
+- Reduce manual consolidation and repetitive finance work
+- Support investor reporting and board reporting
+- Support portfolio monitoring across multiple companies
+- Provide M&A due diligence and deal workflow support
+- Enable secure collaboration with role-based access and NDA gating
+- Track verified data status and last-audited timestamps
+- Blend software + advisory workflows so human finance support can coexist with the SaaS platform
+
+TARGET CUSTOMER PROFILE
+- Companies from roughly $1M to $100M revenue for core operating use
+- Investors and businesses in the lower middle market / growth stage
+- C-level executives, finance teams, board partners, investors
+- Portfolio businesses and deal teams
+
+TECH STACK
+Use this stack unless there is a strong reason to change:
+- Frontend: Next.js + React + TypeScript
+- UI: Tailwind CSS + shadcn/ui
+- Charts: Recharts
+- Tables: TanStack Table
+- State: React Query + Zustand
+- Backend: Node.js with Next.js API routes or Express
+- Auth: Clerk or NextAuth
+- Database: PostgreSQL via Prisma
+- File storage: Supabase Storage or AWS S3
+- Background jobs: Inngest or BullMQ
+- Data sync/integrations layer: modular connector architecture
+- AI layer: OpenAI APIs for summaries, anomaly explanations, commentary, and report drafting
+- Hosting: Replit deployment compatible
+- Design: clean executive SaaS product, premium, modern, finance-first
+
+DESIGN STYLE
+- Premium B2B SaaS
+- Clean, minimal, dark/light theme support
+- Dashboard-driven
+- Executive-friendly
+- Strong information hierarchy
+- Large KPI cards, high-quality tables, drill-down charts
+- Feel like a blend of Rippling + Ramp + Carta + modern BI, but built for finance and M&A workflows
+
+APPLICATION INFORMATION ARCHITECTURE
+
+Main navigation:
+- Home
+- Portfolio
+- Companies
+- Dashboards
+- Reporting
+- Analytics
+- M&A Workspace
+- Data Room
+- Tasks / Requests
+- Documents
+- Integrations
+- Admin / Settings
+
+USER ROLES
+Create role-based permissions for:
+- Platform Admin
+- Company Admin
+- Finance Manager
+- Analyst
+- Investor
+- Board Member
+- Advisor / Consultant
+- External Diligence User
+- Read-Only User
+
+TENANT MODEL
+Build as a multi-tenant SaaS application:
+- One tenant can be an operating company
+- One tenant can be an investor / fund with multiple portfolio companies
+- Support parent-child relationships between investor accounts and portfolio companies
+- Users can belong to one or more organizations with different access levels
+
+CORE MODULES
+
+1. AUTHENTICATION & ONBOARDING
+Screens:
+- Login
+- Signup
+- Forgot password
+- Invite acceptance
+- Organization creation
+- Organization switcher
+- User profile
+- Role assignment
+- Onboarding wizard
+
+Onboarding wizard steps:
+- Select organization type: Business or Investor
+- Enter company details
+- Enter industry
+- Revenue range
+- Fiscal year settings
+- Functional owners
+- Connect data sources
+- Choose dashboards to enable
+- Invite teammates
+- Set reporting preferences
+
+2. HOME / EXECUTIVE DASHBOARD
+Purpose:
+Give a high-level summary of company or portfolio health.
+
+Widgets:
+- Revenue
+- Gross margin
+- Burn
+- Cash runway
+- ARR / MRR
+- Headcount
+- Budget vs actual
+- Forecast vs plan
+- Customer pipeline
+- Spend by function
+- Open issues
+- Data freshness
+- Last sync timestamps
+- Board report status
+- M&A deal status
+
+3. PORTFOLIO MANAGEMENT
+This is a core module.
+
+Features:
+- Portfolio company list view
+- Portfolio summary dashboard
+- Portfolio health score
+- Portfolio KPI comparison table
+- Per-company detailed profile
+- Company status and alerts
+- Valuation tracking
+- Cap table snapshot
+- Cash and runway tracking
+- Revenue growth trend
+- Margin trend
+- Burn multiple
+- Hiring / headcount trend
+- Functional scorecards for finance, legal, product, sales, marketing
+- Verified data badge and last audited date
+- Data quality score
+- Request updated data workflow
+
+Screens:
+- Portfolio overview
+- Company detail page
+- KPI comparison view
+- Alerts and exceptions
+- Valuation tracker
+- Cap table page
+- Data verification log
+
+4. REPORTING
+This is a core module.
+
+Features:
+- Standard financial statements
+- Monthly reporting package
+- Board reporting package
+- Investor reporting package
+- Department-level reporting
+- Budget vs actual reporting
+- Variance commentary
+- Consolidated reporting
+- Multi-entity reporting
+- Report builder
+- Saved report templates
+- Period comparison
+- Export to PDF / Excel / CSV
+- Share via secure link
+- AI-generated narrative summaries
+
+Standard reports:
+- P&L
+- Balance Sheet
+- Cash Flow
+- SaaS metrics report
+- Revenue bridge
+- Expense bridge
+- Department spend report
+- Headcount report
+- Board pack
+- Investor update
+- Portfolio update
+
+Screens:
+- Reports library
+- Report builder
+- Report detail
+- Board pack builder
+- Investor update generator
+- Variance analysis page
+- Export center
+
+5. ANALYTICS
+This is a core module.
+
+Features:
+- Driver-based analytics
+- Custom KPI definitions
+- Benchmarking
+- Trend analysis
+- Comparative analysis
+- Scenario planning
+- Forecasting workspace
+- Cohort analysis
+- Revenue analytics
+- Expense analytics
+- Cash planning
+- Unit economics
+- Valuation scenarios
+- AI ask-a-question interface
+
+Screens:
+- Analytics hub
+- KPI explorer
+- Scenario planner
+- Forecast builder
+- Benchmark comparison
+- Cash runway planner
+- Unit economics dashboard
+- Ask iNi AI screen
+
+6. M&A WORKSPACE
+This is a core module.
+
+Features:
+- Deal pipeline
+- Deal stages
+- Target company profiles
+- Diligence request tracker
+- Data room access
+- Document checklist
+- Q&A / collaboration threads
+- Task management
+- NDA workflow
+- Buyer / seller workspaces
+- Valuation summary
+- Synergy assumptions
+- Risk flags
+- Decision memo builder
+- Close readiness tracker
+
+Deal stages:
+- Sourcing
+- Initial review
+- NDA signed
+- Diligence
+- IOI / LOI
+- Management meetings
+- Confirmatory diligence
+- Documentation
+- Closing
+- Post-close integration
+
+Screens:
+- Deal pipeline board
+- Deal detail page
+- Diligence tracker
+- Data room
+- Q&A room
+- Decision memo
+- Closing checklist
+- Post-close integration dashboard
+
+7. DATA ROOM / DOCUMENT MANAGEMENT
+Features:
+- Folder structure
+- Permission-based file access
+- Version history
+- Upload/download
+- Preview for PDFs / spreadsheets
+- Watermarking for external users
+- NDA required before access
+- Audit trail
+- Last accessed tracking
+- Request missing document
+- Document tags
+- Search
+
+Suggested folders:
+- Corporate
+- Financials
+- Legal
+- HR
+- Sales
+- Marketing
+- Product
+- Technology
+- Operations
+- Tax
+- Financing
+- Cap table
+- Board materials
+
+8. TASKS / REQUESTS / COLLABORATION
+Features:
+- Task assignments
+- Data requests
+- Comment threads
+- Mentions
+- Approval workflows
+- Report review workflow
+- Diligence request workflow
+- Notifications
+- Due dates
+- Priority labels
+- Activity log
+
+9. INTEGRATIONS
+Create an integrations center with modular connectors.
+
+Priority data sources:
+Finance / ERP / Accounting
+- NetSuite
+- QuickBooks Online
+- Xero
+- Sage Intacct
+
+CRM / GTM
+- Salesforce
+- HubSpot
+
+HR / Payroll / Workforce
+- Gusto
+- Rippling
+- ADP
+- Workday
+- BambooHR
+
+Billing / Payments / Revenue
+- Stripe
+- Chargebee
+- Bill.com
+
+Product / Engineering / Operations
+- Jira
+- Linear
+- GitHub
+- Snowflake
+- BigQuery
+- Postgres
+- CSV upload
+- Google Sheets
+- Excel upload
+
+Collaboration / File sources
+- Google Drive
+- SharePoint / OneDrive
+- Dropbox
+
+Investor / cap table / planning
+- Carta
+- Pulley
+- Anaplan import
+- Adaptive Planning import
+- manual model uploads
+
+For each connector support:
+- connection status
+- credential setup
+- sync frequency
+- last sync
+- sync history
+- field mapping
+- import preview
+- manual override
+- disconnect
+
+10. DATA MODEL / PIPELINE
+Implement a finance-ready data pipeline:
+- ingest raw source data
+- normalize dimensions
+- map accounts / departments / entities / products / customers / time
+- apply transformation rules
+- consolidate into reporting schema
+- compute KPIs
+- generate anomaly detection flags
+- mark data freshness and verification state
+
+Core dimensions:
+- organization
+- entity
+- department
+- cost center
+- account
+- period
+- customer
+- product
+- employee
+- region
+- business unit
+- deal
+- investor
+- portfolio company
+
+Core fact tables:
+- actuals
+- budget
+- forecast
+- headcount
+- payroll
+- pipeline
+- bookings
+- invoices
+- subscriptions
+- expenses
+- cash balances
+- cap table entries
+- valuation history
+- diligence requests
+- tasks
+- documents
+- audit logs
+
+11. KPI LIBRARY
+Support configurable KPI definitions.
+
+Business / finance KPIs:
+- Revenue
+- ARR
+- MRR
+- Bookings
+- Gross margin
+- EBITDA
+- Burn
+- Net burn
+- Runway
+- Cash balance
+- CAC
+- LTV
+- Magic Number
+- NRR
+- GRR
+- Rule of 40
+- Headcount
+- Revenue per employee
+- Budget variance
+- Forecast accuracy
+- Spend by department
+- Pipeline coverage
+- Deal value
+- Valuation
+- IRR / MOIC for portfolio use later
+
+12. AI FEATURES
+Use AI carefully and practically.
+
+Features:
+- Summarize variance drivers
+- Draft board commentary
+- Draft investor update
+- Explain KPI changes in plain English
+- Flag anomalies
+- Suggest follow-up questions
+- Summarize diligence findings
+- Draft management questions
+- Search across connected data and documents
+- Natural language query over reports
+
+AI surfaces:
+- AI side panel
+- report commentary generator
+- variance explanation button
+- diligence summary generator
+- executive summary generator
+- ask iNi chat page
+
+13. SECURITY & COMPLIANCE
+Include:
+- role-based access
+- SSO-ready architecture
+- MFA support
+- audit logs
+- document access tracking
+- signed NDA requirement before certain workspaces open
+- encryption at rest and in transit
+- tenant isolation
+- secure file links
+- watermarking for diligence users
+- session controls
+- admin permissions
+- data verification status
+- last audited / last verified tags
+
+14. ADMIN / SETTINGS
+Screens:
+- Organization settings
+- Users and roles
+- Permissions
+- KPI definitions
+- Data mappings
+- Report templates
+- Branding
+- Notifications
+- Audit logs
+- Billing placeholder
+- API keys / integrations
+- Security settings
+
+MVP SCOPE
+Build MVP first with realistic but polished features.
+
+MVP should include:
+- Auth and onboarding
+- One home dashboard
+- Portfolio overview
+- Company detail page
+- Reports library
+- Basic P&L, cash, runway, headcount, KPI dashboards
+- Integrations page with mock connectors and CSV upload
+- Data ingestion from CSV and manual data entry
+- AI summary generation on reports
+- M&A pipeline board
+- Basic diligence tracker
+- Data room with file upload
+- NDA acceptance flow
+- Tasks/comments/activity log
+- Admin/settings
+- Demo seed data
+
+USEFUL DEMO DATASETS
+Seed realistic sample data for:
+- 1 investor account
+- 4 portfolio companies
+- 1 operating company workspace
+- 12 months of monthly financials
+- sales pipeline
+- headcount
+- cash balance
+- department spend
+- cap table snapshots
+- 3 live M&A deals in different stages
+- sample diligence documents
+- board report templates
+
+EXAMPLE PORTFOLIO COMPANIES
+- Alpha Health
+- Meridian AI
+- Northstar Commerce
+- Vertex Bio
+
+Each should have:
+- revenue
+- margin
+- burn
+- runway
+- valuation
+- headcount
+- growth rate
+- data freshness
+- verified status
+
+KEY SCREENS TO BUILD
+1. Marketing landing page
+2. Login
+3. Signup
+4. Onboarding wizard
+5. Executive home dashboard
+6. Portfolio overview
+7. Company detail page
+8. Dashboards hub
+9. Reports library
+10. Report detail page
+11. Report builder
+12. Analytics hub
+13. Scenario planner
+14. KPI explorer
+15. Ask iNi AI page
+16. M&A deal pipeline
+17. Deal detail page
+18. Diligence tracker
+19. Data room
+20. Task center
+21. Integrations page
+22. Data mappings page
+23. Users and permissions
+24. Audit log
+25. Settings
+
+SAMPLE COMPANY DETAIL TABS
+- Overview
+- Financials
+- KPIs
+- Headcount
+- Sales
+- Marketing
+- Product
+- Documents
+- Activity
+- Verification
+
+SAMPLE DEAL DETAIL TABS
+- Overview
+- Parties
+- Documents
+- Requests
+- Q&A
+- Valuation
+- Risks
+- Timeline
+- Tasks
+
+UX REQUIREMENTS
+- Fast load times
+- Modern empty states
+- Friendly onboarding
+- Drill-down from summary to detail
+- Always show data freshness and source
+- Always show filters at top: period, entity, department, scenario
+- Support export buttons
+- Support saved views
+- Include comments and collaboration where relevant
+
+FILTERS
+Global filters:
+- organization
+- company
+- portfolio
+- date range
+- month / quarter / year
+- actual / budget / forecast
+- department
+- entity
+- currency
+- verified only
+
+DATABASE SCHEMA
+Generate Prisma models for:
+- User
+- Organization
+- Membership
+- Company
+- Portfolio
+- PortfolioCompany
+- DataSource
+- DataSyncRun
+- AccountMapping
+- KPI
+- KPIValue
+- FinancialPeriod
+- FinancialStatementLine
+- BudgetEntry
+- ForecastEntry
+- HeadcountEntry
+- CashBalanceEntry
+- Report
+- ReportTemplate
+- Document
+- Folder
+- NDAAgreement
+- AuditLog
+- Deal
+- DealParty
+- DiligenceRequest
+- DealQuestion
+- Task
+- Comment
+- Notification
+- VerificationRecord
+
+API ENDPOINTS
+Create REST or tRPC endpoints for:
+- auth
+- organizations
+- users
+- companies
+- portfolios
+- dashboards
+- reports
+- analytics
+- deals
+- diligence requests
+- documents
+- tasks
+- integrations
+- sync runs
+- verification records
+- AI summaries
+
+DASHBOARD EXAMPLES
+Executive dashboard:
+- Revenue vs plan
+- Burn and runway
+- Cash trend
+- Top variances
+- Headcount trend
+- Pipeline coverage
+- Open diligence requests
+- Last synced systems
+
+Portfolio dashboard:
+- Portfolio KPI matrix
+- Company health heatmap
+- Valuation trend
+- Runway ranking
+- Risk alerts
+- Verified data status
+
+M&A dashboard:
+- deals by stage
+- diligence completion %
+- open blockers
+- decision timeline
+- required approvals
+
+LANDING PAGE COPY
+Headline:
+Unified AI-powered finance and M&A platform for businesses and investors
+
+Supporting copy:
+Connect your systems, standardize your data, automate reporting, monitor portfolio performance, and run better strategic decisions from one platform.
+
+CTA:
+Request Demo
+Start Trial
+
+NON-FUNCTIONAL REQUIREMENTS
+- Multi-tenant
+- Secure by default
+- Mobile responsive, desktop-first
+- Accessible
+- Modular architecture
+- Easy to extend connectors
+- Seeded with demo data
+- Production-style codebase
+- Clear folder structure
+- Reusable components
+- Mock backend allowed initially, but structure should support real connectors later
+
+DELIVERABLES
+Generate:
+- full app structure
+- component library
+- seeded demo database
+- auth flow
+- key screens
+- navigation
+- mock data connectors
+- CSV upload support
+- AI summary integration points
+- Prisma schema
+- backend endpoints
+- reusable charts/tables
+- polished demo-ready UI
+- README with setup instructions

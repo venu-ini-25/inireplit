@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/ini-demo-video/"
+title = "iNi Product Demo Video"
+version = "1.0.0"
+id = "artifacts/ini-demo-video"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/ini-demo-video/" ]
+localPort = 25754
+
+[services.development]
+run = "pnpm --filter @workspace/ini-demo-video run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ini-demo-video", "run", "build" ]
+publicDir = "artifacts/ini-demo-video/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25754"
+BASE_PATH = "/ini-demo-video/"

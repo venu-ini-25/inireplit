@@ -1,0 +1,16 @@
+packages:
+  "recharts": "Required for financial data visualization (line, bar, pie charts)"
+  "framer-motion": "Required for premium page transitions and micro-interactions"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility to safely merge Tailwind CSS classes"
+  "date-fns": "For elegant date formatting in transactions and charts"
+
+images:
+  - path: "artifacts/finance-saas/public/images/avatar-placeholder.png"
+    description: "A premium, subtle abstract 3D geometric shape on a dark background to serve as a user avatar placeholder"
+    aspect_ratio: "1:1"
+
+notes:
+  - "Assuming data from the API includes amounts in cents."
+  - "The app uses a forced dark mode aesthetic as per design requirements."
+  - "Using generated hooks from @workspace/api-client-react."
