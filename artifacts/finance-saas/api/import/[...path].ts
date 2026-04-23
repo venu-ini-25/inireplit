@@ -65,7 +65,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // GET /api/import/ping — diagnostic, no auth
   if (sub === "ping") {
-    return ok(res, { pong: true, sub, pathParts, method: req.method, hasBody: !!req.body });
+    return ok(res, {
+      pong: true,
+      method: req.method,
+      hasClerkSecret: !!process.env.CLERK_SECRET_KEY,
+      hasPublishableKey: !!(process.env.VITE_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY),
+      hasSessionSecret: !!process.env.SESSION_SECRET,
+      hasAdminEmails: !!process.env.ADMIN_EMAILS,
+      hasDb: !!(process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL),
+      hasGoogleKey: !!process.env.GOOGLE_API_KEY,
+      hasOpenAiKey: !!process.env.OPENAI_API_KEY,
+      node: process.version,
+    });
   }
 
   // GET /api/import/logs — admin only
