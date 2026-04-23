@@ -44,7 +44,10 @@ async function safeRespJson(resp: Response): Promise<Record<string, unknown>> {
 async function checkRespOk(resp: Response): Promise<void> {
   if (!resp.ok) {
     const d = await safeRespJson(resp);
-    throw new Error((d.error as string) ?? resp.statusText ?? `HTTP ${resp.status}`);
+    // Use || (not ??) so empty string statusText falls through to the HTTP status fallback
+    const msg = (d.error as string) || resp.statusText || `HTTP ${resp.status}`;
+    console.error("[DataAgent] request failed:", resp.status, resp.url, d);
+    throw new Error(msg);
   }
 }
 
@@ -350,7 +353,9 @@ export default function DataAgent() {
       setColumnMapping(previewData.suggestedMapping ?? {});
       setTab("map");
     } catch (e) {
-      setError(`Upload failed: ${(e as Error).message}`);
+      console.error("[DataAgent] upload error:", e);
+      const msg = (e instanceof Error && e.message) ? e.message : "Server error — check your connection and try again";
+      setError(`Upload failed: ${msg}`);
     } finally { setPreviewing(false); }
 
     // Auto-run AI analysis immediately after preview (no manual click required)
@@ -540,7 +545,9 @@ export default function DataAgent() {
       const data: ImportResult = await resp.json();
       setImportResult(data); setTab("result"); loadHistory();
     } catch (e) {
-      setError(`Import failed: ${(e as Error).message}`);
+      console.error("[DataAgent] import error:", e);
+      const msg = (e instanceof Error && e.message) ? e.message : "Server error — check your connection and try again";
+      setError(`Import failed: ${msg}`);
     } finally { setImporting(false); }
   }, [file, preview, aiAnalyzed, aiMappings, columnMapping, selectedType, authHeaders, loadHistory]);
 
