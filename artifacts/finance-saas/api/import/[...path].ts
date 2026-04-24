@@ -282,7 +282,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           for (let j = 0; j < rawHeaders.length; j++) { const val = String(row[j] ?? "").trim(); mapped[rawHeaders[j]!] = val; if (val) hasData = true; }
           if (hasData) rawRows.push(mapped);
         }
-        rows = applyAggregations(rawRows, aggregations);
+        rows = applyAggregations(rawRows, effectiveAggregations);
       } else {
         const autoMapping = autoMatchHeaders(rawHeaders, tableType as Exclude<TableType, "unknown">);
         const finalMapping = { ...autoMapping, ...rawColumnMapping };
