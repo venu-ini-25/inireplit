@@ -49,9 +49,15 @@ function detectIssues(headers: string[], tableType: string, sampleRows: Record<s
 }
 
 function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | null {
-  // 1. Prefer Replit AI Integrations OpenAI proxy — billed to Replit credits, no quota issues
-  if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY && process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
-    return { apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY, baseUrl: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL, model: "gpt-4o-mini" };
+  // 1. Prefer Replit AI Integrations OpenAI proxy — billed to Replit credits, no quota issues.
+  //    The Replit proxy URL is localhost-only (e.g. http://localhost:1106), so it is ONLY
+  //    reachable from inside Replit's container. Skip it on Vercel/other public hosts.
+  const proxyUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const proxyKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  const isPublicHost = !!process.env.VERCEL || !!process.env.NETLIFY || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  const proxyIsLocal = proxyUrl ? /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/.test(proxyUrl) : false;
+  if (proxyKey && proxyUrl && !(isPublicHost && proxyIsLocal)) {
+    return { apiKey: proxyKey, baseUrl: proxyUrl, model: "gpt-4o-mini" };
   }
   // 2. Direct OpenAI key
   if (process.env.OPENAI_API_KEY) {
