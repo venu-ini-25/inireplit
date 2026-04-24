@@ -250,6 +250,7 @@ export default function DataAgent() {
   const [aiAnalysis, setAiAnalysis] = useState<AiAnalysis | null>(null);
   const [aiMappings, setAiMappings] = useState<AiMapping[]>([]);
   const [aiAnalyzed, setAiAnalyzed] = useState(false);
+  const [analysisSource, setAnalysisSource] = useState<"ai" | "rules" | null>(null);
   const [transformResult, setTransformResult] = useState<TransformResult | null>(null);
 
   const [chat, setChat] = useState<ChatMessage[]>([]);
@@ -285,7 +286,7 @@ export default function DataAgent() {
     if (n.includes("gl") || n.includes("general_ledger") || n.includes("quickbooks")) return "financials";
     if (n.includes("deal") || n.includes("pipeline") || n.includes("hubspot") || n.includes("salesforce")) return "deals";
     if (n.includes("payroll") || n.includes("gusto") || n.includes("employee") || n.includes("hr")) return "metrics";
-    if (n.includes("bank") || n.includes("statement") || n.includes("transaction")) return "metrics";
+    if (n.includes("bank") || n.includes("statement") || n.includes("transaction") || n.includes("ledger")) return "financials";
     if (n.includes("compan") || n.includes("portfolio")) return "companies";
     return undefined;
   };
@@ -325,7 +326,7 @@ export default function DataAgent() {
 
   const runPreview = useCallback(async (f: File, tableType: TableType = "unknown") => {
     setPreviewing(true); setError(null);
-    setAiAnalysis(null); setAiAnalyzed(false); setAiMappings([]); setChat([]); setTransformResult(null);
+    setAiAnalysis(null); setAiAnalyzed(false); setAiMappings([]); setAnalysisSource(null); setChat([]); setTransformResult(null);
     let previewData: PreviewResult | null = null;
     try {
       const hdrs = await authHeaders();
@@ -374,7 +375,8 @@ export default function DataAgent() {
         }),
       });
       if (!resp.ok) throw new Error(await resp.text());
-      const analysis: AiAnalysis = await resp.json();
+      const analysis: AiAnalysis & { aiUsage?: unknown } = await resp.json();
+      setAnalysisSource(analysis.aiUsage ? "ai" : "rules");
       applyAiAnalysis(analysis);
     } catch {
       // Silent fail on auto-analyze — user can still click Re-analyze
@@ -411,7 +413,8 @@ export default function DataAgent() {
         }),
       });
       if (!resp.ok) throw new Error(await resp.text());
-      const data: AiAnalysis = await resp.json();
+      const data: AiAnalysis & { aiUsage?: unknown } = await resp.json();
+      setAnalysisSource(data.aiUsage ? "ai" : "rules");
       applyAiAnalysis(data);
     } catch (e) {
       setError(`AI analysis failed: ${(e as Error).message}`);
@@ -577,7 +580,7 @@ export default function DataAgent() {
   }, [file, preview, aiAnalyzed, aiMappings, columnMapping, selectedType, authHeaders, loadHistory]);
 
   const reset = () => {
-    setFile(null); setPreview(null); setAiAnalysis(null); setAiAnalyzed(false);
+    setFile(null); setPreview(null); setAiAnalysis(null); setAiAnalyzed(false); setAnalysisSource(null);
     setAiMappings([]); setChat([]); setImportResult(null); setError(null);
     setTransformResult(null); setShowTransformPreview(false);
     setSelectedType("unknown"); setColumnMapping({}); setTab("upload");
@@ -590,7 +593,7 @@ export default function DataAgent() {
   // RENDER
   // ============================================================================
   const sourceMeta = SOURCE_SYSTEM_META[aiAnalysis?.sourceSystem ?? "unknown"] ?? SOURCE_SYSTEM_META.unknown;
-  const aiOnline = aiAnalyzed && aiAnalysis !== null;
+  const aiOnline = analysisSource === "ai";
   const isWorking = previewing || analyzing || importing;
   const targetTable = selectedType !== "unknown" ? selectedType : (preview?.tableType !== "unknown" ? preview?.tableType : null);
   const allColumns = preview?.rawHeaders ?? [];
