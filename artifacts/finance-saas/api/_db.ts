@@ -35,6 +35,21 @@ export async function ensureTable() {
   await db.query(
     `ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS platform_access TEXT NOT NULL DEFAULT 'demo';`
   );
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS import_logs (
+      id TEXT PRIMARY KEY,
+      file_name TEXT NOT NULL,
+      table_type TEXT NOT NULL,
+      total_rows INTEGER NOT NULL DEFAULT 0,
+      imported_rows INTEGER NOT NULL DEFAULT 0,
+      skipped_rows INTEGER NOT NULL DEFAULT 0,
+      error_rows INTEGER NOT NULL DEFAULT 0,
+      errors JSONB,
+      column_mapping JSONB,
+      imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_import_logs_imported_at ON import_logs(imported_at DESC);
+  `);
 }
 
 export function rowToRequest(row: Record<string, unknown>) {

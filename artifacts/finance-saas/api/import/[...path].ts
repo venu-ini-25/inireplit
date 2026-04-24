@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { handleCors, ok, err, requireAdmin, getPool, extractPath, verifyClerkJwt } from "../_utils.js";
+import { ensureTable } from "../_db.js";
 import * as XLSX from "@e965/xlsx";
 import { randomUUID } from "crypto";
 
@@ -137,6 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!email) return;
     const db = getPool();
     try {
+      await ensureTable();
       const { rows } = await db.query(`SELECT * FROM import_logs ORDER BY imported_at DESC LIMIT 20`);
       return ok(res, rows.map((r: Record<string, unknown>) => ({ id: r.id, fileName: r.file_name, tableType: r.table_type, totalRows: r.total_rows, importedRows: r.imported_rows, skippedRows: r.skipped_rows, errorRows: r.error_rows, errors: r.errors, columnMapping: r.column_mapping, importedAt: r.imported_at })));
     } catch (e) { return err(res, (e as Error).message, 500); }
@@ -179,6 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!body.file) { err(res, "No file data provided"); return; }
     const db = getPool();
     try {
+      await ensureTable();
       const buffer = Buffer.from(body.file, "base64");
       const fileName = body.fileName ?? "upload";
       const rawColumnMapping: Record<string, string> = typeof body.columnMapping === "string" ? JSON.parse(body.columnMapping) as Record<string, string> : (body.columnMapping ?? {});
