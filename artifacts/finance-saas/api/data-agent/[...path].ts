@@ -13,14 +13,65 @@ const DB_SCHEMAS = {
 
 function detectTableType(headers: string[]): string {
   const h = headers.map(toKey);
+  // Transaction-level GL data (QuickBooks, NetSuite, etc.) → financials (will be aggregated)
+  const hasDate = h.some((x) => ["date","transactiondate","postdate","entrydate","trandate"].includes(x));
+  const hasDebit = h.includes("debit");
+  const hasCredit = h.includes("credit");
+  const hasAcctType = h.some((x) => ["accounttype","acctype","accounttypename"].includes(x));
+  if (hasDate && (hasDebit || hasCredit) && hasAcctType) return "financials";
+  // Bank statement: Date + Amount/Deposit/Withdrawal
+  if (hasDate && h.some((x) => ["amount","deposit","withdrawal","credit","debit"].includes(x)) && h.some((x) => ["description","memo","payee","merchant"].includes(x))) return "financials";
+
   if (h.some((x) => ["valuation","moic","irr","ownership"].includes(x))) return "companies";
-  if (h.some((x) => ["dealsize","dealname","closingdate","dealtype"].includes(x))) return "deals";
+  if (h.some((x) => ["dealsize","dealname","closingdate","dealtype","stagename"].includes(x))) return "deals";
   if (h.some((x) => ["revenue","expenses","ebitda"].includes(x)) && h.includes("period")) return "financials";
   if (h.some((x) => ["metrickey"].includes(x))) return "metrics";
   if (h.includes("period") && h.some((x) => ["revenue","expenses","arr","ebitda"].includes(x))) return "financials";
   if (h.includes("company") || h.includes("companyname")) return "companies";
   if (h.includes("industry") || h.includes("stage")) return "companies";
+  // HR / payroll
+  if (h.some((x) => ["employeename","employeeid","department","jobtitle","grosspay","netpay","salary"].includes(x))) return "metrics";
   return "unknown";
+}
+
+// Identify the source system from headers + filename (no AI required)
+function identifySource(headers: string[]): { system: string; name: string; level: "transaction" | "summary" } {
+  const h = headers.map(toKey);
+  const has = (...keys: string[]) => keys.every((k) => h.includes(k));
+  const hasAny = (...keys: string[]) => keys.some((k) => h.includes(k));
+  if (has("date","debit","credit","accounttype")) return { system: "erp_quickbooks_gl", name: "QuickBooks General Ledger", level: "transaction" };
+  if (has("date","debit","credit") || has("trandate","debit","credit")) return { system: "erp_generic", name: "Accounting / GL Export", level: "transaction" };
+  if (hasAny("dealname","dealsize","stagename","closingdate")) return { system: "crm_hubspot_deals", name: "HubSpot / CRM Deal Pipeline", level: "summary" };
+  if (hasAny("employeename","grosspay","netpay","jobtitle") && hasAny("department","employeeid")) return { system: "hr_gusto", name: "Gusto / Payroll Export", level: "transaction" };
+  if (hasAny("description","memo","merchant","payee") && hasAny("amount","deposit","withdrawal")) return { system: "bank_statement", name: "Bank Statement", level: "transaction" };
+  if (has("period") && hasAny("revenue","expenses","ebitda","arr")) return { system: "pl_summary", name: "P&L Summary", level: "summary" };
+  if (hasAny("companyname","company") && hasAny("valuation","industry","stage")) return { system: "portfolio_companies", name: "Portfolio Companies", level: "summary" };
+  return { system: "excel_manual", name: "Custom Spreadsheet", level: "summary" };
+}
+
+// Build smart aggregation-aware mappings without AI for transaction-level financial data
+function buildSmartMappings(headers: string[], detectedType: string, sourceSystem: string): { sourceColumn: string; targetField: string | null; aggregation: string; confidence: number; reason: string; skip: boolean }[] {
+  if (detectedType !== "financials" || (sourceSystem !== "erp_quickbooks_gl" && sourceSystem !== "erp_generic" && sourceSystem !== "bank_statement")) {
+    return [];
+  }
+  const find = (...keys: string[]) => headers.find((h) => keys.includes(toKey(h)));
+  const dateCol = find("date","transactiondate","postdate","entrydate","trandate");
+  const debitCol = find("debit","withdrawal");
+  const creditCol = find("credit","deposit");
+  const acctTypeCol = find("accounttype","acctype","accounttypename");
+  const memoCol = find("memo","description","memo/description","note");
+  const out: ReturnType<typeof buildSmartMappings> = [];
+  for (const h of headers) {
+    if (h === dateCol) out.push({ sourceColumn: h, targetField: "period", aggregation: "groupBy:month", confidence: 95, reason: "Group transactions by month", skip: false });
+    else if (h === creditCol && acctTypeCol) out.push({ sourceColumn: h, targetField: "revenue", aggregation: `sumWhere:${acctTypeCol} IN ('Income','Revenue','Sales','Other Income')`, confidence: 88, reason: "Sum credits to income accounts", skip: false });
+    else if (h === debitCol && acctTypeCol) out.push({ sourceColumn: h, targetField: "expenses", aggregation: `sumWhere:${acctTypeCol} IN ('Expense','Cost of Goods Sold','COGS','Other Expense')`, confidence: 88, reason: "Sum debits to expense accounts", skip: false });
+    else if (h === creditCol && !acctTypeCol) out.push({ sourceColumn: h, targetField: "revenue", aggregation: "sum", confidence: 75, reason: "Sum credits as revenue", skip: false });
+    else if (h === debitCol && !acctTypeCol) out.push({ sourceColumn: h, targetField: "expenses", aggregation: "sum", confidence: 75, reason: "Sum debits as expenses", skip: false });
+    else if (h === acctTypeCol) out.push({ sourceColumn: h, targetField: null, aggregation: "filter", confidence: 80, reason: "Used as filter for revenue/expense classification", skip: false });
+    else if (h === memoCol) out.push({ sourceColumn: h, targetField: null, aggregation: "none", confidence: 0, reason: "Free-text not used in summaries", skip: true });
+    else out.push({ sourceColumn: h, targetField: null, aggregation: "none", confidence: 0, reason: "Not used in financial snapshot", skip: true });
+  }
+  return out;
 }
 
 function autoMatch(headers: string[], tableType: string): Record<string, string> {
@@ -202,32 +253,48 @@ Return raw JSON only — no prose, no code fences.`;
       financials: ["Finance P&L", "Cash Flow", "Expenses", "Executive Summary"],
       metrics: ["Operations", "Product", "Marketing", "Sales", "People"],
     };
-    const mappings = cleanHeaders.map(h => ({
+    const source = identifySource(cleanHeaders);
+    const smartMappings = buildSmartMappings(cleanHeaders, detectedType, source.system);
+    const mappings = smartMappings.length > 0 ? smartMappings : cleanHeaders.map(h => ({
       sourceColumn: h,
       targetField: suggestedMapping[h] ?? null,
+      aggregation: suggestedMapping[h] ? "direct" : "none",
       confidence: suggestedMapping[h] ? 85 : 0,
       reason: suggestedMapping[h] ? "Column name matches DB field" : "No matching field found",
       skip: !suggestedMapping[h],
     }));
+    const transformationPlan = source.level === "transaction" && detectedType === "financials" ? [
+      { id: "parse_dates", label: "Parse transaction dates", description: "Convert Date column to YYYY-MM period format", priority: 1, required: true },
+      { id: "agg_revenue", label: "Aggregate revenue per month", description: "SUM(Credit) WHERE Account Type ∈ {Income, Revenue, Sales} grouped by month", priority: 2, required: true },
+      { id: "agg_expenses", label: "Aggregate expenses per month", description: "SUM(Debit) WHERE Account Type ∈ {Expense, COGS} grouped by month", priority: 3, required: true },
+      { id: "compute_ebitda", label: "Compute EBITDA", description: "revenue - expenses per period", priority: 4, required: false },
+    ] : [];
     res.status(200).json({
       success: true,
-      sourceSystem: "excel_manual",
-      sourceName: detectedType !== "unknown" ? `${detectedType.charAt(0).toUpperCase() + detectedType.slice(1)} Data` : "Unknown Data Source",
-      dataLevel: "summary" as const,
-      dataLevelExplanation: schema ? `Detected as ${schema.description}` : "File type could not be determined automatically.",
+      sourceSystem: source.system,
+      sourceName: source.name,
+      dataLevel: source.level,
+      dataLevelExplanation: source.level === "transaction"
+        ? "Individual transactions — will be aggregated to monthly summaries before import."
+        : (schema ? `Already aggregated — maps directly to ${schema.description}.` : "Summary-level data."),
       detectedTableType: detectedType,
       targetTables: detectedType !== "unknown" ? [detectedType] : [],
       dashboardsImpacted: dashboardMap[detectedType] ?? [],
-      confidence: detectedType !== "unknown" ? 70 : 20,
-      detectionReason: detectedType !== "unknown"
-        ? `Headers match the "${detectedType}" table schema. AI unavailable — rule-based fallback. ${aiError ? `AI error: ${aiError}` : ""}`
-        : `Could not determine data type from headers. ${aiError ? `AI error: ${aiError}` : "Please select the data type manually."}`,
-      transformationPlan: [],
+      confidence: source.system !== "excel_manual" ? 90 : (detectedType !== "unknown" ? 70 : 20),
+      detectionReason: source.system !== "excel_manual"
+        ? `Recognized as ${source.name} from column patterns. ${aiError ? "(AI offline — using rule-based detection)" : ""}`
+        : (detectedType !== "unknown"
+          ? `Headers match the ${detectedType} schema. ${aiError ? "(AI offline — using rule-based detection)" : ""}`
+          : `Could not determine data type from headers. ${aiError ? `AI error: ${aiError}` : "Please select the data type manually."}`),
+      transformationPlan,
       mappings,
       qualityIssues: issues.map(issue => ({ column: "", issue, recommendation: "Review column mapping", severity: "medium" as const })),
-      summary: schema
-        ? `This appears to be ${schema.description}. ${mappings.filter(m => !m.skip).length} of ${cleanHeaders.length} columns were automatically mapped. Review the mapping below and adjust before importing.`
-        : `Data type could not be automatically detected. Please select the correct type and review column mappings before importing.`,
+      summary: source.system !== "excel_manual"
+        ? `Recognized as ${source.name}. ${source.level === "transaction" ? `Will aggregate transactions into monthly ${detectedType} rows.` : `Will import as ${detectedType}.`} ${mappings.filter(m => !m.skip).length} of ${cleanHeaders.length} columns are mapped.`
+        : (schema
+          ? `This appears to be ${schema.description}. ${mappings.filter(m => !m.skip).length} of ${cleanHeaders.length} columns were automatically mapped. Review the mapping below and adjust before importing.`
+          : `Data type could not be automatically detected. Please select the correct type and review column mappings before importing.`),
+      aiUsage,
     });
   }
 
