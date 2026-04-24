@@ -164,6 +164,7 @@ interface PreviewResult {
 interface AiMapping {
   sourceColumn: string; targetField: string | null;
   confidence: number; reason: string; skip: boolean; userOverride?: boolean;
+  aggregation?: string;
 }
 
 interface QualityIssue {
@@ -532,6 +533,29 @@ export default function DataAgent() {
       const finalMapping = aiAnalyzed
         ? Object.fromEntries(aiMappings.filter(m => !m.skip && m.targetField).map(m => [m.sourceColumn, m.targetField!]))
         : columnMapping;
+
+      // Build aggregations spec from aiMappings if any have aggregation directives
+      let aggregations: { groupBy: { sourceColumn: string; granularity: string }; derived: { targetField: string; op: string; source: string; filter?: { column: string; values: string[] } }[]; computed?: { targetField: string; expression: string }[] } | undefined;
+      if (aiAnalyzed) {
+        const groupByM = aiMappings.find(m => m.aggregation?.startsWith("groupBy:"));
+        const sumWhereMs = aiMappings.filter(m => m.aggregation?.startsWith("sumWhere:") && m.targetField);
+        const filterMs = aiMappings.filter(m => m.aggregation === "filter");
+        if (groupByM && sumWhereMs.length > 0) {
+          const granularity = (groupByM.aggregation!.split(":")[1] ?? "month").trim();
+          const filterCol = filterMs[0]?.sourceColumn ?? "";
+          const derived = sumWhereMs.map(m => {
+            const expr = m.aggregation!.slice("sumWhere:".length).trim();
+            const inMatch = expr.match(/IN\s*\(([^)]+)\)/i);
+            const values = inMatch ? inMatch[1]!.split(",").map(s => s.trim().replace(/^['"]|['"]$/g, "")) : [];
+            return { targetField: m.targetField!, op: "sum" as const, source: m.sourceColumn, filter: filterCol && values.length ? { column: filterCol, values } : undefined };
+          });
+          aggregations = { groupBy: { sourceColumn: groupByM.sourceColumn, granularity }, derived };
+          if (derived.find(d => d.targetField === "revenue") && derived.find(d => d.targetField === "expenses")) {
+            aggregations.computed = [{ targetField: "ebitda", expression: "revenue-expenses" }];
+          }
+        }
+      }
+
       const resp = await fetch(`${API_BASE}/api/import/commit`, {
         method: "POST",
         headers: { ...hdrs, "Content-Type": "application/json" },
@@ -539,6 +563,7 @@ export default function DataAgent() {
           file: base64, fileName: file.name,
           tableType: selectedType !== "unknown" ? selectedType : undefined,
           columnMapping: Object.keys(finalMapping).length ? finalMapping : undefined,
+          aggregations,
         }),
       });
       await checkRespOk(resp);
@@ -1125,9 +1150,17 @@ export default function DataAgent() {
                           <td className="px-4 py-2">
                             {m.skip
                               ? <span className="text-xs text-muted-foreground italic">skipped</span>
-                              : <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${m.targetField ? "bg-primary/10 text-primary" : "text-muted-foreground italic"}`}>
-                                  {m.targetField ?? "—"}
-                                </span>
+                              : (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded w-fit ${m.targetField ? "bg-primary/10 text-primary" : "bg-amber-50 text-amber-700"}`}>
+                                    {m.targetField ?? (m.aggregation === "filter" ? "filter only" : "—")}
+                                  </span>
+                                  {m.aggregation && m.aggregation !== "none" && m.aggregation !== "direct" && (
+                                    <span className="text-[10px] text-slate-500 italic">{m.aggregation}</span>
+                                  )}
+                                  {m.reason && <span className="text-[10px] text-slate-400">{m.reason}</span>}
+                                </div>
+                              )
                             }
                           </td>
                           <td className="px-4 py-2 hidden md:table-cell">

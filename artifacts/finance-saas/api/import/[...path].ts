@@ -13,6 +13,59 @@ function normalizeHeader(raw: string): string { return raw.toLowerCase().replace
 function slugify(s: string): string { return s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40); }
 function parseNum(s: string): number { const n = parseFloat(s.replace(/[$,% ]+/g, "")); return isNaN(n) ? 0 : n; }
 
+interface AggregationSpec {
+  groupBy: { sourceColumn: string; granularity: "month" | "quarter" | "year" | "raw" };
+  derived: { targetField: string; op: "sum" | "count"; source: string; filter?: { column: string; values: string[] } }[];
+  computed?: { targetField: string; expression: string }[];
+}
+
+function toPeriodKey(raw: string, gran: "month" | "quarter" | "year" | "raw"): string {
+  if (!raw) return "";
+  if (gran === "raw") return raw.trim();
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) {
+    const m = raw.match(/(\d{4})[-/](\d{1,2})/);
+    if (m) { const yr = m[1]; const mo = String(parseInt(m[2]!, 10)).padStart(2, "0"); return gran === "year" ? yr! : `${yr}-${mo}`; }
+    return raw.trim();
+  }
+  const yr = d.getFullYear(); const mo = String(d.getMonth() + 1).padStart(2, "0");
+  if (gran === "year") return String(yr);
+  if (gran === "quarter") { const q = Math.floor(d.getMonth() / 3) + 1; return `${yr}-Q${q}`; }
+  return `${yr}-${mo}`;
+}
+
+function applyAggregations(rawRows: Record<string, string>[], spec: AggregationSpec): Record<string, string>[] {
+  const groups = new Map<string, Record<string, number>>();
+  for (const row of rawRows) {
+    const key = toPeriodKey(row[spec.groupBy.sourceColumn] ?? "", spec.groupBy.granularity);
+    if (!key) continue;
+    const acc = groups.get(key) ?? {};
+    for (const d of spec.derived) {
+      if (d.filter) {
+        const v = (row[d.filter.column] ?? "").toString().trim().toLowerCase();
+        const matches = d.filter.values.some((x) => v.includes(x.toLowerCase()));
+        if (!matches) continue;
+      }
+      const numVal = d.op === "count" ? 1 : parseNum(row[d.source] ?? "0");
+      acc[d.targetField] = (acc[d.targetField] ?? 0) + numVal;
+    }
+    groups.set(key, acc);
+  }
+  const out: Record<string, string>[] = [];
+  for (const [period, vals] of groups) {
+    const row: Record<string, string> = { period };
+    for (const [k, v] of Object.entries(vals)) row[k] = String(v);
+    if (spec.computed) {
+      for (const c of spec.computed) {
+        const expr = c.expression.replace(/[a-z_]+/gi, (name) => String(parseFloat(row[name] ?? "0") || 0));
+        try { row[c.targetField] = String(Function(`"use strict";return (${expr})`)()); } catch { row[c.targetField] = "0"; }
+      }
+    }
+    out.push(row);
+  }
+  return out.sort((a, b) => (a.period > b.period ? 1 : -1));
+}
+
 const DB_FIELDS: Record<Exclude<TableType, "unknown">, { required: string[]; all: string[] }> = {
   companies: { required: ["company_name"], all: ["company_name","industry","stage","revenue","valuation","growth_rate","employees","location","status","ownership","arr","moic","irr","founded"] },
   deals: { required: ["company_name"], all: ["company_name","deal_type","deal_size","stage","closing_date","valuation","target_revenue","industry","assigned_to","priority","overview"] },
@@ -177,7 +230,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (sub === "commit" && req.method === "POST") {
     const commitEmail = await requireAdmin(req, res);
     if (!commitEmail) return;
-    const body = req.body as { file?: string; fileName?: string; tableType?: string; columnMapping?: string | Record<string, string> };
+    const body = req.body as { file?: string; fileName?: string; tableType?: string; columnMapping?: string | Record<string, string>; aggregations?: AggregationSpec | string };
     if (!body.file) { err(res, "No file data provided"); return; }
     const db = getPool();
     try {
@@ -185,6 +238,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const buffer = Buffer.from(body.file, "base64");
       const fileName = body.fileName ?? "upload";
       const rawColumnMapping: Record<string, string> = typeof body.columnMapping === "string" ? JSON.parse(body.columnMapping) as Record<string, string> : (body.columnMapping ?? {});
+      const aggregations: AggregationSpec | null = body.aggregations
+        ? (typeof body.aggregations === "string" ? JSON.parse(body.aggregations) as AggregationSpec : body.aggregations)
+        : null;
       const forcedType = isKnownType(body.tableType) ? body.tableType : undefined;
       const workbook = XLSX.read(buffer, { type: "buffer", raw: false });
       const sheetName = workbook.SheetNames[0];
@@ -195,14 +251,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const rawHeaders = (jsonRows[0] ?? []).map((h) => String(h).trim()).filter(Boolean);
       const tableType: TableType = forcedType ?? detectTableType(rawHeaders);
       if (tableType === "unknown") { err(res, "Could not determine data type. Please select a type before importing."); return; }
-      const autoMapping = autoMatchHeaders(rawHeaders, tableType as Exclude<TableType, "unknown">);
-      const finalMapping = { ...autoMapping, ...rawColumnMapping };
-      const mappedHeaders = rawHeaders.map((h) => finalMapping[h] ? finalMapping[h] : normalizeHeader(h));
-      const rows: Record<string, string>[] = [];
-      for (let i = 1; i < jsonRows.length && i < 10001; i++) {
-        const row = jsonRows[i] ?? []; const mapped: Record<string, string> = {}; let hasData = false;
-        for (let j = 0; j < rawHeaders.length; j++) { const key = mappedHeaders[j] ?? ""; const val = String(row[j] ?? "").trim(); mapped[key] = val; if (val) hasData = true; }
-        if (hasData) rows.push(mapped);
+
+      let rows: Record<string, string>[] = [];
+      if (aggregations && aggregations.groupBy?.sourceColumn) {
+        // Aggregation mode: keep raw column names, apply transformation to derive target rows
+        const rawRows: Record<string, string>[] = [];
+        for (let i = 1; i < jsonRows.length && i < 50001; i++) {
+          const row = jsonRows[i] ?? []; const mapped: Record<string, string> = {}; let hasData = false;
+          for (let j = 0; j < rawHeaders.length; j++) { const val = String(row[j] ?? "").trim(); mapped[rawHeaders[j]!] = val; if (val) hasData = true; }
+          if (hasData) rawRows.push(mapped);
+        }
+        rows = applyAggregations(rawRows, aggregations);
+      } else {
+        const autoMapping = autoMatchHeaders(rawHeaders, tableType as Exclude<TableType, "unknown">);
+        const finalMapping = { ...autoMapping, ...rawColumnMapping };
+        const mappedHeaders = rawHeaders.map((h) => finalMapping[h] ? finalMapping[h] : normalizeHeader(h));
+        for (let i = 1; i < jsonRows.length && i < 10001; i++) {
+          const row = jsonRows[i] ?? []; const mapped: Record<string, string> = {}; let hasData = false;
+          for (let j = 0; j < rawHeaders.length; j++) { const key = mappedHeaders[j] ?? ""; const val = String(row[j] ?? "").trim(); mapped[key] = val; if (val) hasData = true; }
+          if (hasData) rows.push(mapped);
+        }
       }
       let imported = 0, skipped = 0;
       const rowErrors: { row: number; message: string }[] = [];

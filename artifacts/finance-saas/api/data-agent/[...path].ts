@@ -101,7 +101,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       try {
         const schemaContext = Object.entries(DB_SCHEMAS).map(([t, s]) => `${t}: ${s.description}\n  Fields: ${s.fields.join(", ")}`).join("\n\n");
         const sampleText = sampleRows.slice(0, 5).map((row, i) => `Row ${i + 1}: ${Object.entries(row).slice(0, 10).map(([k, v]) => `${k}="${v}"`).join(", ")}`).join("\n");
-        const prompt = `You are a financial data intelligence expert for a PE/VC finance SaaS platform.\nAnalyze this uploaded CSV data and return a JSON report.\n\nDatabase schemas:\n${schemaContext}\n\nHeaders (${cleanHeaders.length} columns): ${cleanHeaders.join(", ")}\n\nSample data:\n${sampleText}\n\n${tableTypeHint ? `User hint: "${tableTypeHint}"` : ""}\n\nRespond with this EXACT JSON structure (no markdown, no code fences):\n{\n  "sourceSystem": "<e.g. quickbooks, hubspot, excel_manual, gusto, stripe, unknown>",\n  "sourceName": "<human-readable name, e.g. 'QuickBooks P&L Export'>",\n  "dataLevel": "transaction"|"summary"|"mixed",\n  "dataLevelExplanation": "<1 sentence>",\n  "detectedTableType": "companies"|"deals"|"financials"|"metrics",\n  "targetTables": ["<DB tables this data populates>"],\n  "dashboardsImpacted": ["<dashboard names>"],\n  "confidence": <0-100>,\n  "detectionReason": "<2-3 sentences>",\n  "transformationPlan": [{ "id": "<id>", "label": "<short title>", "description": "<what it does>", "priority": <1-10>, "required": <true|false> }],\n  "mappings": [{ "sourceColumn": "<exact CSV header>", "targetField": "<db field or null>", "confidence": <0-100>, "reason": "<max 10 words>", "skip": <true if should not import> }],\n  "qualityIssues": [{ "column": "<col>", "issue": "<desc>", "recommendation": "<fix>", "severity": "high"|"medium"|"low" }],\n  "summary": "<3-4 sentences about this data>"\n}\nMap EVERY column. Return raw JSON only.`;
+        const prompt = `You are a financial data intelligence expert for a PE/VC finance SaaS platform (iNi).
+Analyze this uploaded CSV data and return a JSON report explaining how to ingest it.
+
+Database schemas (target tables):
+${schemaContext}
+
+Source headers (${cleanHeaders.length} columns): ${cleanHeaders.join(", ")}
+
+Sample rows:
+${sampleText}
+
+${tableTypeHint ? `User hint: "${tableTypeHint}"` : ""}
+
+═══════════════ CRITICAL MAPPING RULES ═══════════════
+1. NEVER mark a column as "skip:true" if it carries useful information. A QuickBooks GL "Credit" column with Account Type "Income" is the SOURCE of revenue — map it to "revenue" with an aggregation, do NOT skip it.
+
+2. When source is TRANSACTION-LEVEL (e.g. QuickBooks GL with Date, Debit, Credit, Account Type) but target is SUMMARY-LEVEL (financials), propose AGGREGATIONS instead of 1:1 mappings. Use the "aggregation" field on each mapping:
+   - {"sourceColumn":"Date","targetField":"period","aggregation":"groupBy:month","skip":false,"confidence":95,"reason":"Group transactions by month"}
+   - {"sourceColumn":"Credit","targetField":"revenue","aggregation":"sumWhere:Account Type IN ('Income','Revenue','Sales')","skip":false,"confidence":85,"reason":"Sum credits to income accounts"}
+   - {"sourceColumn":"Debit","targetField":"expenses","aggregation":"sumWhere:Account Type IN ('Expense','Cost of Goods Sold','COGS')","skip":false,"confidence":85,"reason":"Sum debits to expense accounts"}
+   - {"sourceColumn":"Account Type","targetField":null,"aggregation":"filter","skip":false,"confidence":80,"reason":"Used as filter for aggregations"}
+   - {"sourceColumn":"Memo","targetField":null,"aggregation":"none","skip":true,"confidence":0,"reason":"Free-text not used in summaries"}
+
+3. transformationPlan MUST include the actual aggregation steps. Example for QB GL → financials:
+   [
+     {"id":"parse_dates","label":"Parse transaction dates","description":"Convert Date column to YYYY-MM period format","priority":1,"required":true},
+     {"id":"agg_revenue","label":"Aggregate revenue per month","description":"SUM(Credit) WHERE Account Type ∈ {Income,Revenue,Sales} grouped by month","priority":2,"required":true},
+     {"id":"agg_expenses","label":"Aggregate expenses per month","description":"SUM(Debit) WHERE Account Type ∈ {Expense,Cost of Goods Sold} grouped by month","priority":3,"required":true},
+     {"id":"compute_ebitda","label":"Compute EBITDA","description":"revenue - expenses per period","priority":4,"required":false}
+   ]
+
+4. confidence must be ≥60 for any mapping you actually want imported. Skip means truly unusable data.
+
+5. EVERY column in the source MUST appear in mappings exactly once.
+
+═══════════════════════════════════════════════════════
+
+Respond with this EXACT JSON structure (no markdown, no code fences):
+{
+  "sourceSystem": "<quickbooks|hubspot|excel_manual|gusto|stripe|salesforce|netsuite|unknown>",
+  "sourceName": "<human-readable name, e.g. 'QuickBooks General Ledger Export'>",
+  "dataLevel": "transaction"|"summary"|"mixed",
+  "dataLevelExplanation": "<1 sentence>",
+  "detectedTableType": "companies"|"deals"|"financials"|"metrics",
+  "targetTables": ["<DB tables this data populates>"],
+  "dashboardsImpacted": ["<dashboard names>"],
+  "confidence": <0-100>,
+  "detectionReason": "<2-3 sentences>",
+  "transformationPlan": [{ "id":"<id>", "label":"<title>", "description":"<what it does>", "priority":<1-10>, "required":<bool> }],
+  "mappings": [{ "sourceColumn":"<exact CSV header>", "targetField":"<db field or null>", "aggregation":"<groupBy:month|sumWhere:condition|filter|computed:expr|direct|none>", "confidence":<0-100>, "reason":"<max 12 words>", "skip":<bool> }],
+  "qualityIssues": [{ "column":"<col>", "issue":"<desc>", "recommendation":"<fix>", "severity":"high"|"medium"|"low" }],
+  "summary": "<3-4 sentences about this data and what will happen>"
+}
+Return raw JSON only — no prose, no code fences.`;
         const { resp: aiResp, error: aiErr } = await callAI([
           { role: "system", content: "You are a financial data expert. Respond with valid JSON only — no markdown, no code fences." },
           { role: "user", content: prompt },
