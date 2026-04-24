@@ -252,8 +252,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const tableType: TableType = forcedType ?? detectTableType(rawHeaders);
       if (tableType === "unknown") { err(res, "Could not determine data type. Please select a type before importing."); return; }
 
+      // Auto-detect transaction-level GL data if no aggregations provided and target is financials
+      let effectiveAggregations: AggregationSpec | null = aggregations;
+      if (!effectiveAggregations && tableType === "financials") {
+        const headerSet = new Set(rawHeaders.map((h) => toKey(h)));
+        const dateCol = rawHeaders.find((h) => ["date","transactiondate","postdate","entrydate"].includes(toKey(h)));
+        const debitCol = rawHeaders.find((h) => toKey(h) === "debit");
+        const creditCol = rawHeaders.find((h) => toKey(h) === "credit");
+        const acctTypeCol = rawHeaders.find((h) => ["accounttype","acctype","type"].includes(toKey(h)));
+        const hasPeriod = headerSet.has("period");
+        if (dateCol && (debitCol || creditCol) && acctTypeCol && !hasPeriod) {
+          effectiveAggregations = {
+            groupBy: { sourceColumn: dateCol, granularity: "month" },
+            derived: [
+              ...(creditCol ? [{ targetField: "revenue", op: "sum" as const, source: creditCol, filter: { column: acctTypeCol, values: ["income","revenue","sales","other income"] } }] : []),
+              ...(debitCol ? [{ targetField: "expenses", op: "sum" as const, source: debitCol, filter: { column: acctTypeCol, values: ["expense","cost of goods sold","cogs","other expense"] } }] : []),
+            ],
+            computed: [{ targetField: "ebitda", expression: "revenue-expenses" }],
+          };
+        }
+      }
+
       let rows: Record<string, string>[] = [];
-      if (aggregations && aggregations.groupBy?.sourceColumn) {
+      if (effectiveAggregations && effectiveAggregations.groupBy?.sourceColumn) {
         // Aggregation mode: keep raw column names, apply transformation to derive target rows
         const rawRows: Record<string, string>[] = [];
         for (let i = 1; i < jsonRows.length && i < 50001; i++) {
