@@ -48,13 +48,17 @@ function detectIssues(headers: string[], tableType: string, sampleRows: Record<s
 }
 
 function getAiConfig(): { apiKey: string; baseUrl: string; model: string } | null {
+  // 1. Prefer Replit AI Integrations OpenAI proxy — billed to Replit credits, no quota issues
+  if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY && process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
+    return { apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY, baseUrl: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL, model: "gpt-4o-mini" };
+  }
+  // 2. Direct OpenAI key
+  if (process.env.OPENAI_API_KEY) {
+    return { apiKey: process.env.OPENAI_API_KEY, baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" };
+  }
+  // 3. Google AI Studio direct (free tier — limited quota)
   if (process.env.GOOGLE_API_KEY) {
     return { apiKey: process.env.GOOGLE_API_KEY, baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash" };
-  }
-  const openaiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  if (openaiKey) {
-    const baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1";
-    return { apiKey: openaiKey, baseUrl, model: "gpt-4o-mini" };
   }
   return null;
 }
