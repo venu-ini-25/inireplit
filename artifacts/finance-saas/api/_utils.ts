@@ -139,6 +139,30 @@ export async function verifyClerkJwt(token: string): Promise<{ payload: Record<s
   }
 }
 
+/** Detailed Clerk API lookup with error trace. */
+async function getEmailFromClerkApiDetailed(sub: string, clerkSecret: string): Promise<{ email: string; error: string }> {
+  try {
+    const resp = await fetch(`https://api.clerk.com/v1/users/${sub}`, {
+      headers: { Authorization: `Bearer ${clerkSecret}` },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) {
+      const body = (await resp.text()).slice(0, 120);
+      return { email: "", error: `HTTP ${resp.status}: ${body}` };
+    }
+    const user = await resp.json() as {
+      email_addresses?: { id: string; email_address: string }[];
+      primary_email_address_id?: string;
+    };
+    const emailObj = user.email_addresses?.find((e) => e.id === user.primary_email_address_id);
+    const email = emailObj?.email_address?.toLowerCase() ?? "";
+    if (!email) return { email: "", error: `user found but no primary email (count=${user.email_addresses?.length ?? 0})` };
+    return { email, error: "" };
+  } catch (e) {
+    return { email: "", error: `exception: ${(e as Error).message}` };
+  }
+}
+
 /** Look up a user's email via Clerk API using CLERK_SECRET_KEY. */
 async function getEmailFromClerkApi(sub: string, clerkSecret: string): Promise<string> {
   try {
@@ -160,56 +184,56 @@ async function getEmailFromClerkApi(sub: string, clerkSecret: string): Promise<s
 
 // ── Main auth entry point ─────────────────────────────────────────────────────
 
-export async function getAuthEmail(req: VercelRequest): Promise<string> {
+export async function getAuthEmailDetailed(req: VercelRequest): Promise<{ email: string; trace: string }> {
   const authHeader = req.headers.authorization as string | undefined;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (!token) return "";
+  if (!token) return { email: "", trace: authHeader ? "auth header present but not Bearer" : "no auth header" };
 
-  // Layer 1: HMAC — for custom admin tokens signed with SESSION_SECRET / JWT_SECRET
+  // Layer 1: HMAC
   const jwtSecrets = [process.env.JWT_SECRET, process.env.SESSION_SECRET].filter(Boolean) as string[];
   for (const secret of jwtSecrets) {
     const payload = await verifyHmacJwt(token, secret);
-    if (payload?.email) return payload.email.toLowerCase();
+    if (payload?.email) return { email: payload.email.toLowerCase(), trace: "HMAC ok" };
   }
 
-  // Layer 2: Clerk RS256 JWT (what getToken() returns in the browser)
-  // Step A: Verify signature using Clerk's public JWKS (reliable, no secret needed)
-  // Step B: Get email — from custom claim, or Clerk API (uses CLERK_SECRET_KEY)
-  const { payload: verified } = await verifyClerkJwt(token);
-  if (verified) {
-    // 2a. Email in JWT custom claim (fastest — configure in Clerk Dashboard → Sessions)
-    const claimEmail = (verified["email"] ?? verified["email_address"]) as string | undefined;
-    if (claimEmail) return claimEmail.toLowerCase();
+  // Layer 2: Clerk JWT
+  const { payload: verified, error: verifyErr } = await verifyClerkJwt(token);
+  if (!verified) return { email: "", trace: `JWT verify failed: ${verifyErr}` };
 
-    // 2b. Clerk API email lookup using CLERK_SECRET_KEY
-    const clerkSecret = process.env.CLERK_SECRET_KEY;
-    const sub = verified["sub"] as string | undefined;
-    if (clerkSecret && sub) {
-      const email = await getEmailFromClerkApi(sub, clerkSecret);
-      if (email) return email;
-    }
+  const claimEmail = (verified["email"] ?? verified["email_address"]) as string | undefined;
+  if (claimEmail) return { email: claimEmail.toLowerCase(), trace: "JWT claim ok" };
 
-    // 2c. Last resort: check if sub matches a configured admin user ID
-    const adminUserIds = (process.env.ADMIN_CLERK_USER_IDS ?? "").split(",").map(s => s.trim()).filter(Boolean);
-    const sub2 = verified["sub"] as string | undefined;
-    if (sub2 && adminUserIds.includes(sub2)) {
-      return getAdminEmails()[0] ?? "";
-    }
+  const clerkSecret = process.env.CLERK_SECRET_KEY;
+  const sub = verified["sub"] as string | undefined;
+  if (!clerkSecret) return { email: "", trace: "JWT verified but no CLERK_SECRET_KEY env var" };
+  if (!sub) return { email: "", trace: "JWT verified but no sub claim" };
+
+  const apiResult = await getEmailFromClerkApiDetailed(sub, clerkSecret);
+  if (apiResult.email) return { email: apiResult.email, trace: `Clerk API ok` };
+
+  // Last resort: admin user ID list
+  const adminUserIds = (process.env.ADMIN_CLERK_USER_IDS ?? "").split(",").map(s => s.trim()).filter(Boolean);
+  if (adminUserIds.includes(sub)) {
+    return { email: getAdminEmails()[0] ?? "", trace: "fallback admin user ID match" };
   }
 
-  return "";
+  return { email: "", trace: `Clerk API failed: ${apiResult.error}` };
+}
+
+export async function getAuthEmail(req: VercelRequest): Promise<string> {
+  return (await getAuthEmailDetailed(req)).email;
 }
 
 export async function requireAdmin(req: VercelRequest, res: VercelResponse): Promise<string | null> {
-  const email = await getAuthEmail(req);
-  if (!email) { err(res, "Authentication required.", 401); return null; }
-  if (!getAdminEmails().includes(email)) { err(res, "Forbidden: admin access required.", 403); return null; }
+  const { email, trace } = await getAuthEmailDetailed(req);
+  if (!email) { err(res, `Authentication required. [${trace}]`, 401); return null; }
+  if (!getAdminEmails().includes(email)) { err(res, `Forbidden: admin access required. [${email}]`, 403); return null; }
   return email;
 }
 
 export async function requireAuth(req: VercelRequest, res: VercelResponse): Promise<string | null> {
-  const email = await getAuthEmail(req);
-  if (!email) { err(res, "Authentication required.", 401); return null; }
+  const { email, trace } = await getAuthEmailDetailed(req);
+  if (!email) { err(res, `Authentication required. [${trace}]`, 401); return null; }
   return email;
 }
 
