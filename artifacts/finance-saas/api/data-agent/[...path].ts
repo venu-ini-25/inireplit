@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { handleCors, err, extractPath } from "../_utils.js";
+import { checkAndRecordAiUsage } from "../_db.js";
 
 function toKey(s: string) { return s.toLowerCase().replace(/[\s_\-.]+/g, "").trim(); }
 
@@ -101,7 +102,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const issues = detectIssues(cleanHeaders, detectedType, sampleRows);
 
     let aiError = "";
+    let aiUsage: { usedToday: number; cap: number } | null = null;
     if (getAiConfig()) {
+      try {
+        const usage = await checkAndRecordAiUsage("analyze");
+        aiUsage = { usedToday: usage.usedToday, cap: usage.cap };
+        if (!usage.allowed) {
+          aiError = `Daily AI cap reached (${usage.usedToday}/${usage.cap}). Using rule-based fallback.`;
+        }
+      } catch (e) { aiError = `AI usage check failed: ${(e as Error).message}`; }
+    }
+    if (getAiConfig() && !aiError) {
       try {
         const schemaContext = Object.entries(DB_SCHEMAS).map(([t, s]) => `${t}: ${s.description}\n  Fields: ${s.fields.join(", ")}`).join("\n\n");
         const sampleText = sampleRows.slice(0, 5).map((row, i) => `Row ${i + 1}: ${Object.entries(row).slice(0, 10).map(([k, v]) => `${k}="${v}"`).join(", ")}`).join("\n");
@@ -258,6 +269,13 @@ Be specific, concise, and knowledgeable about financial data.`;
     res.setHeader("Connection", "keep-alive");
 
     try {
+      const usage = await checkAndRecordAiUsage("chat");
+      if (!usage.allowed) {
+        const capMsg = `Daily AI cap reached (${usage.usedToday}/${usage.cap} calls in last 24h). Chat is paused until tomorrow to keep credit usage low. You can still review and adjust mappings manually.`;
+        res.write(`data: ${JSON.stringify({ content: capMsg })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true, fullContent: capMsg })}\n\n`);
+        res.end(); return;
+      }
       const { resp: aiRes, error: chatErr } = await callAI([{ role: "system", content: systemPrompt }, ...history.slice(-6), { role: "user", content: message }], true);
       if (!aiRes?.ok) throw new Error(chatErr || "AI request failed");
       const reader = aiRes.body?.getReader();

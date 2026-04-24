@@ -50,6 +50,30 @@ export async function ensureTable() {
     );
     CREATE INDEX IF NOT EXISTS idx_import_logs_imported_at ON import_logs(imported_at DESC);
   `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ai_usage_log (
+      id BIGSERIAL PRIMARY KEY,
+      endpoint TEXT NOT NULL,
+      called_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_called_at ON ai_usage_log(called_at DESC);
+  `);
+}
+
+const AI_DAILY_CAP = parseInt(process.env.AI_DAILY_CAP ?? "50", 10);
+
+export async function checkAndRecordAiUsage(endpoint: string): Promise<{ allowed: boolean; usedToday: number; cap: number }> {
+  const db = getPool();
+  await ensureTable();
+  const { rows } = await db.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count FROM ai_usage_log WHERE called_at >= NOW() - INTERVAL '24 hours'`
+  );
+  const usedToday = parseInt(rows[0]?.count ?? "0", 10);
+  if (usedToday >= AI_DAILY_CAP) {
+    return { allowed: false, usedToday, cap: AI_DAILY_CAP };
+  }
+  await db.query(`INSERT INTO ai_usage_log (endpoint) VALUES ($1)`, [endpoint]);
+  return { allowed: true, usedToday: usedToday + 1, cap: AI_DAILY_CAP };
 }
 
 export function rowToRequest(row: Record<string, unknown>) {
