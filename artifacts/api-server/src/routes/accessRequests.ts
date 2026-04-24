@@ -32,7 +32,7 @@ function rowToRequest(row: Record<string, unknown>): AccessRequest {
     aum: (row.aum as string) ?? "",
     message: (row.message as string) ?? "",
     status: row.status as AccessStatus,
-    platformAccess: ((row.platform_access as string) ?? "demo") as "app" | "demo" | "both" | "admin",
+    platformAccess: ((row.platform_access as string) ?? "demo") as "app" | "demo" | "both",
     submittedAt: (row.submitted_at as Date).toISOString(),
     reviewedAt: row.reviewed_at ? (row.reviewed_at as Date).toISOString() : null,
   };

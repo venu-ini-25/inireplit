@@ -5,6 +5,76 @@ import { db, companies, deals, financialSnapshots, metricsSnapshots, importLogs 
 import { desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+// ─── Aggregation (for QB GL / bank statement transaction-level data) ──────────
+interface AggSpec {
+  groupBy: { sourceColumn: string; granularity: "month" | "quarter" | "year" | "raw" };
+  derived: { targetField: string; op: "sum" | "count"; source: string; filter?: { column: string; values: string[] } }[];
+  computed?: { targetField: string; expression: string }[];
+}
+
+function toPeriodKey(raw: string, gran: "month" | "quarter" | "year" | "raw"): string {
+  if (!raw) return "";
+  if (gran === "raw") return raw.trim();
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) {
+    const m = raw.match(/(\d{4})[-/](\d{1,2})/);
+    if (m) { const yr = m[1]; const mo = String(parseInt(m[2]!, 10)).padStart(2, "0"); return gran === "year" ? yr! : `${yr}-${mo}`; }
+    return raw.trim();
+  }
+  const yr = d.getFullYear(); const mo = String(d.getMonth() + 1).padStart(2, "0");
+  if (gran === "year") return String(yr);
+  if (gran === "quarter") { const q = Math.floor(d.getMonth() / 3) + 1; return `${yr}-Q${q}`; }
+  return `${yr}-${mo}`;
+}
+
+function applyAggregations(rawRows: Record<string, string>[], spec: AggSpec): Record<string, string>[] {
+  const groups = new Map<string, Record<string, number>>();
+  for (const row of rawRows) {
+    const key = toPeriodKey(row[spec.groupBy.sourceColumn] ?? "", spec.groupBy.granularity);
+    if (!key) continue;
+    const acc = groups.get(key) ?? {};
+    for (const d of spec.derived) {
+      if (d.filter) {
+        const v = (row[d.filter.column] ?? "").toString().trim().toLowerCase();
+        if (!d.filter.values.some((x) => v.includes(x.toLowerCase()))) continue;
+      }
+      const numVal = d.op === "count" ? 1 : parseNum(row[d.source] ?? "0");
+      acc[d.targetField] = (acc[d.targetField] ?? 0) + numVal;
+    }
+    groups.set(key, acc);
+  }
+  const out: Record<string, string>[] = [];
+  for (const [period, vals] of groups) {
+    const row: Record<string, string> = { period };
+    for (const [k, v] of Object.entries(vals)) row[k] = String(v);
+    if (spec.computed) {
+      for (const c of spec.computed) {
+        const expr = c.expression.replace(/[a-z_]+/gi, (name) => String(parseFloat(row[name] ?? "0") || 0));
+        try { row[c.targetField] = String(Function(`"use strict";return (${expr})`)()); } catch { row[c.targetField] = "0"; }
+      }
+    }
+    out.push(row);
+  }
+  return out.sort((a, b) => (a.period! > b.period! ? 1 : -1));
+}
+
+// Parse raw rows keeping original header names (for aggregation mode)
+function parseRawRows(buffer: Buffer): { rawHeaders: string[]; rawRows: Record<string, string>[] } {
+  const workbook = XLSX.read(buffer, { type: "buffer", raw: false });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) throw new Error("No sheets found in file");
+  const sheet = workbook.Sheets[sheetName];
+  const jsonRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "" }) as string[][];
+  const rawHeaders = (jsonRows[0] ?? []).map((h) => String(h).trim()).filter(Boolean);
+  const rawRows: Record<string, string>[] = [];
+  for (let i = 1; i < jsonRows.length && i < 50001; i++) {
+    const row = jsonRows[i] ?? []; const mapped: Record<string, string> = {}; let hasData = false;
+    for (let j = 0; j < rawHeaders.length; j++) { const val = String(row[j] ?? "").trim(); mapped[rawHeaders[j]!] = val; if (val) hasData = true; }
+    if (hasData) rawRows.push(mapped);
+  }
+  return { rawHeaders, rawRows };
+}
+
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
@@ -50,8 +120,15 @@ function applyMapping(raw: string, mapping: Record<string, string>): string {
 
 function detectTableType(headers: string[]): TableType {
   const h = headers.map(toKey);
+  // Transaction-level GL / bank statement data → financials (will be aggregated)
+  const hasDate = h.some((x) => ["date","transactiondate","postdate","entrydate","trandate"].includes(x));
+  const hasDebit = h.includes("debit");
+  const hasCredit = h.includes("credit");
+  const hasAcctType = h.some((x) => ["accounttype","acctype","type"].includes(x));
+  if (hasDate && (hasDebit || hasCredit) && hasAcctType) return "financials";
+  if (hasDate && h.some((x) => ["amount","deposit","withdrawal"].includes(x)) && h.some((x) => ["description","memo","payee","merchant"].includes(x))) return "financials";
   if (h.some((x) => ["valuation", "moic", "irr", "ownership"].includes(x))) return "companies";
-  if (h.some((x) => ["dealsize", "dealname", "closingdate", "dealtype"].includes(x))) return "deals";
+  if (h.some((x) => ["dealsize", "dealname", "closingdate", "dealtype", "stagename"].includes(x))) return "deals";
   if (h.some((x) => ["revenue", "expenses", "ebitda"].includes(x)) && h.includes("period")) return "financials";
   if (h.some((x) => ["metrickey", "metric_key"].includes(x))) return "metrics";
   if (h.includes("period") && h.some((x) => ["revenue", "expenses", "arr", "ebitda"].includes(x))) return "financials";
@@ -229,6 +306,7 @@ router.post("/import/commit", upload.single("file"), async (req, res): Promise<v
 
     let mapping: Record<string, string>;
     let forcedType: Exclude<TableType, "unknown"> | undefined;
+    let aggSpec: AggSpec | null = null;
     try {
       const rawMapping = req.body["columnMapping"];
       mapping = rawMapping
@@ -236,21 +314,37 @@ router.post("/import/commit", upload.single("file"), async (req, res): Promise<v
         : {};
       const rawForcedType: string | undefined = req.body["tableType"];
       forcedType = isKnownTableType(rawForcedType) ? rawForcedType : undefined;
+      const rawAgg = req.body["aggregations"];
+      if (rawAgg) aggSpec = typeof rawAgg === "string" ? JSON.parse(rawAgg) as AggSpec : rawAgg as AggSpec;
     } catch {
-      res.status(400).json({ error: "Invalid columnMapping JSON in request body" });
+      res.status(400).json({ error: "Invalid JSON in request body" });
       return;
     }
 
-    let parsed: ReturnType<typeof parseFile>;
-    try {
-      parsed = parseFile(buffer, mapping);
-    } catch (err) {
-      res.status(400).json({ error: (err as Error).message });
-      return;
+    // Aggregation mode: parse with raw column names, aggregate transactions → summary rows
+    let rows: ReturnType<typeof parseFile>["rows"];
+    let tableType: TableType;
+    if (aggSpec?.groupBy?.sourceColumn) {
+      let rawHeaders: string[];
+      let rawRows: Record<string, string>[];
+      try {
+        ({ rawHeaders, rawRows } = parseRawRows(buffer));
+      } catch (err) {
+        res.status(400).json({ error: (err as Error).message }); return;
+      }
+      tableType = forcedType ?? detectTableType(rawHeaders);
+      rows = applyAggregations(rawRows, aggSpec);
+    } else {
+      let parsed: ReturnType<typeof parseFile>;
+      try {
+        parsed = parseFile(buffer, mapping);
+      } catch (err) {
+        res.status(400).json({ error: (err as Error).message });
+        return;
+      }
+      rows = parsed.rows;
+      tableType = forcedType ?? parsed.detectedType;
     }
-
-    const { rows, detectedType } = parsed;
-    const tableType: TableType = forcedType ?? detectedType;
 
     if (tableType === "unknown") {
       res.status(400).json({ error: "Could not determine data type. Please select a data type (Portfolio Companies, Deals, etc.) before importing." });

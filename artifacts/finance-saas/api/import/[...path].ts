@@ -75,8 +75,15 @@ const DB_FIELDS: Record<Exclude<TableType, "unknown">, { required: string[]; all
 
 function detectTableType(headers: string[]): TableType {
   const h = headers.map(toKey);
+  // Transaction-level GL data (QuickBooks, NetSuite, bank statements) → financials (will be aggregated)
+  const hasDate = h.some((x) => ["date","transactiondate","postdate","entrydate","trandate"].includes(x));
+  const hasDebit = h.includes("debit");
+  const hasCredit = h.includes("credit");
+  const hasAcctType = h.some((x) => ["accounttype","acctype","type"].includes(x));
+  if (hasDate && (hasDebit || hasCredit) && hasAcctType) return "financials";
+  if (hasDate && h.some((x) => ["amount","deposit","withdrawal"].includes(x)) && h.some((x) => ["description","memo","payee","merchant"].includes(x))) return "financials";
   if (h.some((x) => ["valuation","moic","irr","ownership"].includes(x))) return "companies";
-  if (h.some((x) => ["dealsize","dealname","closingdate","dealtype"].includes(x))) return "deals";
+  if (h.some((x) => ["dealsize","dealname","closingdate","dealtype","stagename"].includes(x))) return "deals";
   if (h.some((x) => ["revenue","expenses","ebitda"].includes(x)) && h.includes("period")) return "financials";
   if (h.some((x) => ["metrickey"].includes(x))) return "metrics";
   if (h.includes("period") && h.some((x) => ["revenue","expenses","arr","ebitda"].includes(x))) return "financials";
