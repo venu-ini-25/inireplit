@@ -9,6 +9,7 @@ import {
   useGetRevenueAnalytics,
   useGetOperationsMetrics,
 } from "@workspace/api-client-react";
+import { InsightsPanel } from "@/components/InsightsPanel";
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -167,6 +168,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <InsightsPanel />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-border shadow-sm p-6">

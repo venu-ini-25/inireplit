@@ -11,6 +11,7 @@ import dataRouter from "./data";
 import integrationsRouter from "./integrations";
 import importRouter from "./import";
 import dataAgentRouter from "./dataAgent";
+import insightsRouter from "./insights";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(dataRouter);
 router.use(integrationsRouter);
 router.use(importRouter);
 router.use(dataAgentRouter);
+router.use(insightsRouter);
 
 export default router;
